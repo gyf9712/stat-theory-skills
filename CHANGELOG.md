@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.0.3 — Reference Mode Awareness (single-file vs two-file submissions)
+
+Handles the practical reality that JASA / AoS / JRSS-B / Biometrika / Econometrica
+submissions split main text and supplement into TWO separately-compiled PDF files,
+where LaTeX `\ref{}` does NOT work across files.
+
+### proofcheck additions
+- **Reference Mode detection** at Step 0: distinguish Mode A (single-file) from
+  Mode B (two-file main+supplement)
+- **Mode-aware cross-reference audit** (Pass 0 Task 2B):
+  - Mode A: standard `\ref{}` ↔ `\label{}` audit
+  - Mode B: per-file audit + flags cross-file `\ref{}` as broken (S1 issue)
+  - Mode B: validates "of the supplement" / "of the main text" wording is paired
+    with hard-coded numbers
+  - Mode B: checks S-prefix numbering consistency in supplement
+
+### proof-repair additions
+- **Step 0B: Detect Reference Mode** before any LaTeX patch is written
+- LaTeX patches now declare their reference mode and conformance rules:
+  - Within-file references → `\ref{}` / `\eqref{}` / `\cref{}` as normal
+  - Cross-file references → hard-coded numbers ("Lemma S.3 of the supplement",
+    "Assumption 2 of the main text"), NEVER `\ref{}`
+- New lemmas inserted in supplement get S-prefixed display numbers, recorded
+  for downstream main-text patches to hard-code
+- **Pre-patch validation rules** scan each patch to catch leaked cross-file `\ref{}`
+- BibTeX `\cite{}` is shared (works in both files) — only mathematical-object
+  `\ref{}` is mode-sensitive
+
 ## v1.0.2 — Step Completeness Audit
 
 Goes beyond passive anti-fabrication word-flagging to actively detect, reconstruct,

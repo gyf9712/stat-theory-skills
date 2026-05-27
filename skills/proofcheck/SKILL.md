@@ -96,6 +96,34 @@ mkdir -p "$PAPER_DIR/audit"/{01_index,02_ledgers,03_dependencies,04_local_checks
 
 If `$ARGUMENTS` is a directory, look for `paper.tex` inside it. If it's a `.tex` file path, use it directly.
 
+#### Detect Reference Mode (one-file vs two-file submission)
+
+Before any cross-reference audit, detect whether the paper is:
+
+- **Mode A: single-file** — one .tex compiles to one PDF (arXiv, NeurIPS/ICML)
+- **Mode B: two-file** — `paper.tex` + `supplement.tex` (or similar) compile separately
+  (typical for JASA, AoS, JRSS-B, Biometrika, Econometrica, JBES, JOE)
+
+```bash
+# Count top-level .tex files (excluding files that are \input by others)
+find "$(dirname "$PAPER_PATH")" -maxdepth 1 -name "*.tex" -type f
+# Look for explicit supplement files
+ls "$(dirname "$PAPER_PATH")"/{supp*,supplement*,appendix*,SI*}.tex 2>/dev/null
+# Look for S-prefix labels — strong signal of Mode B
+grep -l 'label{[^}]*:S[._]\|label{S' "$(dirname "$PAPER_PATH")"/*.tex 2>/dev/null
+```
+
+Record in `CHECK_PLAN.md`:
+```markdown
+## Reference Mode
+Mode: [A: single-file / B: two-file]
+Files: [list]
+Cross-file convention (if Mode B): hard-coded numbers (e.g., "Lemma S.3", 
+       "Theorem 2.1 of the main text") — NOT \ref{} across files
+```
+
+This mode affects Pass 0's cross-reference audit (Step 2B) — see below.
+
 ### Step 1: Bootstrap — Generate CHECK_PLAN.md + EXECUTION_ORDER.md
 
 Read the paper and extract the proof architecture. Do NOT check any proofs yet — only map the terrain.
@@ -151,12 +179,53 @@ For each: label, exact location, mathematical objects, assumptions (explicit + i
 
 **Task 2B: Cross-Reference Audit** → `audit/01_index/cross_reference_audit.md`
 
-Match all `\ref{}` against `\label{}`. Report: broken refs, orphan labels, duplicate labels.
+Audit logic depends on Reference Mode (detected in Step 0):
+
+**Mode A (single-file)**: standard audit
+- Match all `\ref{}` / `\eqref{}` against `\label{}` within the same file
+- Report: broken refs, orphan labels, duplicate labels
 
 ```bash
-# Extract labels and refs
 grep -no '\\label{[^}]*}' "$PAPER_PATH" | sort > /tmp/labels.txt
 grep -no '\\ref{[^}]*}\|\\eqref{[^}]*}' "$PAPER_PATH" | sort > /tmp/refs.txt
+```
+
+**Mode B (two-file main+supplement)**: per-file audit + cross-file convention check
+1. **Within-file audit** (run for each file separately):
+   - `\ref{}` in main.tex must resolve to `\label{}` in main.tex only
+   - `\ref{}` in supplement.tex must resolve to `\label{}` in supplement.tex only
+2. **Cross-file `\ref{}` is a bug**:
+   - If main.tex has `\ref{LABEL}` whose `\label{LABEL}` lives in supplement.tex → REPORT as broken ref (S1)
+   - The author should have used a hard-coded number ("Lemma S.3 of the supplement")
+3. **Hard-coded number convention check**:
+   - Scan main.tex for "of the supplement", "of the supplementary material", "in the supplement"
+   - Each should be paired with a hard-coded number (e.g., "Lemma S.3 of the supplement")
+   - Scan supplement.tex for "of the main text", "in the main text"
+   - Each should be paired with a hard-coded number (e.g., "Assumption 2 of the main text")
+4. **Supplement numbering consistency**:
+   - Supplement lemmas/equations should use S-prefix display numbers
+   - Verify the supplement's `\begin{theorem}` / equation counters are properly redefined
+     (e.g., `\renewcommand{\thelemma}{S.\arabic{lemma}}` or use of `\appendix` reset)
+
+```bash
+# Per-file labels and refs
+for f in main.tex supplement.tex; do
+  grep -no '\\label{[^}]*}' "$f" > /tmp/labels_$f.txt
+  grep -no '\\ref{[^}]*}\|\\eqref{[^}]*}\|\\cref{[^}]*}' "$f" > /tmp/refs_$f.txt
+done
+
+# Detect cross-file leaks
+comm -12 <(sed 's/.*\\ref{\([^}]*\)}.*/\1/' /tmp/refs_main.tex.txt | sort -u) \
+         <(sed 's/.*\\label{\([^}]*\)}.*/\1/' /tmp/labels_supplement.tex.txt | sort -u)
+# Any output here means main.tex \ref{}'s a label that lives in supplement.tex → BUG
+```
+
+Record findings (Mode B):
+```markdown
+## Cross-File Reference Issues (Mode B)
+| Issue | File | Line | Problem | Severity |
+| Bad cross-file \ref | main.tex | 142 | \ref{lem:S3} but label is in supplement.tex; should be "Lemma S.3 of the supplement" | S1 |
+| Missing "of the supplement" | main.tex | 89 | "by Lemma S.7" but doesn't say which file | S2 |
 ```
 
 **Task 2C: Notation Ledger** → `audit/02_ledgers/notation_ledger.md`

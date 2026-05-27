@@ -71,6 +71,67 @@ lightweight inline check on the specific unit they point to.
 - Units marked `NOT CURRENTLY JUSTIFIED` → pre-classify as Replace-Technique or blockage
 - `Candidate literature` hints from blockage reports → seed the literature search (Step 4)
 
+### Step 0B: Detect Reference Mode (MANDATORY before any LaTeX patch)
+
+JASA / AoS / Biometrika / JRSS-B / Econometrica submissions typically separate
+**Main Text** and **Supplementary Material** into TWO compiled PDF files. LaTeX
+`\ref{}` does NOT work across files (without the fragile `xr` package), so every
+cross-file citation must use **hard-coded numbers**, not `\ref{}`.
+
+Detect the paper's reference mode BEFORE writing any LaTeX patches:
+
+**Mode A: Single-file paper** (one .tex compiles to one PDF)
+- Most arXiv preprints, NeurIPS/ICML/ICLR (one combined PDF)
+- Use `\label{...}` and `\ref{...}` / `\eqref{...}` / `\cref{...}` freely
+- Any new lemma/equation gets a `\label{}`
+
+**Mode B: Two-file submission** (separate main.tex + supplement.tex → two PDFs)
+- Common for JASA, AoS, Biometrika, JRSS-B, Econometrica, JBES
+- Identify by:
+  - Multiple top-level .tex files (e.g., `paper.tex` + `supplement.tex` /
+    `appendix.tex` / `supp.tex`)
+  - Author's `cover_letter.txt` or submission notes mentioning "supplement"
+  - Section labeled "Online Supplement" / "Supplementary Material" at end of paper
+- **Reference rules**:
+  - Within the same file → use `\ref{...}` as normal
+  - Across files (main↔supplement) → **NEVER use `\ref{}`** (it won't compile)
+  - Cross-file references must use hard-coded numbers:
+    - "Lemma S.3" (S prefix for supplement items)
+    - "Theorem 2.1 of the main text" (when supplement refers to main)
+    - "equation (S.7)" (equations in supplement use S.N numbering)
+  - When patching, you must KNOW the supplement's lemma numbering scheme to insert
+    the right hard-coded number
+
+**Detection procedure**:
+```bash
+# Count top-level .tex files (excluding those \input'd by others)
+find papers/<paper-name> -maxdepth 2 -name "*.tex" -type f
+
+# Check for explicit supplement files
+ls papers/<paper-name>/{supp*,supplement*,appendix*}.tex 2>/dev/null
+
+# Check for S-prefix labels (signal of two-file mode)
+grep -l "\\label{.*:S\\.\|\\label{S" papers/<paper-name>/*.tex
+```
+
+If two .tex files exist with parallel content (one shorter "main", one longer
+"supp"), this is Mode B. Confirm with the user before proceeding.
+
+**Where in REPAIR_PLAN.md to record**:
+```markdown
+## Reference Mode
+Mode: [A: single-file / B: two-file main+supplement]
+Files:
+  - paper.tex (main text)
+  - supplement.tex (supplementary material)  [if Mode B]
+Numbering scheme (Mode B):
+  - Main text: 1, 2, 3, ...
+  - Supplement: S.1, S.2, S.3, ... (or "S1, S2, S3")
+Cross-file citation style: hard-coded numbers + "of the supplement" / "of the main text"
+```
+
+All LaTeX patches in Step 7 (PATCHES.md) MUST respect this mode.
+
 ---
 
 ## Step 1: Issue Triage & Repair Classification
@@ -467,6 +528,7 @@ H(θ) ≽ μI, so λ_min(H(θ)) ≥ μ > 0.  □
 
 ### LaTeX Patch
 
+**Reference mode**: A (single-file) — using `\ref{}` cross-references
 Location: paper.tex, after line [XXX] (end of Lemma C.2 proof)
 
 ```latex
@@ -481,6 +543,29 @@ Taking expectations preserves the Loewner order, so
 $H(\theta) = \mathbb{E}[\nabla^2 f(X;\theta)] \succeq \mu I$.
 \end{proof}
 ```
+
+**If reference mode were B (two-file)** the same patch would instead use hard-coded
+numbers for any cross-file reference:
+
+```latex
+% In supplement.tex — inserting Lemma S.3 (next supplement number)
+\begin{lemma}[Hessian invertibility]\label{lem:hessian-invert}
+% Cross-file: Assumption 2 of the main text — DO NOT use \ref{}
+Under Assumption~2 of the main text, for all $\theta \in \Theta$,
+$\lambda_{\min}(H(\theta)) \geq \mu > 0$.
+\end{lemma}
+% Within supplement, normal \ref{} is fine:
+% ... use Lemma~\ref{lem:hessian-invert} later in the supplement
+```
+
+When the main text needs to cite this new supplement lemma, it must write
+"Lemma S.3 of the supplement" with a hard-coded `S.3`, NOT `\ref{lem:hessian-invert}`.
+
+**Rule of thumb** (apply automatically when writing patches):
+- Patch lives in the SAME file as everything it references → use `\ref{}` / `\eqref{}`
+- Patch references something in the OTHER file (main↔supplement) → hard-coded number
+- When inserting new lemmas in supplement (Mode B), assign them S-prefixed labels
+  AND record the assigned number, so subsequent main-text patches can hard-code it
 
 ### Repair Provability Status
 PROVABLE AS STATED — invertibility follows from strong convexity (Assumption 2)
@@ -731,25 +816,71 @@ Write new references to `papers/<paper-name>/repair_references.bib`:
 
 ### 7C: Generate LaTeX Patch Summary
 
-Write `papers/<paper-name>/PATCHES.md` with all LaTeX modifications in order:
+Write `papers/<paper-name>/PATCHES.md` with all LaTeX modifications in order.
+**Each patch declares its reference mode and conformance**:
 
 ```markdown
 # LaTeX Patches — Apply in Order
 
-## Patch 1: Insert Lemma C.3' (Hessian invertibility)
-- File: paper.tex
-- After line: [XXX]
-- Insert: [the latex block]
+## Reference Mode
+- Mode: [A: single-file / B: two-file main+supplement]
+- Files involved:
+  - paper.tex (main text)
+  - supplement.tex (if Mode B)
+- Supplement numbering scheme (if Mode B): S.1, S.2, S.3, ... or S1, S2, S3, ...
 
-## Patch 2: Fix Theorem 3.1 rate from O(n^{-1}) to O(n^{-1} log n)
-- File: paper.tex
+## Patch 1: Insert Lemma S.3 (Hessian invertibility)
+- File: supplement.tex   ← which file
+- After line: [XXX]
+- New label assigned: `\label{lem:hessian-invert}` (only valid within supplement.tex)
+- New display number: **S.3** (record this for any future main-text patch citing it)
+- Cross-file references inside this patch:
+  - "Assumption 2 of the main text" — hard-coded (cross-file)
+- Within-file references inside this patch:
+  - `\ref{assump:strong-convex-supp}` — OK if assumption is also in supplement
+- Insert:
+  ```latex
+  [the latex block, mode-correct]
+  ```
+
+## Patch 2: Update Theorem 2.1 in main text to invoke new Lemma S.3
+- File: paper.tex   ← main text
 - Line: [YYY]
+- Change: "since H(θ) is invertible (Lemma~\ref{...})"
+       → "since H(θ) is invertible (Lemma~S.3 of the supplement)"
+- NOTE: hard-coded "S.3" because this is a cross-file reference
+
+## Patch 3: Fix Theorem 3.1 rate
+- File: paper.tex
+- Line: [ZZZ]
 - Change: `O(n^{-1})` → `O(n^{-1} \log n)`
 
-## Patch 3: Add new bibliography entries
-- File: references.bib
+## Patch 4: Add new bibliography entries
+- File: references.bib (shared between main.tex and supplement.tex)
 - Append: [entries from repair_references.bib]
+- Note: .bib is shared, so BibTeX `\cite{key}` works in BOTH files normally
 ```
+
+### Pre-patch validation rules
+
+Before finalizing PATCHES.md, the agent must verify:
+
+1. **Every `\ref{}` in a patch resolves within the SAME file**
+   - Scan each patch's LaTeX block for `\ref{LABEL}` / `\eqref{LABEL}` / `\cref{LABEL}`
+   - For each, check whether the `\label{LABEL}` exists in the patch's target file
+   - If not → ERROR: convert to hard-coded reference
+
+2. **Every cross-file reference uses hard-coded numbers**
+   - Scan for phrases like "Lemma X.Y", "Theorem N", "equation (M)" in cross-file contexts
+   - Verify the number is hard-coded, not a `\ref{}`
+
+3. **Supplement-file lemma numbering is consistent**
+   - If Mode B: new lemmas in supplement get S-prefixed display numbers
+   - Track assigned numbers across patches so the master plan is internally consistent
+
+4. **Citation `\cite{}` works in both files**
+   - BibTeX `\cite{}` is fine cross-file because .bib is shared
+   - Only mathematical-object `\ref{}` is mode-sensitive
 
 ---
 
