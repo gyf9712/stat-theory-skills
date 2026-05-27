@@ -171,21 +171,48 @@ After install + `/model opus`:
 
 ## Codex MCP (optional but recommended)
 
-Three of the four skills can optionally invoke Codex (OpenAI GPT via MCP) as an
-independent second opinion ("adversarial reviewer"). To enable:
+All five skills can optionally invoke Codex (OpenAI GPT via MCP) as an
+**adversarial reviewer**. To enable:
 
 ```bash
 claude mcp add codex -s user -- codex mcp-server
 ```
 
-When Codex MCP is available, the skills will:
-- `proofcheck`: cross-confirm S0/S1 issues + spot-check verified units
-- `proof-repair`: stress-test each proposed repair
-- `theory-sharpen`: independently assess assumption relaxability, rate optimality, and theory-practice gaps
+### The discussion protocol — NOT wholesale acceptance
 
-The pattern is **first-independent-then-reconcile**: Codex never sees Claude's
-findings until after it forms its own judgment. Disagreements are flagged for
-human review.
+All skills follow [`CODEX_PROTOCOL.md`](CODEX_PROTOCOL.md): Codex is an adversarial
+reviewer to **discuss with iteratively until convergence**, never an oracle whose
+findings are accepted wholesale.
+
+The 5-round protocol:
+1. Claude produces output
+2. Codex reviews adversarially
+3. Claude critically evaluates EACH finding (ACCEPT / PUSH BACK / REQUEST CLARIFICATION)
+4. Codex responds to push-back / clarifications
+5. Iterate until convergence or escalate persistent disagreements to user
+
+Every Codex-using skill emits a `codex_discussion.md` documenting the full
+round-by-round dialogue so the user can override either model's position.
+
+**Forbidden behaviors** (explicitly called out in each skill):
+- Silent wholesale acceptance of Codex findings
+- Silent rejection of Codex findings to defend prior work
+- ACCEPT without recording the reasoning
+- PUSH BACK without a substantive counter-argument
+
+### What each skill uses Codex for
+
+| Skill | Codex's adversarial role |
+|-------|-------------------------|
+| `proofcheck` | Cross-confirm S0/S1 issues + spot-check verified units + find missed issues |
+| `proof-repair` | Stress-test each proposed repair; try to break it |
+| `theory-sharpen` | Independently assess assumption relaxability, rate optimality, theory-practice gaps |
+| `theory-simulation` | Pre-run design review + post-run figure/reconciliation review |
+| `theory-design` | Adversarial referee on the entire framework + literature anchor + positioning |
+
+Real examples of the protocol in practice are documented in CHANGELOG.md
+(`theory-simulation v1.1.1` had 20 Codex findings: 13 accepted, 6 push-backs
+of which 5 produced refinements and 1 was conceded by Claude).
 
 ## Pipeline example
 

@@ -1160,6 +1160,14 @@ plt.close(fig)
 
 ## Step 4F: Codex Adversarial Review of Simulation Design (if Codex MCP available)
 
+**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
+about the simulation plan or figures requires explicit ACCEPT / PUSH BACK /
+REQUEST CLARIFICATION with reasoning. Especially critical here because expensive
+sim reruns triggered by reflexive Codex acceptance waste CPU days. The skill
+must emit `simulation/codex_discussion.md` documenting the full round-by-round
+dialogue.
+
 Before running expensive simulations, send the SIMULATION_PLAN.md to Codex for an
 independent design review. Catching design flaws BEFORE running saves CPU hours.
 After running, do a second Codex pass on the figures + reconciliation.

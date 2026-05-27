@@ -437,6 +437,13 @@ Write findings to `audit/05_adversarial/hidden_assumptions.md` and `audit/05_adv
 
 #### Codex Adversarial Cross-Review (if Codex MCP available)
 
+**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
+requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION with reasoning.
+Forbidden behaviors: silent wholesale acceptance, silent rejection, agreement
+without recording why. The skill must emit `codex_discussion.md` documenting
+the full round-by-round dialogue.
+
 Use `mcp__codex__codex` to get an **independent second opinion** from a different model.
 The key design: Codex does NOT see Claude's findings — it forms its own judgment first.
 

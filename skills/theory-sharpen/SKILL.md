@@ -816,6 +816,15 @@ For each gap between this paper and the frontier:
 
 ## Step 5B: Codex Independent Assessment (if Codex MCP available)
 
+**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+to **discuss with iteratively**, not an oracle to defer to. For each Codex finding
+about whether an assumption can be relaxed or a rate sharpened, Claude MUST decide
+explicitly: ACCEPT (with reasoning), PUSH BACK (with substantive counter-argument),
+or REQUEST CLARIFICATION. Especially critical here because simulation/Codex
+evidence can OVERCLAIM theory relaxation — see the asymmetry rule in Step 5A.
+The skill must emit `codex_discussion.md` documenting the full round-by-round
+dialogue.
+
 After Claude completes its analysis (Steps 1-5), use Codex as an **independent second
 opinion** on the most important findings. Codex sees the paper but NOT Claude's analysis,
 so it can surface blind spots.

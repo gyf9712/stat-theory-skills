@@ -638,6 +638,13 @@ written and verified, not when the strategy is sketched.
 
 ### Step 5C: Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
 
+**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
+requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION with reasoning.
+Especially critical here: a repair shaped by reflexive Codex acceptance can
+silently change the paper's contribution. The skill must emit `codex_discussion.md`
+documenting the full round-by-round dialogue.
+
 After Claude writes each repair + proof, send it to Codex for adversarial stress-testing.
 Codex's job: try to BREAK the proposed repair.
 

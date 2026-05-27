@@ -1,5 +1,60 @@
 # Changelog
 
+## v1.4.0 — Shared Codex Discussion Protocol (NOT wholesale acceptance)
+
+User observation: across all skills using Codex, the implicit risk was that Claude
+would "全盘接受" Codex findings rather than discussing them. This release codifies
+the discipline.
+
+### New file: `CODEX_PROTOCOL.md` (repo root)
+
+A shared, explicit protocol for how Claude skills invoke Codex:
+
+- **Core principle**: Codex is an adversarial reviewer to discuss with, NOT an
+  oracle to defer to
+- **5-round protocol**: Claude output → Codex review → Claude per-finding
+  evaluation (ACCEPT / PUSH BACK / REQUEST CLARIFICATION) → Codex response →
+  iterate until convergence or escalate
+- **Forbidden behaviors**: silent wholesale acceptance, silent rejection,
+  acceptance without recorded reasoning, push-back without substantive argument
+- **Documentation requirement**: every Codex-using skill emits `codex_discussion.md`
+  showing the full round-by-round dialogue
+- **When to escalate**: persistent disagreement, >3 rounds without progress,
+  or taste/philosophy/venue-preference disagreements (let user pick)
+
+### Updated skills (all 5 now reference CODEX_PROTOCOL.md)
+
+- `proofcheck` (Pass 4): adversarial cross-review uses discussion protocol
+- `proof-repair` (Step 5C): stress-test repairs via discussion
+- `theory-sharpen` (Step 5B): independent assessment via discussion;
+  especially critical to prevent OVERCLAIM of theory relaxation
+- `theory-simulation` (Step 4F): pre-run + post-run review via discussion;
+  critical because reruns are expensive
+- `theory-design` (Step X4): NEW — adversarial framework review via discussion;
+  critical because framework shapes the whole paper
+
+Each skill explicitly calls out the forbidden behaviors and the requirement to
+emit a `codex_discussion.md` documenting the dialogue.
+
+### Why this matters
+
+LLM-to-LLM review has two failure modes:
+- **Capitulation**: Claude accepts every Codex finding to avoid disagreement
+  → output shaped by whichever model is louder
+- **Defensiveness**: Claude dismisses Codex findings to defend prior work
+  → loses the value of independent review
+
+Both produce worse outputs than a single careful Claude pass. The protocol
+forces structured deliberation that exploits both models without inheriting
+either's blind spots.
+
+### Documented examples
+
+CHANGELOG entries v1.1.1, v1.2.0 already documented real instances of the
+protocol working (Codex raised 20 findings; 13 accepted, 6 push-backs of which
+5 produced refinements and 1 was conceded by Claude). v1.4.0 makes this pattern
+explicit and uniform across all skills.
+
 ## v1.3.1 — theory-design: Mandatory literature anchoring
 
 Designing a theoretical framework without first reading recent top-venue
