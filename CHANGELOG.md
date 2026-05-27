@@ -1,5 +1,75 @@
 # Changelog
 
+## v1.5.0 — Sketch vs Complete Proof discipline (3 skills)
+
+User observation: many papers present "proof sketches" that are actually research
+outlines, not verifications. The skills must distinguish, classify, and act
+on this — proof-writer must refuse to produce one, proofcheck must classify
+existing proofs, proof-repair must expand sketches into full proofs.
+
+### proofcheck — New Sketch-vs-Complete Classification
+
+New mandatory sub-step in Pass 1 (Step 3), runs before step-by-step verification.
+
+Three-class classification per unit:
+- **COMPLETE**: rigorous step-by-step derivation; all transitions justified
+- **PARTIAL-SKETCH**: rigorous in parts but with substantial gaps ("rest follows
+  by similar arguments"; entire technical lemma deferred; main step is one
+  paragraph for a 1-page claim) — each gap recorded as S1 issue
+- **SKETCH-ONLY**: high-level outline without rigorous derivation. Title labeled
+  "Proof Sketch", or purely verbal narrative, or single-paragraph "proof" for a
+  substantive theorem — STATUS forced to "SKETCH-ONLY — NO PROOF PROVIDED"
+
+8 sketch indicators listed (explicit labels, verbal-only body, "we omit details",
+disproportionate length, etc.). Supplement proofs that are also sketches inherit
+the same classification.
+
+Reviewer-facing rule: a sketch in main text is NOT verification; if paper relies
+on it, theorem is at best CONDITIONALLY VERIFIED pending full proof.
+
+### proof-repair — New repair class: Expand-Sketch-to-Proof
+
+When proofcheck flags SKETCH-ONLY / PARTIAL-SKETCH, the repair is to write
+the ENTIRE proof, not just fix steps. Distinct from Fill-Skipped-Steps (which
+fills isolated gaps inside an otherwise rigorous proof).
+
+Workflow:
+1. Extract intended outline from the sketch
+2. For each intended step: verify cited technique applies + write actual derivation
+3. Trigger /proof-writer (which refuses to produce another sketch)
+4. Verify expanded proof concludes the original claim exactly
+5. Cite canonical references for invoked techniques
+
+Common failure modes documented:
+- Sketch hides genuine unprovability → downgrade to NOT CURRENTLY JUSTIFIED
+- Cited technique doesn't apply → reclassify as Replace-Technique
+- Expansion reveals missing assumption → reclassify as Add-Assumption
+
+### proof-writer — New ANTI-SKETCH DISCIPLINE
+
+The skill now explicitly REFUSES to produce a sketch in place of a proof.
+
+Distinguishes:
+- Proof outline / research plan: fine (delegate to /theory-design)
+- Proof sketch placed as "proof": REFUSED
+- Complete proof: what this skill always produces
+
+When user asks for a sketch:
+- Refuse the disguised-as-proof version
+- Offer: complete proof / explicit research outline (labeled, not proof) /
+  proof of weaker verifiable claim + research outline for stronger
+
+When the only completable thing is a sketch:
+- Downgrade to NOT CURRENTLY JUSTIFIED + blockage report
+- Do NOT silently substitute a sketch for a proof
+
+New length heuristic: a substantive theorem (rate, distribution, coverage)
+typically needs ≥ 1 page of dense derivation. ≤ 10 lines for a paragraph-long
+theorem triggers a sketch-suspicion check.
+
+Strengthened forbidden phrases now include: "the rest is similar", "we omit
+the details", "details are routine", and pointing-at-paper-without-adaptation.
+
 ## v1.4.0 — Shared Codex Discussion Protocol (NOT wholesale acceptance)
 
 User observation: across all skills using Codex, the implicit risk was that Claude

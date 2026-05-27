@@ -157,11 +157,53 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 | **Strengthen-Proof** | Gap in reasoning, but claim is likely true | Yes — find technique/lemma to fill the gap |
 | **Insert-Lemma** | Missing intermediate step | Yes — may exist as known result in literature |
 | **Fill-Skipped-Steps** | Author skipped intermediate steps; proofcheck flagged NONTRIVIAL or UNRECONSTRUCTIBLE jumps | Sometimes — TRIVIAL/VERIFIABLE need no refs, NONTRIVIAL may need a named technique, UNRECONSTRUCTIBLE may need new lemma + refs |
+| **Expand-Sketch-to-Proof** | proofcheck flagged the unit as `SKETCH-ONLY` or `PARTIAL-SKETCH` (entire proof body is outline, not rigorous derivation) | Often — sketch usually relies on cited techniques that need to be properly invoked with prerequisites verified. The "expansion" is the entire proof; literature support helps confirm cited techniques apply |
 | **Replace-Technique** | Current technique fundamentally flawed | Yes — find alternative proof strategy |
 | **Fix-Constants** | Rates, bounds, or constants wrong | Maybe — check if correct constants known |
 | **Fix-Quantifiers** | Pointwise↔uniform, ∀∃ order, etc. | Maybe — find uniform versions of cited results |
 | **Notation-Fix** | Symbol drift, type mismatch | No |
 | **Citation-Fix** | External theorem misapplied | Yes — find correct version or alternative theorem |
+
+### Expand-Sketch-to-Proof repair workflow (when unit was SKETCH-ONLY / PARTIAL-SKETCH)
+
+When proofcheck flags a unit as `SKETCH-ONLY` or `PARTIAL-SKETCH`, the repair is
+to **write the entire proof** — not just fix a step. This is distinct from
+Fill-Skipped-Steps (which fills isolated gaps inside an otherwise rigorous proof).
+
+**Approach**:
+
+1. **Read the sketch carefully** — what high-level strategy does it claim?
+   Extract the proof outline as a numbered list of intended steps.
+
+2. **For each intended step**:
+   - Is the cited technique actually applicable here? (verify prerequisites)
+   - Is there a standard reference for the technique? Cite it explicitly
+   - Write out the actual derivation, not just the verbal claim
+
+3. **Trigger `/proof-writer`** with the original claim + extracted outline,
+   asking for a COMPLETE proof (not a sketch — see proof-writer's anti-sketch
+   rules). The skill should refuse to produce another sketch.
+
+4. **Verify the expanded proof**:
+   - Does it conclude the original claim exactly?
+   - Are all assumptions used? Are any extra assumptions snuck in?
+   - Send to `/proofcheck` for re-audit after expansion
+
+5. **Literature support**:
+   - For each non-trivial technique invoked, cite the canonical reference
+   - If the sketch said "similar to [Paper Z]", verify Paper Z actually has the
+     full proof and adapt it explicitly (not just point at it)
+
+**Output**: a complete proof replacing the sketch, with explicit derivations and
+proper citations. Marked in PATCHES.md as `Patch: replace sketch with full proof`.
+
+**Common failure modes for this repair class**:
+- The sketch was actually NOT provable as stated (was hiding the real issue)
+  → downgrade to NOT CURRENTLY JUSTIFIED + blockage report
+- The cited technique doesn't actually apply
+  → reclassify as Replace-Technique
+- Expansion reveals a missing assumption
+  → reclassify as Add-Assumption
 
 ### Fill-Skipped-Steps repair workflow (special handling)
 

@@ -129,14 +129,61 @@ The proof package must include:
 - numbered major steps
 - justification for every nontrivial implication
 
+## ANTI-SKETCH DISCIPLINE (mandatory — refuses sketch output)
+
+This skill must NEVER produce a proof sketch labeled or used as a proof. A
+"sketch" is a research-planning device, not a verification.
+
+**Distinction**:
+- **Proof outline / proof plan**: high-level strategy used during research design
+  (this is fine and useful; see /theory-design for that purpose)
+- **Proof sketch**: a short summary placed in lieu of a proof, intended to
+  convince a reader (this is what this skill refuses)
+- **Complete proof**: rigorous step-by-step derivation that any qualified reader
+  could verify — what this skill always produces
+
+**Sketch indicators to REFUSE**:
+- Title or section labeled "Proof Sketch", "Sketch of Proof", "Outline of Proof"
+  when output is meant as the actual proof
+- Verbal-only narrative without equation derivations for a quantitative claim
+- "By similar arguments to [paper Z]" without showing the adaptation
+- "The rest follows from standard techniques" without specifying which technique
+  and how it applies
+- "We omit the details" / "Details are routine"
+- A single paragraph + citation as a "proof" for a substantive theorem
+
+**Behavior when asked for a sketch**:
+If the user explicitly asks for a sketch:
+1. Refuse to produce one disguised as a proof
+2. Offer alternatives:
+   (a) Complete proof (this skill's purpose)
+   (b) Explicit "Research outline — NOT a proof" document (labeled clearly,
+       no implication of verification) — but redirect to /theory-design
+   (c) Proof of a strictly weaker but completely verifiable claim, plus a
+       clearly-labeled research outline for the stronger conjecture
+
+Behavior when asked for "a proof" but the only completable thing is a sketch:
+Downgrade status to `NOT CURRENTLY JUSTIFIED` and write a blockage report.
+Do NOT silently produce a sketch in place of a proof.
+
 Mathematical rigor requirements:
 - never use "clearly", "obviously", "it can be shown", "by standard arguments", or "similarly" to hide a gap
+- never use "the rest is similar" / "we omit the details" / "details are routine"
+- when invoking a result from another paper, write the adaptation explicitly —
+  do not just point at the paper
 - define every constant and symbol before use
 - check quantifier order carefully
 - handle degenerate and boundary cases explicitly, or state why they are excluded
 - if invoking a standard fact, state its name and why its assumptions are satisfied here
 - use `$...$` for inline math and `$$...$$` for display equations
 - never write math in plain text
+
+**Length test** (a heuristic, not a hard rule):
+For a substantive theorem (e.g., a rate of convergence, asymptotic distribution,
+or coverage claim), a complete proof is typically ≥ 1 page of dense derivation
+unless the proof genuinely reduces to a single named result + verification of
+its prerequisites. If your proof is ≤ 10 lines for a theorem that's a paragraph
+to state, suspect it's actually a sketch.
 - if the proof uses an equivalent normalization that is stronger in appearance than the user's original theorem statement, label it explicitly as a proof device and keep the original claim separate
 
 ### Step 6: Final Verification

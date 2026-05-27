@@ -243,6 +243,53 @@ Also build:
 
 Check the chain leading to the main theorem FIRST. Prioritize lemmas used by many later results.
 
+#### MANDATORY first sub-step: Sketch-vs-Complete Classification
+
+Before checking proof correctness, classify whether what the paper provides is
+ACTUALLY a proof, or only a sketch / outline. This is distinct from step-skipping
+(which is about individual missing steps within a proof) — this is about whether
+the entire proof body is rigorous derivation or just high-level summary.
+
+**Three-class classification**:
+
+| Class | Definition | Action |
+|-------|-----------|--------|
+| **COMPLETE** | Rigorous step-by-step derivation; all transitions justified; cited results have prerequisites verified; edge cases handled | Proceed with normal step-by-step verification |
+| **PARTIAL-SKETCH** | Some rigorous derivation but with substantial gaps (e.g., "the rest follows by similar arguments"; entire technical lemma deferred to supplement; proof of main step is one paragraph for a 1-page-claim theorem) | Treat each gap as an S1 issue; demand expansion before any "verified" verdict |
+| **SKETCH-ONLY** | High-level outline without rigorous derivation. Title says "Proof Sketch" / "Sketch of Proof", or proof body is purely verbal narrative with no equation derivations, or proof says "we (1) bound X, (2) apply Y, (3) conclude" without actual algebra | The unit cannot be marked Verified — it's not a proof, it's a plan. Report as `STATUS: SKETCH-ONLY — NO PROOF PROVIDED` |
+
+**Sketch indicators** (any combination triggers PARTIAL-SKETCH or SKETCH-ONLY):
+
+- Title or section explicitly says "Proof Sketch" / "Sketch of Proof" / "Outline of Proof"
+- Body contains: "We sketch the proof", "Full details in the supplement", "Detailed proof is omitted"
+- Proof length disproportionate to claim complexity (e.g., 5 lines for a 2-page theorem)
+- Body is purely verbal narrative ("we first bound X using Y, then apply Z") with no derived equations
+- "Similar to / follows from [Paper Z]" without showing the adaptation
+- Heavy use of "it can be shown that" / "by standard arguments" / "after some algebra"
+- "We omit the details for space"
+- Technical core deferred entirely: "Lemma N is proved in Appendix X" but Appendix X is also sketch-only
+- A theorem whose proof is a single paragraph + a citation to another paper
+
+**Crucially**: a proof labeled "Proof Sketch" is NOT a sufficient verification of
+the claim. If the paper relies on this sketch as evidence for the theorem, the
+theorem's actual status is at best `CONDITIONALLY VERIFIED` pending the full
+proof. Reviewers at AoS / JASA / JRSS-B / Biometrika do not accept main-text
+sketches without full proofs in supplement.
+
+**Record in the unit check file**:
+```markdown
+### Sketch-vs-Complete Audit
+- Class: [COMPLETE / PARTIAL-SKETCH / SKETCH-ONLY]
+- Sketch indicators found: [list specific evidence]
+- For PARTIAL-SKETCH: each gap recorded as an S1 issue requiring expansion
+- For SKETCH-ONLY: STATUS is forced to "SKETCH-ONLY — NO PROOF PROVIDED"
+- Supplement location (if proof is supposed to be elsewhere): [pointer + verify it IS complete there]
+```
+
+If the "real" proof is supposed to be in supplementary material, follow the link
+and audit the supplement proof; if the supplement proof is also a sketch, both
+get tagged SKETCH-ONLY.
+
 For EACH proof unit, create one file: `audit/04_local_checks/section_X/{ID}_{name}_check.md`
 
 Each file follows this template:
@@ -251,6 +298,7 @@ Each file follows this template:
 ## Proof Unit: [ID / Name]
 - Location:
 - Type: [definition / lemma / proposition / theorem / proof segment]
+- **Sketch class**: [COMPLETE / PARTIAL-SKETCH / SKETCH-ONLY]   ← from Sketch-vs-Complete audit
 - Proof Strategy: [direct / contradiction / induction / construction / reduction / coupling / optimization / epsilon-delta]
 - Provability: [PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED]
 - Status:
