@@ -95,11 +95,39 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 | **Weaken-Claim** | Theorem claims more than proved | Maybe — find if stronger result exists elsewhere |
 | **Strengthen-Proof** | Gap in reasoning, but claim is likely true | Yes — find technique/lemma to fill the gap |
 | **Insert-Lemma** | Missing intermediate step | Yes — may exist as known result in literature |
+| **Fill-Skipped-Steps** | Author skipped intermediate steps; proofcheck flagged NONTRIVIAL or UNRECONSTRUCTIBLE jumps | Sometimes — TRIVIAL/VERIFIABLE need no refs, NONTRIVIAL may need a named technique, UNRECONSTRUCTIBLE may need new lemma + refs |
 | **Replace-Technique** | Current technique fundamentally flawed | Yes — find alternative proof strategy |
 | **Fix-Constants** | Rates, bounds, or constants wrong | Maybe — check if correct constants known |
 | **Fix-Quantifiers** | Pointwise↔uniform, ∀∃ order, etc. | Maybe — find uniform versions of cited results |
 | **Notation-Fix** | Symbol drift, type mismatch | No |
 | **Citation-Fix** | External theorem misapplied | Yes — find correct version or alternative theorem |
+
+### Fill-Skipped-Steps repair workflow (special handling)
+
+This class handles skips identified by `/proofcheck`'s Step Completeness Audit.
+Workflow varies by the skip's classification:
+
+**VERIFIABLE skips (S3)**:
+- Re-verify proofcheck's reconstruction is correct
+- Write out the 2-5 intermediate steps explicitly
+- LaTeX patch: insert the steps between the existing equations
+- No literature needed — uses standard manipulations only
+
+**NONTRIVIAL skips (S1)**:
+- Identify the non-obvious bridging idea
+- If it's a named technique (e.g., Sherman-Morrison, dominated convergence,
+  Borel-Cantelli), cite the standard reference
+- If it's a problem-specific lemma, write it as a new lemma (via /proof-writer)
+- LaTeX patch: insert either the cited bridging step or the new lemma + its use
+
+**UNRECONSTRUCTIBLE skips (S0)**:
+- Treat as a genuine gap — do NOT manufacture a bridge
+- Investigate whether:
+  (a) the original proof is wrong (the jump doesn't actually hold)
+  (b) the original proof uses an unstated assumption (→ Add-Assumption repair)
+  (c) a different proof technique is needed entirely (→ Replace-Technique)
+- If still unable to bridge after literature search, write a Blockage Report
+  and recommend the author either provide the bridge or weaken the claim
 
 ### Priority Rules
 

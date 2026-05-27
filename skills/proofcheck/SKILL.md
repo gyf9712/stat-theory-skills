@@ -245,6 +245,86 @@ If the normalized form is stronger/different from the original, flag this explic
 - **Conclusion matches EXACTLY what was proved** (not a stronger restatement)
 - **Every nontrivial implication is justified** — no "clearly" or "obviously" allowed
 
+#### Step Completeness Audit (sub-step within each unit check)
+
+This audit is mandatory for every proof unit. Going beyond passive anti-fabrication
+word-flagging, it ACTIVELY identifies step jumps and reconstructs them.
+
+##### A. Skip-point detection
+
+For each proof unit, scan for skip indicators in three categories:
+
+**Category 1: Verbal skip phrases**
+- "clearly" / "obviously" / "it is easy to see" / "trivially"
+- "by standard arguments" / "as is well-known" / "it is well-known"
+- "after some algebra" / "after simplification" / "by direct calculation"
+- "by symmetry" / "similarly" / "the same argument applies"
+- "the rest follows" / "the conclusion is now immediate" / "we omit the details"
+- "as before" / "by the above" / "in an analogous manner"
+
+**Category 2: Equation-number jumps**
+- Eq.(k) appears, then Eq.(k+m) for m ≥ 2 without intermediate equations
+- A displayed equation followed by ≥2 lines of unjustified manipulation
+- Use of an unstated identity to transform one expression to another
+
+**Category 3: Implicit logical jumps**
+- A conclusion drawn from a previous claim without stating the inference rule
+- A bound used as both upper and lower without separate justification
+- An optimization step where existence of optimizer is assumed but not shown
+- A limit/sum/integral exchanged without naming the convergence theorem
+
+##### B. Reconstruction attempt
+
+For EACH detected skip, attempt to fill in the missing steps:
+
+1. **List what is being claimed before the skip** (the input state)
+2. **List what is being claimed after the skip** (the output state)
+3. **Reconstruct the bridging steps explicitly** (using paper assumptions + cited
+   results + standard mathematical facts only — no fabrication)
+4. **Count the reconstructed steps** and assess the techniques used
+
+##### C. Skip classification (for each detected skip)
+
+Based on the reconstruction:
+
+| Class | Reconstruction needed | Verdict | Action |
+|-------|----------------------|---------|--------|
+| **TRIVIAL** | ≤1 line of standard manipulation (e.g., expand brackets, apply definition) | Legitimate skip | Note as TRIVIAL, no action |
+| **VERIFIABLE** | 2-5 lines of standard manipulation (e.g., chain of substitutions, named inequality applications) | Legitimate but author should write it | Suggest filling in (severity: S3) |
+| **NONTRIVIAL** | Requires a non-obvious idea, a hidden lemma, or a specific technique | **MUST be filled in** by the author | Record as S1 issue; downstream `/proof-repair` will need to insert |
+| **UNRECONSTRUCTIBLE** | Cannot bridge from input to output state using available assumptions + cited results | **Possible error** | Record as S0/S1 issue; demand author justification or counterexample |
+
+##### D. Step Completeness Table (per unit)
+
+Add to each unit's check file:
+
+```markdown
+### Step Completeness Audit
+
+| Skip # | Location | Skip indicator | Input state | Output state | Reconstruction | Class | Severity |
+|--------|----------|---------------|-------------|--------------|----------------|-------|----------|
+| 1 | Line 152, "obviously" | verbal | f(x) ≥ 0 ∀x | ∫f dμ ≥ 0 | Apply monotonicity of integral (1 line) | TRIVIAL | — |
+| 2 | Eq.(47)→(50) | equation jump | LHS of (47) | RHS of (50) | Algebraic expansion + Cauchy-Schwarz + bound on ‖∇f‖ (4 lines) | VERIFIABLE | S3 |
+| 3 | "by symmetry" line 198 | verbal | Bound on E[XY] | Bound on E[X²]+E[Y²] | Symmetry NOT applicable here — X,Y not exchangeable | NONTRIVIAL | S1 |
+| 4 | "after some algebra" line 220 | verbal | Eq.(60) | Eq.(61) | Cannot reconstruct — requires unstated identity for matrix inverse | UNRECONSTRUCTIBLE | S0 |
+
+**Summary**: 4 skips found. 1 trivial, 1 verifiable, 1 nontrivial (S1), 1 unreconstructible (S0).
+```
+
+##### E. Reconstruction discipline (anti-fabrication for the checker)
+
+When reconstructing steps, the checker itself must follow rigor rules:
+
+- Use ONLY: paper's stated assumptions + cited results + named standard facts
+  (e.g., Cauchy-Schwarz, Jensen, triangle inequality, Holder's)
+- For named standard facts, cite the name explicitly ("by Cauchy-Schwarz")
+- Do NOT invent intermediate inequalities or unstated lemmas
+- If a reconstruction requires invoking a non-obvious lemma, classify as NONTRIVIAL
+  and record what lemma is needed
+- If reconstruction succeeds but uses techniques not in the paper's framework
+  (e.g., heavy machinery from a different subfield), flag as suspect — the
+  author probably intended a simpler bridge that we're missing
+
 ### Step 4: Pass 2 — Check Support Lemmas
 
 After critical path confirmed, check remaining lemmas in parallel within each phase. Same per-unit template as Pass 1.

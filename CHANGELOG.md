@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.0.2 — Step Completeness Audit
+
+Goes beyond passive anti-fabrication word-flagging to actively detect, reconstruct,
+and classify skipped proof steps.
+
+### proofcheck additions
+- New mandatory sub-step **Step Completeness Audit** within each unit's check:
+  - **Skip-point detection** in 3 categories: verbal phrases ("clearly", "by
+    symmetry", "after some algebra"), equation-number jumps, implicit logical jumps
+  - **Reconstruction attempt** for each detected skip using only paper's
+    assumptions + cited results + named standard facts (anti-fabrication on the
+    checker side)
+  - **Skip classification**: TRIVIAL / VERIFIABLE / NONTRIVIAL / UNRECONSTRUCTIBLE
+  - **Step Completeness Table** per unit recording every skip and verdict
+  - **Reconstruction discipline rules** preventing the checker from inventing
+    intermediate inequalities or unstated lemmas
+
+### proof-repair additions
+- New repair class **Fill-Skipped-Steps** with class-specific workflow:
+  - VERIFIABLE (S3): write 2-5 intermediate steps inline, no refs needed
+  - NONTRIVIAL (S1): identify the bridging idea, cite or create lemma
+  - UNRECONSTRUCTIBLE (S0): no bridge manufacturing — investigate root cause
+    (wrong proof, hidden assumption, or wrong technique)
+
 ## v1.0.1 — Model recommendation: Opus
 
 - Added `model: opus` to YAML frontmatter of all 4 skills (forward-compatible
