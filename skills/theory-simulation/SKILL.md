@@ -61,12 +61,21 @@ A theoretical result is taken seriously by reviewers when simulation:
 4. **Reveals** improvements (sharper rates, weaker assumptions) for theory iteration
 
 A simulation is taken seriously by reviewers when it has:
-- Reproducible DGPs with seeds
-- Multiple n, d (and other regime parameters)
-- ≥500 Monte Carlo replications for asymptotic claims; ≥1000 for tails/coverage
-- Honest stress tests, not just easy cases
-- Publication-grade figures (described below)
-- Comparison with at least one competing method or theoretical baseline
+- **Reproducible DGPs** with hierarchical RNG streams (not just a single seed)
+- **Multiple cells along the asymptotic path** the theory uses
+  (e.g., `s log d / n` fixed, NOT just "multiple n and d")
+- **MCSE-driven replication count** for each metric (NOT a fixed B threshold)
+- **Honest stress tests**, including least-favorable DGPs matched to the theorem
+- **Inference diagnostics beyond rate**: size, local power, interval length,
+  EmpSE vs ModSE calibration
+- **Publication-grade figures** with MC uncertainty shown
+- **Paired-replicate baseline comparison** (all methods on the same synthetic data)
+- **Failure handling**: nonconvergence, singular Hessian, optimizer stalls all
+  logged and reported per cell
+
+References for stat-journal simulation standards: Morris, White & Crowther
+(2019, *Stat in Medicine*); Koehler, Brown & Haneuse (2009, *Am. Stat.*); JASA
+Reproducibility Editorial (2024).
 
 ---
 
@@ -103,11 +112,22 @@ Use the 3-axis classification (Data / Framework / Regime) to tailor simulation:
 
 ---
 
-## Step 1: Design the Simulation Plan
+## Step 1: Design the Simulation Plan (ADEMP-style, claim-based)
 
 Write `papers/<paper-name>/simulation/SIMULATION_PLAN.md`.
 
-### 1A: For each theorem, design a verification experiment
+**Design by CLAIM, not by theorem.** A single theorem typically implies multiple
+empirical claims (rate, limiting distribution, variance consistency, tuning
+sensitivity, failure behavior). Each gets its own block. Follow the ADEMP framework
+(Morris, White & Crowther 2019):
+
+- **A**ims of the experiment (which specific empirical claim is being tested)
+- **D**ata-generating mechanism (DGP, with explicit asymptotic path)
+- **E**stimators / methods compared (including baselines)
+- **M**ethods of analysis (metrics, MCSE formulas, summary plots)
+- **P**erformance measures (with target MCSE precision)
+
+### 1A: For each CLAIM, design a verification experiment
 
 ```markdown
 ## Experiment E1 — Verify Theorem 1 (√n-consistency)
@@ -137,70 +157,212 @@ Under Assumptions 1-3: ‖θ̂ − θ*‖ = O_P(n^{-1/2})
 - Table E1: bias, SD, MSE × n at each n (verifies it stays bounded)
 ```
 
-### 1B: Stress tests (violate one assumption at a time)
+### 1B: Stress tests — two-layer design (diagnostic + robustness-claim)
 
-For EACH assumption that is theoretically critical, design a stress test that
-violates ONLY that assumption.
+A stress test serves one of two distinct purposes:
+
+**Layer 1: Diagnostic (one-at-a-time)**.
+For each assumption that is theoretically critical, violate ONLY that assumption.
+This isolates which assumption matters — a referee needs this to attribute failure.
+
+**Layer 2: Robustness-claim (factorial / crossed stress)**.
+If the paper *claims* robustness to multiple violations simultaneously
+(e.g., heavy tails AND weak signal, misspecification AND dependence), one-at-a-time
+is NOT sufficient. A method can survive each violation alone yet fail when they
+co-occur. Run a targeted crossed design — usually a 2×2 or 2×3 factorial of the
+critical-pair violations, not a full factorial.
+
+**Diagnostic stress: candidate menu (NOT a prescription)**.
+
+These are *starting candidates*. **You must select stressors matched to your
+theorem's specific assumptions** and add theorem-specific least-favorable DGPs.
+
+| Generic stress | Candidate DGP | ⚠ Mismatch warning |
+|--------|----------------|---------------------|
+| Heavy tails | t₃, Pareto, log-normal | t₃ still has finite variance; for "no variance" results use Cauchy / stable α<2 |
+| Dependence | AR(1), MA(q), block-bootstrap | AR(1) is short-memory parametric; long-memory / cluster / spatial / endogenous dependence need separate DGPs |
+| Misspecification | fit wrong parametric family | Choose the misspecification the theory actually targets (e.g., omitted nonlinearity vs wrong link function) |
+| Boundary | θ on ∂Θ | Be specific about which boundary (e.g., positive-definiteness boundary vs box boundary) |
+| Identifiability | near-singular Hessian | For weak-ID papers, use weak-instrument-style local-to-unidentified sequences (Andrews & Cheng 2012) |
+| Growing dim | d/n → γ | Specify γ value; spike/no-spike regime; covariance structure |
+| Outliers | ε-fraction Huber contamination | Specify contamination distribution (point mass, heavy-tail, adversarial) |
+| Small sample | n ∈ {20, 30, 50} | Often more relevant than large-n stress |
+| Weak signal | r_n → 0 in detectability sense | Critical for detection theorems; pair with heavy tails for robustness claims |
+
+**Required**: replace each generic stressor with a **theorem-matched** version.
+Example for an M-estimation theorem assuming sub-Gaussian X and bounded influence:
 
 ```markdown
-## Experiment S1.1 — Stress: violate sub-Gaussian assumption
+## S1 (diagnostic): violate sub-Gaussian → bounded 4th moment
+DGP: X_i ~ t_5 (finite variance + 4th moment ✓, sub-G ✗)
+Theoretical prediction: theorem still holds with weaker rate
 
-### What is changed from baseline (E1)
-Replace P_θ* with a heavy-tailed distribution (e.g., t_3) that violates A3 only.
-Keep A1, A2 intact.
+## S2 (diagnostic): violate sub-Gaussian → infinite variance heavy tail
+DGP: X_i ~ t_{1.5} (4th moment fails)
+Theoretical prediction: theorem fails
 
-### Theoretical prediction
-- Rate should degrade. If theory predicts breakdown: confirm.
-- If theory predicts robustness: confirm (and consider strengthening).
+## S3 (least-favorable diagnostic): adversarial contamination at influence point
+DGP: clean X_i with prob 1-ε, plus mass at the worst-case point
+Theoretical prediction: tests the boundary of the influence-function bound
 
-### What we expect to see
-- Slower than n^{-1/2} (e.g., n^{-1/4})
-- Or large finite-sample bias
-- Or no convergence at all
-
-### Pass/fail
-- Confirms theory's predicted boundary
-- OR reveals theory is too pessimistic (assumption can be relaxed)
-- OR reveals theory is too optimistic (assumption is genuinely needed)
+## S4 (robustness claim): heavy-tailed AND weak signal
+DGP: X_i ~ t_5 + ‖θ*‖ shrinks at rate n^{-1/4}
+Theoretical prediction: paper's "robustness" claim requires this to hold
 ```
 
-Common stress tests for statistics papers:
+### 1C: Rate verification protocol (mathematically precise)
 
-| Stress | What to violate | Expected outcome |
-|--------|----------------|------------------|
-| Heavy tails | Replace sub-G with t_3 / Pareto | Rate degrades |
-| Dependence | Replace i.i.d. with AR(1), MA(q) | Variance inflated, CLT may fail |
-| Misspecification | Fit wrong parametric family | Bias persists, pseudo-true target |
-| Boundary | θ on ∂Θ | Asymmetric CI, slower rate |
-| Identifiability | Near-singular Hessian | Variance blows up |
-| Growing dim | d/n → γ ∈ (0,1) | Rate changes |
-| Outliers | Add ε-fraction contamination | Method-dependent breakdown |
-| Small sample | n = 20, 30 | Asymptotic approximation fails |
+**Step 1: Identify the loss object the theorem bounds.**
 
-### 1C: Rate verification protocol
+The slope target depends on WHICH quantity the theorem claims to control:
 
-For any claimed rate r(n) = n^{-a}:
-- Run at ≥6 sample sizes spanning ≥1.5 decades (e.g., 50 to 2000)
-- Compute empirical MSE at each n with ≥500 reps
-- Regress log(MSE) on log(n) → slope should be ≈ −2a
-- Report slope estimate + 95% CI
+| Theorem claim | Loss to compute | Expected log-log slope |
+|---------------|-----------------|----------------------|
+| `‖θ̂ − θ*‖ = O_P(n^{-a})` | RMSE = √mean‖θ̂ − θ*‖² | `−a` |
+| `E‖θ̂ − θ*‖² = O(n^{-2a})` | MSE = mean‖θ̂ − θ*‖² | `−2a` |
+| `‖θ̂ − θ*‖₂² ≤ C r(n,d,s)` | MSE; varies r(·) | depends on path (see below) |
+| High-prob bound with prob ≥ 1−δ | empirical quantile of error | depends on quantile |
 
-### 1D: Coverage verification (if theory gives CIs)
+**Force the user to declare the loss object before running.** A single skill that
+defaults to "slope = −2a always" is wrong.
 
-For nominal coverage 1−α:
-- Construct CI on each of B replications
-- Coverage = fraction that contains θ*
-- Report coverage at several n, with Wilson 95% CI for the coverage itself
-- Target band: [1−α − 0.02, 1−α + 0.02] for B = 1000
+**Step 2: Declare the asymptotic path.**
 
-### 1E: Method comparison (baselines)
+If the theorem uses any path parameter (e.g., `s log d / n → 0`, `d/n → γ`,
+`nh^β → ∞`, signal strength `r_n`), simulate along that path holding the
+control parameter fixed. Examples:
+
+```
+Theorem 1: ‖θ̂ − θ*‖² = O_P(s log d / n)
+Path: keep s log d / n = 0.5 fixed; vary (n,d,s) so the ratio is preserved
+Example grid: (n=200, d=50, s=5), (n=400, d=200, s=10), (n=800, d=800, s=20)
+```
+
+This is the only way to make a slope plot interpretable for high-dim / nuisance theory.
+
+**Step 3: Run at ≥6 cells along the path.**
+
+- Each cell needs B replications determined by MCSE target (Step 1D below).
+- Compute empirical loss at each cell with metric-appropriate MCSE.
+
+**Step 4: Multiple slope diagnostics (do NOT rely on a single OLS slope).**
+
+(a) **Weighted regression** of log(empirical loss) on log(n) using inverse MCSE²
+    as weights. Report slope estimate + 95% CI from delta method or bootstrap.
+(b) **Local slopes**: compute the slope between each adjacent pair of cells;
+    if these vary systematically with n, asymptotics has not kicked in.
+(c) **Normalized loss plot**: plot `n^a · empirical loss` (or `n^{2a} · MSE`)
+    versus n. If the rate is correct, this should level off; if it drifts, the
+    rate is wrong or finite-sample bias dominates.
+
+The normalized-loss leveling-off plot is more diagnostic than a single slope number.
+
+**Step 5: Pass criteria.**
+
+- Weighted slope's 95% CI contains the theoretical value
+- Local slopes converge to the theoretical value as n grows
+- Normalized loss plot levels off (within a band of ±2× MCSE of its plateau)
+
+If any of these fails, do NOT call the rate "confirmed"; investigate.
+
+### 1D: Inference diagnostics (REQUIRED for any paper with CIs/tests)
+
+Coverage ALONE is not enough for a top-stat-journal inference paper. A referee
+will demand at minimum:
+
+| Diagnostic | Why | How |
+|-----------|-----|-----|
+| **Empirical coverage** | Direct check of 1−α claim | Fraction of CIs containing θ*; Wilson or Jeffreys CI on the coverage itself |
+| **Empirical size** | Validity of tests under null | Reject rate at level α under H₀ |
+| **Local power** | Detection ability under H₁ | Reject rate at θ* + h_n/√n for h_n ∈ grid |
+| **Interval length** | Efficiency of CI procedure | Mean / median CI width and its MCSE |
+| **EmpSE vs ModSE** | SE calibration | EmpSE = empirical SD of θ̂; ModSE = mean of model-based SE estimates; ratio should be ≈ 1 |
+| **Bias-eliminated coverage** | Disentangle SE error from bias | Re-center CI at empirical mean; if coverage now hits nominal, undercoverage was bias-driven |
+
+**MCSE for coverage** (Wilson / Jeffreys interval — not `sd/√B`):
+- For B replications and observed coverage p̂: MCSE = √(p̂(1−p̂)/B)
+- 95% MC interval for coverage: Wilson interval based on (p̂, B)
+
+**MCSE for size** (same binomial logic):
+- For size α (e.g., 0.05) with B reps: MCSE = √(α(1−α)/B)
+- B=1000 → MCSE ≈ 0.0069 for size at 0.05 — non-trivial precision needed
+
+**B from MCSE target, NOT from a fixed threshold**:
+- Choose target MCSE per metric (e.g., MCSE ≤ 0.005 for coverage near 0.95 → B ≥ 1900)
+- If a cell shows MCSE too high after initial B, extend with more replicates (preserve seed determinism)
+- Document each metric's chosen target MCSE in the plan
+
+References: Morris, White & Crowther (2019); Koehler, Brown & Haneuse (2009);
+Brown, Cai & DasGupta (2001, *Statistical Science*).
+
+### 1D′: Metric-specific MCSE formulas (DO NOT use `sd/√B` for everything)
+
+| Metric | MCSE formula |
+|--------|-------------|
+| Mean of per-rep scalar | `sd / √B` |
+| Coverage / rejection rate (binomial) | `√(p̂(1−p̂)/B)` |
+| RMSE | Delta method or jackknife |
+| Relative efficiency (ratio of MSEs) | Delta method or paired bootstrap |
+| Median / quantile | Bootstrap or jackknife |
+| Fitted slope of log(MSE) on log(n) | Weighted regression standard error using cell-level MCSEs |
+| Paired loss difference | `sd_diff / √B` where `sd_diff` is paired SD |
+
+### 1E: Method comparison — REQUIRED to be paired across replicates
 
 Always include ≥1 of:
 - Competing method from the literature (e.g., MLE vs proposed estimator)
 - Oracle (knows nuisance) — should bound your method's loss
 - Naive baseline (e.g., empirical mean)
 
-This protects against the "your method works because every method works here" critique.
+**Paired-replicate rule (NOT optional)**: all methods compared in a cell must
+evaluate on the SAME replicate datasets (same RNG stream per replicate). Compare
+via paired loss differences:
+
+```
+for each cell:
+  for each rep:
+    data = generate(rng[cell, rep], n, d, dgp)
+    for each method:
+       loss[method, cell, rep] = evaluate(method, data, truth)
+  # Method comparisons within cell are PAIRED across rep
+  diff[A vs B, cell] = mean(loss[A, cell, :] - loss[B, cell, :])
+  MCSE_diff = sd_paired / sqrt(B)
+```
+
+This is a free variance reduction and is the standard for top-stat-journal method
+comparisons. Report paired differences with MCSE, not just per-method means.
+
+### 1F: Conditional diagnostics — REQUIRED when the corresponding claim exists
+
+| If the paper claims... | You MUST run this experiment |
+|---------------------|------------------------------|
+| Method requires tuning (λ, h, K, ...) | Compare **oracle tuning** (knows ground truth) vs **data-driven tuning** (CV, BIC, plug-in). Report the gap. |
+| Method uses CV / sample splitting / random init | Report **variability over tuning randomness** with multiple seeds at the tuning layer |
+| Method has computational advantage / scalability | Report **runtime and peak memory** along the asymptotic path; not just metric values |
+| Method has theoretical robustness to misspecification | Layer-2 factorial stress (multiple violations co-occurring) |
+| Inference is asymptotic | Report **size + local power + interval length + EmpSE/ModSE ratio** (already required in 1D) |
+
+These are conditional but mandatory once their trigger exists. Top-stat-journal
+referees will demand them. Skipping = inviting major revision.
+
+### 1G: Anti-cherry-picking discipline (preregister the headline)
+
+Before running, preregister:
+
+| Item | Why |
+|------|-----|
+| **Primary cells**: which cells are headline results | Prevents picking favorable cells post-hoc |
+| **Primary summaries**: which metric × cell × method combinations report in the abstract | One paper-level claim per primary summary |
+| **Deviation threshold**: what counts as a "meaningful" deviation from theoretical prediction | Use MCSE-relative thresholds (e.g., 2× MCSE) |
+| **Anti-narration rule**: do NOT narrate one-off cell results as general conclusions | "in cell X" wording, not "in general" |
+
+Record these in `SIMULATION_PLAN.md` BEFORE running anything. If the data later
+contradict the predesignated headline, REPORT the contradiction — do not silently
+swap the headline to a more flattering cell.
+
+This is not formal multiplicity correction; it is the discipline that distinguishes
+"simulation supports my method" from "simulation found cherry-picked cells that
+support my method." Top-journal referees can spot this from a mile away.
 
 ---
 
@@ -237,26 +399,154 @@ papers/<paper-name>/simulation/
   README.md               # how to reproduce
 ```
 
-### 2C: Required code conventions
+### 2C: Reproducibility — TIERED (STRICT is default for top-stat-journal work)
 
-For reviewer trust:
-- **Seeds**: set a master seed + derive per-cell seeds deterministically
-  (e.g., `seed = master_seed * 10000 + n_idx * 100 + rep`)
-- **Parallel**: use `joblib.Parallel` (Python) or `future_map` (R) — record
-  the parallel backend and number of workers
-- **Versioning**: dump `requirements.txt` / `sessionInfo()` to results dir
-- **Sanity asserts**: every result row has the expected columns + types
-- **Progress**: log every 10% of replications
-- **Atomic writes**: write results to `.tmp` then rename, so partial runs don't
-  corrupt the CSV
+| Tier | Use case | Required |
+|------|----------|----------|
+| **BASIC** | PhD prototype, exploratory study | Single seed + `requirements.txt` + git commit hash |
+| **STRICT** (DEFAULT) | Paper draft for top-stat-journal submission | All of BASIC + **hierarchical RNG streams** (`np.random.SeedSequence` / `L'Ecuyer-CMRG`) + per-replicate stored seed + thread-count recorded + `pip-compile`/`renv` lockfile + paired-replicate sharing across methods |
+| **PUBLICATION** | Replication package for code release | All of STRICT + container or reproducible-environment recipe (Docker/Singularity/Nix) + pinned BLAS/MKL version + replicate-level result archive + reproduce-all script that regenerates every table and figure |
 
-### 2D: Make replications cheap
+The skill defaults to STRICT. Downgrade to BASIC only with explicit user opt-in
+(e.g., for fast prototyping). Always escalate to PUBLICATION before code release.
+
+**Reproducibility target — declare explicitly**:
+- **Bitwise identical reruns**: every replicate produces exact same numbers.
+  Requires fixed thread counts (`OMP_NUM_THREADS=1` etc.), fixed BLAS/MKL version,
+  fixed library versions. Often only achievable inside a container.
+- **Statistically equivalent reruns**: aggregate metrics agree to within MCSE
+  across reruns; individual replicates may differ due to BLAS / library updates.
+  More realistic for long-lived projects.
+
+State the target in `simulation/README.md`. The default for STRICT tier is
+statistically equivalent; for PUBLICATION tier, bitwise identical is preferred.
+
+**STRICT-tier conventions**:
+- **Hierarchical RNG**: NEVER use `master_seed * 10000 + n_idx * 100 + rep` arithmetic
+  — it has collision risk and breaks under parallel chunking. Use:
+  ```python
+  ss = np.random.SeedSequence(master_seed)
+  child_seeds = ss.spawn(n_cells * B)  # one independent stream per (cell, replicate)
+  rng_for_cell_rep = np.random.default_rng(child_seeds[cell_idx * B + rep])
+  ```
+  In R, use `RNGkind("L'Ecuyer-CMRG")` and store the state per replicate.
+  RECORD the RNG algorithm + version in result files.
+- **Parallel determinism**: joblib/future are SCHEDULERS only. They do not by themselves
+  guarantee reproducibility:
+  - Each worker must construct its own RNG from the child seed for its replicate
+  - Threaded BLAS introduces non-determinism: set `OMP_NUM_THREADS=1`,
+    `MKL_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1` when bit-reproducibility matters
+  - Record actual thread counts + scheduler backend in the result file
+- **Atomic writes**: write to `.tmp` then rename (you had this).
+- **Versioning**: lockfile (`pip-compile` → `requirements.txt` with hashes, or `renv.lock`)
+- **Env record**: thread env vars, thread counts, OS, CPU model, BLAS lib + version,
+  Python/R version, git commit, hostname
+- **Sanity asserts**: dtype + shape on every result row + invariants
+  (e.g., variance ≥ 0, B replicates per cell)
+
+Note: paired replicates across methods is NOT in this list — it lives in Step 1E
+as a core design rule, not a tier-conditional reproducibility option.
+
+References: Morris et al. (2019); JASA Reproducibility Editorial (2024).
+
+### 2C′: Code architecture — manifest-driven, immutable cells
+
+The previous "dgp.py / estimators.py / metrics.py" layout works for small studies
+but rots fast under paper revisions. For top-journal work use a manifest-driven
+architecture:
+
+```
+papers/<paper-name>/simulation/
+  manifest/
+    experiments.yaml      # one entry per experiment: id, DGP, n grid, methods, etc.
+    cells.csv             # expanded: one row per (experiment, cell), with cell_id hash
+  src/
+    dgp.py, estimators.py, metrics.py, run.py   # core code
+  results/
+    raw/{cell_id}/rep_{rep_id}.json       # immutable replicate-level outputs
+    aggregated/{cell_id}.csv               # per-cell summary
+  figures/{figure_id}.pdf
+  tables/{table_id}.tex
+  reproduce.{sh,py}        # rebuilds ALL tables/figures from results/
+  tests/test_toy.py        # regression tests on small toy DGPs (catch silent bugs)
+  README.md
+```
+
+Key properties this enables:
+- **Immutable `cell_id`** = hash(manifest entry + code version). Same inputs → same id.
+- **Provenance trail**: every figure panel traces back to specific cells, which trace
+  to specific reps, which trace to RNG streams + code version
+- **Reruns are cheap**: rerunning a cell after a code fix produces a new `cell_id`;
+  old results remain comparable
+- **Reproduce script**: `reproduce.sh` rebuilds the paper's tables and figures from
+  saved `results/` without re-running expensive sims (assumes results exist)
+- **Regression tests**: 1-2 small DGPs with known closed-form answers run in
+  every CI / pre-commit, catching silent breakage during paper revisions
+
+This is the architecture top-journal authors actually use during 6-month revision
+cycles. Without it, "we re-ran simulations after addressing R1's comments" turns
+into a multi-week mess.
+
+### 2D: Failure handling (REQUIRED — referee magnet if missing)
+
+Real stats simulations fail. Optimizers don't converge, Hessians become singular,
+selected models are empty, variance estimates go negative. PREDECLARE the policy:
+
+- Every replicate logs a `status` field: `success / nonconvergence / singular /
+  empty_model / negative_variance / timeout / other`
+- Per cell, report:
+  - **Failure rate** by status
+  - **What is counted in metrics**: success-only? success + recoverable? all?
+  - **Policy declaration**: whether failures are excluded, treated as worst-case,
+    or treated as separate metric
+**Default alert thresholds (interpret in regime context, not as universal laws)**:
+
+| Failure rate | Default alert | Context-dependent interpretation |
+|--------------|---------------|----------------------------------|
+| >5% | FLAG in reconciliation | In a benign regime: suspicious — investigate. In an intentionally near-singular stress regime: may be expected and even informative. |
+| >20% | SUSPECT — cell result questionable | In stress tests near a known breakdown: this IS the scientific finding (report failure rate as the metric). In a baseline regime: cell likely uninterpretable. |
+
+A 6% failure rate in a benign DGP is worse than 20% in an intentionally adversarial
+DGP. Interpret thresholds relative to:
+- **Regime severity**: is the cell intended to be benign, moderate, or adversarial?
+- **Scientific role**: is failure itself part of the claim (a breakdown experiment)
+  or an unintended outcome?
+
+The skill should NOT auto-mark cells as bad based on threshold alone. Surface the
+failure rate to the user with context and let the user interpret.
+
+Without explicit failure handling, a referee will ask "what happened in the cells
+where MSE looks suspiciously clean?" and you have no answer.
+
+### 2E: Make replications cheap
 
 For deep stress tests, MC cost can balloon. Tactics:
 - Vectorize over replications when DGP is i.i.d. (`np.random` with shape `(B, n, d)`)
 - Use closed-form estimators where possible
 - Cache intermediate quantities that don't change across reps within a cell
-- Use small B (≤200) for quick pilots; scale to B=500-1000 for final
+- Use small B (≤200) for quick pilots; scale to MCSE-target B for final
+
+### 2F: Storage format (CSV by default; Parquet for large studies)
+
+- **CSV** (default): adequate for small-to-moderate studies (<1M rows, <200MB)
+- **Parquet / Feather**: switch when ANY of:
+  - Total rows > 1M (e.g., many cells × many reps × many metrics)
+  - Total file size > 200MB
+  - Files re-read repeatedly during analysis / plotting
+  - Strict schema preservation matters (dtype fidelity)
+- Use immutable replicate-level rows + a separate aggregated file
+- Schema columns at minimum:
+  `cell_id, dgp, n, d, other_path_params, rep, seed_used, status, metric_name, value, runtime_seconds`
+
+### 2G: Edge cases that need special design
+
+| Edge case | Issue | Required adjustment |
+|-----------|-------|---------------------|
+| **Rare events / tail risk** | B=1000 gives 50 rare events at p=0.05; too noisy | Use importance sampling or stratified resampling; OR scale B to ≥ 10/p_target |
+| **Randomized algorithms** | Method has its own RNG | Use a second hierarchical RNG layer for algorithm randomness; record both seeds per replicate |
+| **No closed-form ground truth** | Estimand `θ* = E[g(X)]` is itself unknown | Run a one-time HIGH-B benchmark to estimate θ* with negligible error; treat it as ground truth (note its MCSE in the report) |
+| **Long-running estimators** | Each rep takes minutes/hours | Time-budget per cell; checkpoint partial results; cluster jobs |
+| **Adaptive/sequential procedures** | State evolves across observations | DGP must support sequential generation; replication keys both the data and any algorithm randomness |
 
 ---
 
@@ -287,80 +577,66 @@ Document this in `README.md`.
 
 ## Step 4: Publication-Grade Figures (stat-journal style)
 
-### 4A: Figure conventions (strict — top stat journal style)
+### 4A: Figure conventions (split: actual journal rules vs stat house style)
 
-**RULES** (these differ from default matplotlib/ggplot defaults):
+#### Actual journal requirements (CHECK each venue's current guidelines)
 
-1. **NO `title`** on plots
-   - All title information goes into the **LaTeX caption** of the figure
-   - Plots are referenced as "Figure X" with content described in caption text
-2. **Captions are content-bearing**:
-   - State the DGP, the n range, B, the metric, what the curves are
-   - State the theoretical prediction explicitly (e.g., "dashed line is slope −1")
-3. **Axis labels**: short but precise
-   - `Sample size n` not `n`
-   - `Empirical MSE` not `mse`
-   - Include units if any
-4. **Legend**:
-   - Concise method/condition names
-   - Place where it does NOT overlap data (use `loc='best'` then verify; if it
-     overlaps, move to outside the axes via `bbox_to_anchor`)
-   - For >4 entries, use 2-column legend
-5. **Color & marker scheme** (color-blind safe):
-   - Default palette: Okabe-Ito (8 distinct colors safe for deuteranopia/protanopia)
-   - Each method gets a (color, marker, linestyle) triple — redundant encoding
-   - Avoid red+green pairs
-6. **Reference lines**:
-   - Theoretical rate lines as dashed black with explicit slope in caption
-   - Nominal coverage line (e.g., 0.95) as dashed grey
-7. **Multi-panel**:
-   - Use `sharex` / `sharey` when comparing across panels
-   - Panel labels (a), (b), (c) in top-left corner inside each panel
-   - **No** "Panel A" / "Panel B" titles
-8. **Font sizes**:
-   - Axis tick labels: 9-10pt
-   - Axis labels: 11-12pt
-   - Legend: 9-10pt
-   - All consistent across figures in the paper
-9. **Format**:
-   - PDF or EPS for vector graphics — NEVER PNG/JPG for line plots
-   - Embedded fonts: `pdf.fonttype = 42` (matplotlib) to make text searchable/editable
-   - Bounding box tight: `bbox_inches='tight'`
-10. **Overlap prevention**:
-    - Use `tight_layout()` or `constrained_layout=True`
-    - For dense legends: check no points are hidden
-    - For multi-panel: verify x-axis labels not cropped
-    - Manual `plt.subplots_adjust()` if needed
+| Requirement | Source | Applies to |
+|------------|--------|------------|
+| Alt text for figures (accessibility) | JRSS-B, Biometrika guidelines | JRSS-B, Biometrika submissions |
+| Final-size legibility (camera-ready dimensions) | All top stat journals | All — verify at intended print size |
+| Color must encode redundantly (also via line style / marker) for grayscale printing | JRSS-B, Biometrika | All |
+| Vector format for line plots | Most | All |
 
-### 4B: Required figure types
+**Always check the venue's current guidelines** before submission. The skill cannot
+keep these up to date.
 
-**Type 1: Rate verification (log-log)**
-- x: log(n), y: log(empirical MSE)
-- Each method one line
-- Reference dashed line with theoretical slope
-- Caption states "Slope estimate: −1.02 (95% CI: −1.08, −0.97), consistent with the
-  theoretical rate −1 of Theorem 1."
+#### Stat-paper house style (strong convention, not always required)
 
-**Type 2: Coverage**
-- x: n, y: empirical coverage
-- Horizontal dashed at nominal level (0.95)
-- Wilson CI bars around each point
-- Caption states nominal level, B, deviation tolerance
+These reflect AoS / JASA / Biometrika / JRSS-B house conventions:
 
-**Type 3: Stress test comparison**
-- Multi-panel: one panel per stress condition
-- Same axes within panels for direct comparison
-- Caption clearly states which assumption is violated in each panel
+1. **Plot titles are usually OMITTED** — content moves to LaTeX `\caption{}`
+   - This is convention, not a hard rule. Compare Nature, where titles are common.
+2. **Content-bearing captions**: DGP, n range, B, metric, theoretical prediction
+3. **Axis labels**: short but precise ("Sample size n", "Empirical MSE")
+4. **Legend placement** does not cover data — verify visually; use `bbox_to_anchor`
+   when needed; ≥5 entries → 2-column legend
+5. **Color-blind-safe palettes** (emerging expectation): Okabe-Ito for lines,
+   viridis/cividis for heatmaps. Avoid jet/rainbow.
+6. **Redundant encoding**: each method gets (color, marker, linestyle) — supports
+   grayscale + color-blind readers
+7. **Reference lines for theoretical predictions** (dashed black for rate, dashed
+   grey for nominal coverage)
+8. **MC uncertainty shown**: every data point should have an MCSE error bar or
+   shaded band — referees expect to see uncertainty
+9. **Multi-panel**: in-panel labels (a) (b) (c) (lowercase is common but check
+   venue); no panel titles; share axes when comparing
+10. **Embedded fonts** (`pdf.fonttype = 42`): best practice for editable PDF,
+    not a journal requirement
 
-**Type 4: Boxplot of distribution of estimator**
-- x: n (categorical), y: θ̂ − θ*
-- Shows bias + variance + skewness
-- Reference line at 0
+The previous version of this skill called some of the above "rules" — they are
+conventions and best practices, not legal requirements. Verify against each
+venue's current guidelines.
 
-**Type 5: Heatmap (for two-parameter sweeps)**
-- Color = metric, x = n, y = d (or another parameter)
-- Colorbar with caption explanation
-- Use perceptually uniform colormap (viridis, cividis — NEVER jet/rainbow)
+### 4B: Figure menu — CONDITIONAL on the empirical claim
+
+Pick figures matched to the claim being supported. Not every paper needs every
+figure; some need figures not on this list.
+
+| Claim being supported | Figure type | Notes |
+|---------------------|-------------|-------|
+| Rate of convergence | Log-log loss vs n, with theory reference slope and MC bands | Add normalized-loss leveling-off plot as a sanity check |
+| Limiting distribution | QQ plot of studentized pivot vs N(0,1) | Plus density / ECDF comparison |
+| Coverage of CIs | Empirical coverage vs n with Wilson CIs and nominal dashed line | Add interval-length plot |
+| Test size and power | Size vs n; power curve vs local alternative | Reference at nominal α |
+| Estimator distribution | Boxplots / violins of `θ̂ − θ*` vs n | Reference line at 0 |
+| EmpSE vs ModSE calibration | Scatter or ratio plot, target ratio = 1 | One point per cell |
+| Method comparison (paired) | Paired-difference plot with MC CIs, or lollipop with bars | More informative than overlaid lines for >3 methods |
+| Two-parameter sweeps | Heatmap on viridis/cividis (NEVER jet/rainbow) | Colorbar with units |
+| Failure rates per cell | Bar/heatmap of nonconvergence rates | Required if any cell has >5% failures |
+
+Figures must show MC uncertainty (error bars, shaded bands, or visible MCSE).
+A point estimate plot without uncertainty is not publishable.
 
 ### 4C: Concrete matplotlib template (Python)
 
@@ -448,7 +724,137 @@ plt.close(fig)
 
 ---
 
-## Step 5: Theory ↔ Simulation Reconciliation
+## Step 4F: Codex Adversarial Review of Simulation Design (if Codex MCP available)
+
+Before running expensive simulations, send the SIMULATION_PLAN.md to Codex for an
+independent design review. Catching design flaws BEFORE running saves CPU hours.
+After running, do a second Codex pass on the figures + reconciliation.
+
+### Pass 1: Plan review (before running)
+
+```
+mcp__codex__codex:
+  config: {"model_reasoning_effort": "high"}
+  prompt: |
+    You are a senior referee for a top statistics journal (AoS / JASA / Biometrika / JRSS-B).
+    A paper provides the following theoretical claims and proposed Monte Carlo simulation plan.
+
+    THEORETICAL CLAIMS:
+    [paste main theorems with assumptions + rates]
+
+    SIMULATION PLAN:
+    [paste SIMULATION_PLAN.md]
+
+    Adversarial review tasks (be harsh — assume the simulation IS the test of the theory):
+    1. Coverage: does EVERY theoretical claim have a verification experiment?
+       Which assumptions are NOT stress-tested? Name them specifically.
+    2. DGP quality: are the chosen DGPs the WORST CASES the theory should handle, or
+       are they easy cases that any method would pass?
+    3. Sample-size grid: is the range wide enough to identify the rate? Is it deep
+       enough to see finite-sample breakdown? Suggest specific n values to add.
+    4. Replication count: is B large enough for the metrics? (Coverage needs B ≥ 1000
+       for ±0.014 SE at nominal 0.95; tail metrics need more.)
+    5. Baselines: is the comparator the right one? Is there an obvious competitor missing?
+    6. Rate verification: is the slope-regression protocol valid? Is there a known
+       bias-variance issue (e.g., bias term dominating at small n)?
+    7. Missing stress tests: list any standard violation that should be tested but isn't.
+
+    Output a numbered list of design issues with severity (CRITICAL / MAJOR / MINOR).
+    For each, propose a specific fix.
+```
+
+### Pass 2: Figure + reconciliation review (after running)
+
+```
+mcp__codex__codex:
+  config: {"model_reasoning_effort": "high"}
+  prompt: |
+    You are reviewing simulation results from a paper aimed at a top stat journal.
+
+    THEORY:
+    [paste theorems]
+
+    SIMULATION RESULTS:
+    [paste aggregated metrics tables — e.g., bias/SD/MSE × n for each method × DGP]
+
+    RECONCILIATION CLAIM:
+    [paste RECONCILIATION.md draft]
+
+    FIGURE CAPTIONS:
+    [paste each \caption text]
+
+    Adversarial review tasks:
+    1. Do the empirical numbers ACTUALLY support the claimed reconciliation, or is
+       the author overclaiming "✅ confirmed" when slope is borderline?
+    2. Are any results SUSPICIOUS — e.g., coverage above 0.99 (overcoverage), or
+       MSE non-monotone in n? Could these signal a coding bug?
+    3. For each "discrepancy" the author flags as theory-relaxation opportunity:
+       is the relaxation actually supported, or could the simulation be too easy?
+    4. Caption sanity: do captions state the DGP, B, n range, baselines, and the
+       theoretical prediction explicitly? Flag any captions missing context.
+    5. Figure-level issues: based on the captions alone, is the figure asking the
+       right question? Is the dashed reference line the right slope?
+
+    Output: per-finding verdict (CONFIRMED / OVERCLAIMED / UNDERCLAIMED / SUSPICIOUS)
+    with specific evidence.
+```
+
+### Reconciliation with Claude's findings
+
+Same pattern as the other skills: first-independent-then-reconcile.
+
+```markdown
+## Codex Simulation Design Review
+
+### Pass 1 (Pre-run) findings
+| Issue | Severity | Codex says | Claude action |
+|-------|---------|------------|---------------|
+| Stress test for dependence missing | MAJOR | Add AR(1) DGP | Adding to plan |
+| B=500 too small for coverage | CRITICAL | Use B=2000 for coverage cells | Adjusting plan |
+| No competitor for Thm 3 | MINOR | Add MLE | Noted; addressed |
+
+### Pass 2 (Post-run) findings
+| Finding | Codex verdict | Claude original | Final |
+|---------|--------------|-----------------|-------|
+| Thm 1 rate slope = -0.51 | CONFIRMED | ✅ Confirmed | Agree |
+| "Sub-G can be relaxed" | OVERCLAIMED — only tested t_5, didn't test t_3 | Relaxation candidate | Downgrade to "needs more tests" |
+| Coverage at n=2000 is 0.991 | SUSPICIOUS — overcoverage suggests CI too wide | ✅ Confirmed | Investigate; may be variance plug-in conservative |
+```
+
+Write to `simulation/codex_design_review.md`.
+
+**Critical**: when Codex flags OVERCLAIMED or SUSPICIOUS, DO NOT auto-update
+RECONCILIATION.md to silently match. Surface the disagreement to the user.
+
+---
+
+## Step 5: Theory ↔ Simulation Reconciliation (HYPOTHESIS GENERATION ONLY)
+
+**CRITICAL DISCIPLINE**: Simulation findings can SUGGEST hypotheses for theory
+extension. They CANNOT validate theorem-weakening. A finite grid of DGPs is not
+a proof; "method survived t_5" is NOT evidence that the sub-Gaussian assumption
+can be dropped — the worst-case DGP may be elsewhere in the space.
+
+Use simulation feedback to **generate hypotheses for analytic follow-up**, not
+to declare theory upgrades.
+
+| Simulation finding | Valid interpretation | INVALID interpretation |
+|--------------------|---------------------|----------------------|
+| Method works at t_5 too | "Worth investigating whether sub-G can be relaxed to bounded 4th moment" | "Sub-G can be relaxed" (overclaim — t_5 is only one point) |
+| Slope sharper than predicted | "Suggests rate may be improvable; needs proof" | "Rate is improvable" |
+| No coverage drop near boundary | "Theory's boundary caveat may be conservative" | "Boundary is fine" |
+| Method fails at t_3 | "Some moment condition matters; t_3 is in failure region" | (this one is OK as evidence FOR keeping the assumption) |
+
+Asymmetry: simulation can produce evidence FOR keeping an assumption
+(by showing a failure mode), but NOT evidence FOR dropping it
+(absence of failure in a finite grid ≠ proof of universal robustness).
+
+To upgrade a "hypothesis" to a "theory revision claim", you must:
+1. Expand the least-favorable search (more DGPs, adversarial directions, smaller h_n)
+2. Identify what proof technique would handle the relaxation
+3. Get the analytic follow-up done by `/proof-writer` or human
+
+Without these, the finding stays in the "OPEN HYPOTHESIS" column, not "CONFIRMED".
 
 After running simulations, do the final, most important step: feed findings back.
 
@@ -464,19 +870,26 @@ Write `papers/<paper-name>/simulation/RECONCILIATION.md`:
 | Thm 2 coverage | 95% | 94.2% at n=500, 95.1% at n=2000 | ✅ Confirmed |
 | Thm 3 rate | n^{-2/(2+d)} | slope matches for d=2, deviates for d=10 | 🟡 Partial |
 
-### Discrepancies discovered
-| Finding | Implication for theory |
-|---------|----------------------|
-| Sub-G assumption (A3) not necessary; t_5 gives same rate | Can RELAX A3 to bounded 4th moment; revisit proof |
-| Coverage degrades for n < 50 even though theory says √n | Add finite-sample correction; cite Cattaneo et al. for similar |
-| Rate sharper than predicted when X_i has bounded support | Theorem can be STRENGTHENED for bounded designs |
+### Open hypotheses (NOT confirmed theory revisions)
+| Finding | Cells tested | What more is needed before a theory claim |
+|---------|-------------|------------------------------------------|
+| Method works at t_5 (sub-G violated, 4th moment ✓) | 6 cells along path | Test t_4, t_3.1; least-favorable contamination; analytic check whether proof technique extends |
+| Slope appears sharper than n^{-1/2} for bounded support | (n,d) grid | Verify whether bounded support is what's responsible (vary support); analytic upper-bound derivation |
+| Coverage degrades for n<50 | small-n grid | Verify across more DGPs; locate finite-sample correction in literature |
 
-### Recommendations (feedback to theory)
-1. **Relax**: Assumption A3 sub-Gaussian → bounded 4th moment (sim supports)
-2. **Strengthen**: Theorem 1 can give a faster rate under bounded design (sim shows)
-3. **Refine**: Add explicit finite-sample threshold; sim suggests n ≥ 50
-4. **Open**: Why does coverage overshoot for n > 2000? Possible
-   higher-order term in expansion.
+### Findings that DO support keeping/strengthening an assumption
+| Finding | Cells tested | What this evidence supports |
+|---------|-------------|----------------------------|
+| Method fails at t_3 | 4 cells, multiple θ values | Some moment condition strictly stronger than 2nd moment is required |
+| Coverage breaks at boundary | boundary stress | Boundary caveat in Theorem 2 is necessary, not artifact |
+
+### Recommendations (routing to other skills)
+- **/theory-sharpen**: Investigate whether sub-G can be relaxed to bounded 4th moment;
+  simulation suggests it but does NOT prove it
+- **/proof-writer**: If theory-sharpen's literature check finds support, draft the
+  relaxed-assumption theorem and re-verify
+- **Open**: Why does coverage overshoot for n > 2000? Suggests higher-order expansion
+  term; analytical investigation needed
 
 ### Next steps
 - Send "Relax A3" finding to /theory-sharpen for literature confirmation
@@ -484,15 +897,20 @@ Write `papers/<paper-name>/simulation/RECONCILIATION.md`:
 - Add additional stress test: lognormal X to test bounded vs unbounded boundary
 ```
 
-### How findings feed back into the pipeline
+### How findings feed back into the pipeline (hypothesis vs evidence)
 
-| Discovery type | Feed to | Action |
-|---------------|---------|--------|
-| Theory under-claims (rate sharper than predicted) | `/theory-sharpen` Step 2B | Add as rate-sharpening direction |
-| Theory over-claims (rate slower than predicted) | `/proofcheck` | Re-audit; possible proof error |
-| Assumption is unnecessary (sim works without it) | `/theory-sharpen` Step 1 | Add as relaxation candidate |
-| Assumption is genuinely needed (sim breaks without it) | `/proof-writer` for new proof | Strengthen assumption statement |
-| Finite-sample regime needed | `/proof-repair` or `/theory-sharpen` | New theorem statement |
+| Discovery type | Strength | Feed to | Action |
+|---------------|---------|---------|--------|
+| Slope is steeper than predicted at every cell along the path | HYPOTHESIS only | `/theory-sharpen` | Investigate sharper rate; do NOT claim until proof updated |
+| Slope is shallower than predicted | EVIDENCE of problem | `/proofcheck` | Re-audit proof; possible error |
+| Assumption violated in finitely many cells, method still works | HYPOTHESIS only | `/theory-sharpen` | Investigate relaxation; expand stress search; analytic follow-up |
+| Assumption violated, method FAILS | EVIDENCE for keeping assumption | `/proof-writer` | Strengthen / refine assumption statement |
+| Coverage degrades at small n | EVIDENCE for finite-sample regime | `/proof-repair` or `/theory-sharpen` | Add finite-sample theorem version |
+
+**Key distinction**:
+- "EVIDENCE" findings can directly update the paper.
+- "HYPOTHESIS" findings require literature search + analytic follow-up before
+  the paper is updated. Stage them in an OPEN HYPOTHESES list, not the main paper.
 
 ---
 

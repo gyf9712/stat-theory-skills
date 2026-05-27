@@ -1,5 +1,83 @@
 # Changelog
 
+## v1.1.1 — theory-simulation: Codex-reviewed rigor pass
+
+Codex GPT acted as an adversarial AoS/JASA/JRSS-B referee on the theory-simulation
+skill and identified 20 issues. After discussion, 13 were accepted outright, 6 were
+refined via pushback (Codex agreed), and 1 was pushed back (Codex held firm — accepted).
+A second round caught 4 remaining MAJOR gaps. All 23 final findings now addressed.
+
+### Major upgrades in theory-simulation (687 → 1001 lines)
+
+**Statistical correctness**
+- Rate protocol now declares loss object (norm vs MSE → slope `-a` vs `-2a`)
+- Asymptotic path must be declared and held fixed (`s log d / n` etc.)
+- Slope verified via weighted regression + local slopes + normalized-loss leveling
+- B selected by MCSE target per metric (no fixed thresholds)
+- Per-metric MCSE formulas (binomial / delta / bootstrap / paired)
+
+**Inference diagnostics (was missing — biggest hole)**
+- Now required: coverage + size + local power + interval length + EmpSE vs ModSE +
+  bias-eliminated coverage
+- Wilson/Jeffreys intervals for coverage, not arbitrary ±0.02 bands
+
+**Design discipline (ADEMP + claim-based)**
+- "One experiment per theorem" replaced with ADEMP block per empirical claim
+- Stress tests in two layers: one-at-a-time (diagnostic) + factorial (robustness claim)
+- DGP candidates carry mismatch warnings (t_3 finite variance, AR(1) short memory etc.)
+- Theorem-matched least-favorable DGPs required
+- Paired-replicate method comparison is NOW DEFAULT (was misclassified as STRICT-tier)
+
+**Conditional diagnostics (mandatory if claim exists)**
+- Oracle vs data-driven tuning gap
+- Variability over tuning randomness (CV folds, random init)
+- Runtime/memory scaling along asymptotic path (if scalability claimed)
+
+**Anti-cherry-picking discipline**
+- Preregister primary cells + primary summaries before running
+- MCSE-relative deviation thresholds
+- Anti-narration rule: no general conclusions from one-off cells
+
+**Reproducibility (tiered, target-aware)**
+- BASIC / STRICT (default) / PUBLICATION
+- Declare reproducibility target: bitwise identical vs statistically equivalent
+- Hierarchical RNG (SeedSequence / L'Ecuyer-CMRG), per-rep state stored
+- Thread env vars + BLAS lib version recorded
+- Code architecture: manifest-driven, immutable cell_id, replicate-level Parquet/JSON,
+  reproduce script, regression tests on toy DGPs
+
+**Failure handling (was missing)**
+- Per-rep status field (success/nonconvergence/singular/empty/negative_var/timeout)
+- Per-cell failure rate reported
+- Default alerts >5% / >20% reframed as context-dependent (regime severity)
+
+**Figure rules split**
+- Actual journal requirements (alt text, color-redundant encoding, final-size legibility)
+- vs stat-paper house style (no title, Okabe-Ito, in-panel labels)
+- "NO title" softened to "usually omitted in stat journals" (convention, not rule)
+- Figure types CONDITIONAL on claim (rate → log-log, CI → coverage, test → size/power)
+- MC uncertainty required on every figure (error bars or bands)
+
+**Reconciliation discipline (no overclaiming)**
+- Findings split: EVIDENCE (can update paper) vs HYPOTHESIS (needs analytic follow-up)
+- Asymmetry rule: sim can support keeping assumptions (via failure) but cannot prove dropping
+- "Worked at t_5" → hypothesis only; needs adversarial expansion + proof before paper claim
+
+**Edge cases**
+- Rare events: importance sampling or scale B to ≥10/p_target
+- Randomized algorithms: nested RNG layer
+- No closed-form truth: HIGH-B benchmark for ground-truth estimate
+- Long-running estimators: time budgets, checkpointing
+- Adaptive/sequential procedures: data + algorithm randomness both seeded
+
+**Codex cross-review (still optional but improved)**
+- Pre-run plan review + post-run figure/reconciliation review
+- Catches overclaim, suspicious results, missing context
+
+References cited: Morris, White & Crowther (2019, Stat Med); Koehler, Brown &
+Haneuse (2009, Am Stat); Brown, Cai & DasGupta (2001, Stat Sci); JASA
+Reproducibility Editorial (2024); Andrews & Cheng (2012, Econometrica).
+
 ## v1.1.0 — New skill: theory-simulation
 
 Adds a fifth skill, `theory-simulation`, that bridges theoretical results and
