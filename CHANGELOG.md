@@ -11,9 +11,9 @@
 ## v1.0.0 — Initial release
 
 ### Skills included
-- `proofcheck` (528 lines) — based on maweiruc/proofcheck-stat-paper methodology,
-  reorganized into a single SKILL.md with provability triage and proof-strategy
-  classification from proof-writer integration
+- `proofcheck` (528 lines) — multi-pass proof verification methodology (references
+  maweiruc/proofcheck-stat-paper for the 6-pass structure), reorganized into a single
+  SKILL.md with provability triage and proof-strategy classification
 - `proof-repair` (768 lines) — new skill: triage → impact analysis → candidate
   repairs → multi-source T1 literature search → complete proof writing → Codex
   stress-test → master REPAIR_PLAN
@@ -21,7 +21,7 @@
   classification with literature-anchored validation → 22 framework-tagged
   relaxation pathways → rate sharpening → reviewer-critical dimensions audit →
   Codex independent assessment
-- `proof-writer` — pre-existing skill, included unmodified for pipeline completeness
+- `proof-writer` — rigorous proof drafting skill, included for pipeline completeness
 
 ### Key design decisions
 - **Venue tier system** (T1 Gold → T4 Avoid) applied consistently across

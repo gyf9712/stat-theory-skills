@@ -4,8 +4,9 @@ A pipeline of 4 Claude Code skills for working with mathematical proofs in
 statistics, econometrics, and ML theory papers. Goes from **finding proof errors**
 all the way to **theoretical sharpening with literature support**.
 
-> Built on top of [maweiruc/proofcheck-stat-paper](https://github.com/maweiruc/proofcheck-stat-paper),
-> then extended with proof repair, theory sharpening, and Codex MCP cross-review.
+> References [maweiruc/proofcheck-stat-paper](https://github.com/maweiruc/proofcheck-stat-paper)
+> as inspiration for the proof-checking methodology, and extends it with proof repair,
+> theory sharpening, and Codex MCP cross-review.
 
 ## The Pipeline
 
@@ -175,10 +176,10 @@ Full workflow on a single paper:
 
 ## Credits
 
-- **Original methodology**: [maweiruc/proofcheck-stat-paper](https://github.com/maweiruc/proofcheck-stat-paper) by Wei Ma
-- **`proof-writer`**: pre-existing skill, not authored here
+- **Referenced work**: [maweiruc/proofcheck-stat-paper](https://github.com/maweiruc/proofcheck-stat-paper)
+  served as a useful reference point for the multi-pass proof-checking methodology
 - **Pipeline design + literature integration + Codex cross-review**:
-  developed iteratively with Claude (Sonnet) and Codex (GPT)
+  developed iteratively with Claude (Sonnet/Opus) and Codex (GPT)
 - **Reference library venue audit**: Codex GPT independent review
 
 ## License
