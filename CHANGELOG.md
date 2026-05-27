@@ -1,0 +1,34 @@
+# Changelog
+
+## v1.0.0 — Initial release
+
+### Skills included
+- `proofcheck` (528 lines) — based on maweiruc/proofcheck-stat-paper methodology,
+  reorganized into a single SKILL.md with provability triage and proof-strategy
+  classification from proof-writer integration
+- `proof-repair` (768 lines) — new skill: triage → impact analysis → candidate
+  repairs → multi-source T1 literature search → complete proof writing → Codex
+  stress-test → master REPAIR_PLAN
+- `theory-sharpen` (1120 lines) — new skill: mandatory 3-axis framework
+  classification with literature-anchored validation → 22 framework-tagged
+  relaxation pathways → rate sharpening → reviewer-critical dimensions audit →
+  Codex independent assessment
+- `proof-writer` — pre-existing skill, included unmodified for pipeline completeness
+
+### Key design decisions
+- **Venue tier system** (T1 Gold → T4 Avoid) applied consistently across
+  proof-repair and theory-sharpen
+- **Codex MCP cross-review** integrated into three skills using a
+  first-independent-then-reconcile pattern
+- **Framework Classification** before any relaxation analysis to prevent
+  irrelevant pathway suggestions
+- **Literature recency + venue gating**: prefer last 3 years, T1 only,
+  with citation gates calibrated by recency
+- Reference library audited by Codex: 6 venue errors corrected, 7 missing
+  pathways added, 9 reviewer-critical dimensions surfaced
+
+### Reference library size
+- 22 relaxation pathways across 5 categories with framework tags
+- 11 rate-sharpening directions
+- 10 reviewer-critical dimensions
+- All references venue-verified
