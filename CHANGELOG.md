@@ -1,5 +1,72 @@
 # Changelog
 
+## v1.2.0 — theory-simulation: AUDIT MODE for existing simulations
+
+Adds a second operating mode to theory-simulation, after a third round of Codex
+adversarial review focused on the new audit functionality.
+
+### New AUDIT MODE
+When a paper already has a simulation section, the skill now evaluates whether
+those existing simulations actually verify the theorems, identifies gaps,
+and proposes targeted improvements (rather than full redesign).
+
+**A0 — Parse existing sims**: extract experiments, DGPs, n grids, methods, metrics,
+B values, figures, tables, stated conclusions.
+
+**A1 — Two-axis Coverage Matrix** (per Codex's split):
+- Axis 1: **Coverage** — does any experiment aim at this claim?
+- Axis 2: **Evidentiary strength** — does the experiment actually identify the claim?
+- Claim priority ranking: PRIMARY / SECONDARY / PERIPHERAL
+- Final tags with structured reason codes:
+  - `YES[strong]` / `YES[weak]`
+  - `PARTIAL[path | metric | precision | grid | comparator | reporting | stress-coverage | identification-mismatch]`
+  - `NO`
+  - `CONTRADICTED[*]`
+
+**A2 — Per-experiment adequacy audit** scoring on 12 criteria.
+
+**A2.5 — CONTRADICTED 7-step protocol** (Codex insisted on this):
+1. Replication check (rerun with saved seed)
+2. Metric check (does paper measure what theorem bounds?)
+3. DGP check (do assumptions actually hold in sim?)
+4. Computation check (failures, tuning, numerics)
+5. MC precision check (is contradiction > 2 × MCSE?)
+6. Localization (all cells / pre-asymptotic / off-assumption?)
+7. Escalation routing (implementation fix / not real / reframe / genuine — invoke /proofcheck)
+
+**A2.6 — Reuse legitimacy audit**: verifies existing runs can be statistically
+reused (replicate-level data saved, RNG streams recorded, no silent failures,
+correct truth, etc.) before blessing reuse.
+
+**A2.7 — Truth-source audit**: how was ground truth defined?
+Analytic / oracle / numerical / high-B estimate / asymptotic limit — each needs verification.
+
+**A2.8 — Selection-bias audit**: omitted cells, methods, regimes, DGPs, failures,
+cherry-picked seeds.
+
+**A2.9 — Tuning / procedure audit**: oracle vs data-driven; CV variability; sensitivity.
+
+**A2.10 — Computational adequacy audit**: mandatory when paper claims "fast",
+"scalable", "practical".
+
+**A3 — Gap analysis** in 6 buckets now (was 3):
+1. Claims with NO experimental evidence
+2. Experiments with adequacy problems
+3. Reporting / discipline issues
+4. Selection-bias risks (`SELECTION_RISK`)
+5. Tuning / procedure gaps (`TUNING_GAP`)
+6. Computational adequacy gaps (`COMP_GAP`)
+
+**A4 — Targeted improvement plan**: priorities ordered, distinguishing what can
+be reused from existing runs vs what must be rerun.
+
+**A5 — Codex cross-audit** (optional): independent second opinion on the audit itself.
+
+### Result
+Skill went 1001 → 1435 lines. Three Codex review rounds, all 23 + 4 + 4 findings
+addressed. Skill now handles both new-from-scratch design AND audit of existing
+simulations.
+
 ## v1.1.1 — theory-simulation: Codex-reviewed rigor pass
 
 Codex GPT acted as an adversarial AoS/JASA/JRSS-B referee on the theory-simulation

@@ -68,6 +68,9 @@ Goes beyond "is the proof correct" to "can the theory be stronger":
 
 ### `/theory-simulation` — Bridge theory and Monte Carlo simulation
 
+Two modes: **DESIGN** (paper has theorems, no sims) and **AUDIT** (paper has both
+theorems and sims — evaluate whether sims actually verify the theorems).
+
 Designs and runs reproducible simulations to top-stat-journal standards
 (AoS / JASA / JRSS-B / Biometrika / Bernoulli):
 
@@ -87,6 +90,18 @@ Designs and runs reproducible simulations to top-stat-journal standards
   - Confirmed predictions → tagged for paper
   - Discrepancies → feedback to `/theory-sharpen` (relax) or `/proof-writer` (strengthen)
   - Drop-in `SIMULATION_SECTION.tex` for the paper
+
+**AUDIT mode (when paper already has sims)**:
+- Parses existing simulation section, figures, and tables
+- Builds **Coverage Matrix**: theoretical claims × existing evidence (YES / PARTIAL / NO / CONTRADICTED)
+- Per-experiment **adequacy audit** against top-journal standards
+- **Gap analysis** in three buckets:
+  - Claims with NO experimental evidence (most serious)
+  - Experiments with adequacy problems (extend / fix)
+  - Reporting / discipline issues (revise without re-running)
+- **Targeted improvement plan**: minimal new work to close gaps, not full redesign
+- Distinguishes what can be REUSED from existing runs vs what MUST be rerun
+- Codex independent audit for cross-validation
 
 ### `/proof-writer` — Rigorous proof drafting
 

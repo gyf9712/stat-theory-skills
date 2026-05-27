@@ -2,15 +2,17 @@
 name: theory-simulation
 description: >-
   Bridge between theoretical results and Monte Carlo simulation, built to
-  top-stat-journal standards (AoS, JASA, JRSS-B, Biometrika, Bernoulli). For each
-  theoretical claim, design simulations that (1) verify the result under stated
-  assumptions, (2) stress-test by violating assumptions one at a time, (3) confirm
-  rates by log-log slopes, (4) check finite-sample vs asymptotic agreement. Produce
-  publication-grade figures (NO titles, content in caption, no overlap, color-blind
-  safe). Feed simulation findings back to refine theory. Use when user says
-  "simulation plan", "Monte Carlo", "验证理论", "模拟实验", "stress test theory",
-  "bridge simulation", "rate verification", or wants reproducible stat-journal
-  simulations tied to theorems.
+  top-stat-journal standards (AoS, JASA, JRSS-B, Biometrika, Bernoulli). Two modes:
+  (1) DESIGN mode — for each theoretical claim, design new simulations that verify
+  rates, coverage, stress-test assumptions, and reveal theory-improvement opportunities;
+  (2) AUDIT mode — when the paper already has simulations, evaluate whether they
+  actually verify the theorems, identify claim-coverage gaps and adequacy flaws,
+  and propose targeted improvements (extend / add / reformat) rather than full
+  redesign. Produces publication-grade figures (no titles, content in caption,
+  color-blind safe) and feeds findings back to refine theory. Use when user says
+  "simulation plan", "Monte Carlo", "验证理论", "审查 simulation", "audit simulation",
+  "模拟实验", "已有 simulation 检查", "stress test theory", "bridge simulation",
+  "rate verification", or wants reproducible stat-journal simulations tied to theorems.
 argument-hint: [path-to-paper.tex or paper-dir]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
 model: opus
@@ -109,6 +111,438 @@ Use the 3-axis classification (Data / Framework / Regime) to tailor simulation:
 - **i.i.d. + nonparametric + classical** → curves at multiple n, smoothness parameter sweep
 - **i.i.d. + parametric + high-d** → vary n and d jointly, sparsity regimes
 - **online/sequential** → cumulative regret, anytime guarantees
+
+### 0D: Mode detection — DESIGN vs AUDIT
+
+The skill operates in two modes depending on what already exists in the paper:
+
+| Mode | Trigger | What this skill does |
+|------|---------|---------------------|
+| **DESIGN** | Paper has theorems but no simulation section, OR user explicitly requests new sims | Steps 1-7 below: design plan → code → run → figures → reconcile |
+| **AUDIT** | Paper has BOTH theorems AND an existing simulation section | Step A0-A4 below: parse existing sims → assess adequacy → identify gaps → propose targeted improvements |
+| **HYBRID** | Existing sims partially cover theory; user wants gap-filling | Run AUDIT first to identify gaps; then DESIGN mode for only the missing experiments |
+
+**Auto-detection rules**:
+- Search the paper for sections matching: "Simulation", "Numerical Experiments",
+  "Monte Carlo", "Empirical Studies", "Numerical Studies", "Numerical Illustration"
+- Search for figures with captions mentioning "simulation", "Monte Carlo", "replications", "MSE", "coverage"
+- Search for tables containing simulation results (typical header keywords: bias, SE, MSE, coverage, B=, n=)
+- If any of the above found → likely AUDIT or HYBRID mode
+
+**Ask the user to confirm mode** before proceeding. Default to AUDIT when simulation
+content is detected.
+
+---
+
+## AUDIT MODE — Assess existing simulation results
+
+When the paper already has simulation experiments, evaluate them BEFORE designing
+new ones. This is the standard situation during paper revision or peer review.
+
+### Step A0: Parse the existing simulation section
+
+Extract systematically:
+
+| Item | What to record |
+|------|---------------|
+| **Experiments** | Each Experiment / Setting / Scenario name + section reference |
+| **DGPs** | Data generating processes used (with stated parameters) |
+| **Sample sizes** | n values; if multiple, the full grid |
+| **Other parameters** | d, sparsity s, signal strength, smoothness — anything varied |
+| **Methods** | Proposed method + all comparator baselines |
+| **Metrics reported** | Bias, SE, RMSE, MSE, coverage, length, runtime, etc. |
+| **B (replications)** | Stated number of Monte Carlo replications per cell |
+| **Figures/tables** | What is shown and the caption claims |
+| **Stated conclusions** | What the paper claims the simulations demonstrate |
+
+Build `papers/<paper-name>/simulation_audit/EXISTING_SIMS.md` with the parsed
+inventory.
+
+### Step A1: Map existing sims → theoretical claims (TWO-AXIS Coverage Matrix)
+
+Build a matrix on TWO axes (split per Codex review). A claim can be "covered" by
+an experiment that doesn't actually identify it — coverage ≠ credibility.
+
+**Step A1.0: Claim priority ranking** (do this before matrix)
+
+Rank every theoretical claim:
+- **PRIMARY**: central result the paper is built on (main rate, asymptotic distribution, identification)
+- **SECONDARY**: supporting result (consistency, conditions, auxiliary lemma)
+- **PERIPHERAL**: decorative corollary not needed for the main story
+
+Audit severity scales with priority: a gap on a PRIMARY claim is critical; the
+same gap on a PERIPHERAL one is minor.
+
+**Step A1.1: Two-axis Coverage Matrix**
+
+```markdown
+## Coverage Matrix: Claims × Existing Evidence
+
+| Claim | Priority | Coverage axis | Evidentiary strength axis | Final tag |
+|-------|----------|--------------|---------------------------|-----------|
+| Thm 1 rate n^{-1/2} | PRIMARY | Exp 1 plot exists | underpowered: 3 cells, no slope CI, wrong metric | PARTIAL[grid,metric,precision] |
+| Thm 2 asymptotic normality | PRIMARY | Exp 1 QQ plot | one n, one DGP, no QQ band | PARTIAL[grid,reporting] |
+| Thm 2 coverage of 95% CI | PRIMARY | Exp 2 coverage table | single n, no Wilson CI on coverage | PARTIAL[grid,precision] |
+| Thm 3 rate n^{-2/(2+d)} | PRIMARY | none | n/a | NO |
+| Cor 1 uniformity over Θ | SECONDARY | Exp 1 (single θ) | uniformity claim NOT identified by single-θ test | PARTIAL[setup,identification-mismatch] |
+| Robustness to violations | SECONDARY | Exp 3 heavy-tail | only t_3; missing dependence, misspec | PARTIAL[stress-coverage] |
+| Computational claim | PRIMARY | none | n/a | NO |
+```
+
+**Axis 1: Coverage** — Is there ANY experiment aimed at this claim? (yes / no)
+
+**Axis 2: Evidentiary strength** — Does the experiment actually identify the
+claim under top-journal standards?
+
+**Final tag = combination + structured reason code**:
+
+| Tag | Coverage | Strength | Meaning |
+|-----|----------|----------|---------|
+| `YES[strong]` | ✓ | adequate on all dimensions | claim is genuinely verified |
+| `YES[weak]` | ✓ | meets minimum but barely | claim is supported but easily attacked |
+| `PARTIAL[X,Y,...]` | ✓ | fails on one or more dimensions | claim only partially verified; reason codes specify which |
+| `NO` | ✗ | n/a | no experiment addresses this claim |
+| `CONTRADICTED[X]` | ✓ | result conflicts with prediction | red flag — follow CONTRADICTED protocol (A2.5) |
+
+**Reason codes for PARTIAL / CONTRADICTED**:
+- `[path]` — asymptotic path violated (e.g., n varies but `s log d/n` not held fixed)
+- `[metric]` — measured quantity does not match what the theorem bounds
+- `[precision]` — too few replications; MCSE too large to identify the claim
+- `[grid]` — too few cells (e.g., 3 sample sizes for rate verification)
+- `[comparator]` — required baseline missing or wrong
+- `[reporting]` — raw numbers / figure don't permit verification
+- `[stress-coverage]` — robustness claim, but only one violation type tested
+- `[identification-mismatch]` — experimental setup cannot identify the theoretical claim
+  (e.g., single-θ test for a uniform-over-Θ claim)
+
+Multiple codes allowed: `PARTIAL[grid, precision, metric]`.
+
+Audit severity = function of (priority, tag). PRIMARY-claim + `NO` or
+`CONTRADICTED[*]` = CRITICAL. SECONDARY-claim + `PARTIAL[reporting]` = MINOR.
+
+### Step A2: Audit each existing experiment against top-journal standards
+
+For each existing experiment, score against the standards from Steps 1-4:
+
+```markdown
+## Audit: Experiment 1 (Section 4.1, "MSE vs sample size")
+
+### What the experiment does
+- DGP: X_i ~ N(θ*, I_d), θ* = (1, 1, ..., 1)/√d, d = 5 fixed
+- Sample sizes: n ∈ {100, 500, 1000}
+- Methods: Proposed, MLE
+- Metric: MSE = (1/B) Σ ‖θ̂ − θ*‖²
+- B = 500
+- Reported: Table 1 (MSE values), Figure 2 (log-log plot)
+
+### Audit against standards
+
+| Criterion | Status | Issue |
+|-----------|--------|-------|
+| Asymptotic path declared | ❌ | n varies but d fixed; theorem 1 says "fixed d", so OK |
+| Loss object matches theorem | ⚠ | Theorem says ‖θ̂−θ*‖, paper measures MSE; slope target = -2a not -a |
+| ≥6 cells along path | ❌ | Only 3 n values; cannot reliably fit slope |
+| MCSE reported | ❌ | No standard errors on MSE estimates |
+| Slope estimate with CI | ❌ | Plot shown but no slope number |
+| Paired across methods | UNKNOWN | Code not provided; cannot tell if methods share seeds |
+| B selected by MCSE target | ⚠ | B=500 fixed, no justification |
+| Failure rate reported | ❌ | Not stated |
+| Stress tests | ⚠ | Only baseline; no assumption violations |
+| Anti-cherry-picking | ⚠ | Single θ value; no preregistration of headline |
+| Figure shows MC uncertainty | ❌ | No error bars or bands |
+| Caption is content-bearing | ⚠ | Caption says "MSE vs n" but does not state DGP, B, theoretical slope |
+
+### Severity
+- 3 ❌ critical: too few cells, no MCSE, no slope estimate
+- 4 ⚠ moderate: loss object mismatch, B not justified, single θ, weak caption
+- Verdict: PARTIAL verification of Theorem 1
+```
+
+### Step A2.5: CONTRADICTED protocol (REQUIRED when a claim is tagged CONTRADICTED)
+
+When existing simulation conflicts with theoretical prediction, do NOT just flag
+"investigate". Run this 7-step structured triage in order:
+
+```
+Step 1. Replication check
+  - Rerun the exact cell with the saved seed (if available)
+  - Verify the reported numbers reproduce
+  - If they don't → reporting / archival error; correct and proceed
+
+Step 2. Metric check
+  - Verify the plotted/measured quantity matches the theorem's target
+  - Theorem on ‖θ̂ − θ*‖? Paper measures MSE? Compute the correct quantity
+  - If contradiction disappears → MISTAKEN COMPARISON, not theorem failure
+
+Step 3. DGP check
+  - Verify the DGP actually satisfies the theorem's assumptions
+  - Verify the asymptotic path was implemented correctly
+  - If contradiction disappears under correct DGP → ASSUMPTION VIOLATED IN SIM, not theorem failure
+
+Step 4. Computation check
+  - Inspect convergence failures, optimizer tolerances, numerical issues
+  - Inspect tuning behavior (oracle vs data-driven)
+  - Look for silent failures dropped from aggregation
+  - If contradiction disappears under correct computation → IMPLEMENTATION BUG, not theorem failure
+
+Step 5. MC precision check
+  - Compute MCSE for the contradicting quantity
+  - Is |empirical − theoretical| > 2 × MCSE?
+  - If not → APPARENT CONTRADICTION IS WITHIN MC NOISE; not real
+
+Step 6. Localization
+  - Does the contradiction occur in ALL cells, or only specific regimes?
+  - Pre-asymptotic only (small n)? → finite-sample effect; theory still valid asymptotically
+  - All n? → genuine asymptotic contradiction
+  - Off-assumption only? → robustness limit, not theorem failure
+
+Step 7. Escalation routing
+  - Implementation / reporting issue (Steps 1, 2, 3, 4) → fix and rerun
+  - Within MC noise (Step 5) → not a contradiction; update conclusion to "consistent within MC error"
+  - Pre-asymptotic only (Step 6) → reframe as finite-sample regime; consult /proof-repair for FS theorem
+  - Off-assumption only (Step 6) → reclassify as robustness failure, NOT theorem failure
+  - Survives all 6 checks → GENUINE CONTRADICTION:
+      → trigger /proofcheck for proof audit
+      → trigger /theory-sharpen for theory revisit
+      → flag to user as a major issue requiring author response
+```
+
+Record the triage in `simulation_audit/CONTRADICTED_<claim_id>.md` for each
+CONTRADICTED claim. Without this discipline, "contradicted" becomes a dramatic
+label with no rigor behind it.
+
+### Step A2.6: Reuse legitimacy audit
+
+Before recommending that existing runs be REUSED (rather than rerun), verify
+the reuse is statistically legitimate:
+
+| Check | Why | If fails |
+|-------|-----|----------|
+| Replicate-level outputs saved | Reuse requires per-rep data, not just aggregates | Must rerun |
+| RNG streams recorded per replicate | To verify independence and chunking | Must rerun |
+| Methods used paired-replicate sharing | Required for valid paired comparisons | Reuse for non-paired metrics only |
+| Failures logged, not silently dropped | Silent drops bias aggregates | Audit raw outputs; if not recoverable, rerun |
+| Truth target matches the theorem | Sim may have compared to wrong ground truth | Recompute against correct truth or rerun |
+| Tuning was held fixed across reps within cell | If tuning varied, the variability is a noise floor | Refer to A2.7 |
+
+Reuse without this audit is a referee magnet. Only bless reuse after all checks pass.
+
+### Step A2.7: Truth-source audit
+
+How was the "truth" (θ*, f*, target estimand) defined in each existing experiment?
+
+| Truth source | Audit needed |
+|-------------|--------------|
+| Analytic / closed-form | Verify formula correctness; trust if correct |
+| Plug-in oracle (knows nuisance) | Verify this matches the theorem's target, not a different one |
+| Approximate numerical (e.g., quadrature) | Verify tolerance is much smaller than MCSE of metrics |
+| Estimated from a high-B benchmark run | Verify that benchmark's MCSE is reported and small enough |
+| Asymptotic limit treated as truth | Often hides bias of order 1/n; flag if rate verification depends on this |
+
+Many papers quietly use the wrong truth. Document the truth-source for each
+experiment and flag any that conflate "estimand under model assumption" with
+"empirical population quantity".
+
+### Step A2.8: Selection-bias audit
+
+Existing simulation sections often show only the good cells. Look for signals
+of selective reporting:
+
+| Signal | What to check |
+|--------|--------------|
+| **Omitted cells** | Does the paper mention a wider grid than what is shown? Are "additional results" in supp / not shown? |
+| **Omitted methods** | Are some baselines mentioned in text but absent from figures? |
+| **Omitted regimes** | Does the n / d grid look tailored (e.g., starts at the smallest n where the method beats baseline)? |
+| **Omitted DGPs** | Is the stress test menu suspiciously short? |
+| **Omitted failures** | Is the failure rate reported? Are convergence diagnostics shown? |
+| **Cherry-picked seed** | Is only one Monte Carlo replication / random seed shown for illustration? |
+
+Flag any signal as `SELECTION_RISK` in the gap analysis. Even when not a fatal
+flaw, force a rewrite to either show the omitted cells or explain why they were
+excluded.
+
+### Step A2.9: Tuning / procedure audit
+
+For each method in the existing simulations, audit how tuning parameters were chosen:
+
+| Tuning regime | Audit |
+|--------------|-------|
+| Oracle (knows true λ, h, K, ...) | Acceptable for "best case" benchmark; must also report data-driven version |
+| Data-driven (CV, BIC, plug-in) | Verify the procedure is described and reproducible |
+| Single tuning value mentioned in text | Why this value? Sensitivity check? |
+| Tuning varies but variability not reported | Hidden variance source; demand variability over tuning randomness |
+| CV / sample splitting with random folds | Is the CV randomness within or across reps? Both have implications |
+
+If the paper claims a method advantage, it must show the advantage holds under
+PRACTICAL tuning, not just oracle. If only oracle results are shown, flag as
+`TUNING_GAP` and require data-driven version.
+
+### Step A2.10: Computational adequacy audit
+
+If the paper makes ANY of:
+- "fast", "scalable", "tractable", "practical"
+- "easy to implement"
+- "comparable to baseline X in runtime"
+- "works for large n / large d"
+
+…then computational diagnostics are mandatory. Audit:
+
+| Item | Should be reported |
+|------|-------------------|
+| Runtime per replicate (mean, median, max) | Yes, vs n and d |
+| Peak memory | Yes, if memory is a constraint |
+| Failure rate (nonconvergence, timeout) | Yes, per cell |
+| Scaling exponent | Empirical runtime should track theoretical complexity |
+| Comparison to baseline runtime | Required if speed advantage is claimed |
+
+Missing computational diagnostics in a paper that markets practicality is a
+common referee complaint. Flag as `COMP_GAP` in gap analysis.
+
+### Step A3: Gap analysis — what's missing
+
+Compile gaps in three categories:
+
+**A3.1: Claims with NO experimental evidence** (most serious)
+```markdown
+| Claim | Why it matters | Required new experiment |
+|-------|---------------|-----------------------|
+| Theorem 3 rate n^{-2/(2+d)} | Main rate result | Design rate-verification along (n,d) grid; ≥6 cells |
+| Cor 1 uniformity over Θ | Strengthens Thm 2 from pointwise to uniform | Sup-error experiment over a θ-grid |
+| Computational scalability claim | Stated in abstract | Runtime/memory vs n |
+```
+
+**A3.2: Experiments with adequacy problems** (medium serious)
+```markdown
+| Existing experiment | Flaw | Fix |
+|---------------------|------|-----|
+| Exp 1 MSE vs n | 3 cells, no slope CI | Extend to 6-8 n values; report weighted slope + 95% CI |
+| Exp 1 figure | No MC uncertainty | Add MCSE error bars |
+| Exp 2 coverage | Single n | Extend to 4-6 n values to show convergence to nominal |
+| Exp 3 stress test | Only t_3 | Add t_5 (intermediate), AR(1) (dependence), misspec |
+```
+
+**A3.3: Reporting / discipline issues** (revision quality)
+```markdown
+| Issue | Where | Fix |
+|-------|-------|-----|
+| No B justification | Throughout | State MCSE target and how B was chosen |
+| No paired comparison | Tables | Report paired loss differences method-vs-method |
+| Captions lack DGP detail | All figures | Rewrite captions: DGP, n, B, theoretical prediction explicit |
+| No failure rates | All cells | Add failure-rate column |
+| Missing baselines | Exp 1-2 | Add at least one published competitor + oracle |
+| Single θ value | Exp 1-3 | Vary θ at least 3 values, or argue why one is representative |
+```
+
+**A3.4: Selection-bias risks** (from A2.8)
+```markdown
+| Signal | Evidence | Required action |
+|--------|----------|----------------|
+| SELECTION_RISK: omitted cells | Paper says "additional simulations available on request" | Force inclusion of all cells or explicit exclusion rationale |
+| SELECTION_RISK: omitted DGPs | Stress menu has 1 entry | Expand stress menu per theorem-matched least-favorable design |
+| SELECTION_RISK: omitted failures | No failure-rate column | Reanalyze raw outputs and report failure rates |
+```
+
+**A3.5: Tuning / procedure gaps** (from A2.9)
+```markdown
+| Gap | Method | Required action |
+|-----|--------|----------------|
+| TUNING_GAP | Proposed method shown only under oracle λ | Add data-driven λ (CV) and report performance gap |
+| TUNING_GAP | CV variability not reported | Add variability over CV folds / random init |
+```
+
+**A3.6: Computational adequacy gaps** (from A2.10)
+```markdown
+| Gap | Where claimed | Required action |
+|-----|---------------|----------------|
+| COMP_GAP: no runtime | Abstract says "scalable" | Add runtime + memory vs n,d |
+| COMP_GAP: no failure rate | Method uses iterative optimization | Add convergence statistics |
+```
+
+### Step A4: Targeted improvement plan
+
+Based on the gap analysis, produce a **minimal targeted plan** — only what's needed
+to close gaps, not a full redesign:
+
+```markdown
+# Targeted Improvement Plan
+
+## Priority 1: Close critical claim-gaps (NEW experiments)
+- E_new1: Verify Theorem 3 rate (along asymptotic path s log d / n = 0.5)
+- E_new2: Computational scalability (runtime + peak memory vs n)
+- E_new3: Uniformity over Θ for Corollary 1
+
+## Priority 2: Extend / strengthen existing experiments
+- Extend Exp 1 to n ∈ {50, 100, 200, 500, 1000, 2000, 5000} with MCSE bars
+- Extend Exp 2 coverage to multiple n; add Wilson CIs
+- Add t_5 and AR(1) to Exp 3 stress tests
+
+## Priority 3: Reporting + discipline fixes (NO new runs needed)
+- Recompute slope estimates with weighted regression + CI
+- Rewrite all captions to be content-bearing
+- Add paired-difference reporting where possible
+- Report B-selection rationale (target MCSE per metric)
+
+## What CAN be reused from existing runs
+- Exp 1 raw results: extend rather than rerun if seed/code recoverable
+- Exp 2 raw results: extend coverage to new n
+- Exp 3 raw results: reuse t_3 cell; add t_5 + AR(1) as new cells
+
+## What MUST be rerun
+- If existing code is lost / seeds not stored, baseline experiments must be redone
+  with STRICT-tier reproducibility before extension
+```
+
+Write to `papers/<paper-name>/simulation_audit/IMPROVEMENT_PLAN.md`.
+
+### Step A5: Codex cross-audit (if Codex MCP available)
+
+After Claude completes the audit, send to Codex for independent verification:
+
+```
+mcp__codex__codex:
+  config: {"model_reasoning_effort": "high"}
+  prompt: |
+    You are a senior referee for a top stat journal reviewing a paper's existing
+    simulation section.
+
+    THEOREMS:
+    [paste]
+
+    EXISTING SIMULATION SECTION:
+    [paste]
+
+    Tasks (be harsh):
+    1. For each theorem, identify whether the existing experiments actually verify
+       what the theorem CLAIMS, or only something weaker / different.
+    2. List every assumption the theorem makes that is NOT stress-tested.
+    3. List every metric the paper REPORTS that does NOT match what the theorem
+       BOUNDS. (E.g., theorem on ‖·‖, paper reports MSE.)
+    4. Find any cherry-picking signals (single θ, single DGP variant, suspicious
+       choice of n grid).
+    5. Find any results that look TOO clean (suspiciously low variance, MSE exactly
+       matching theoretical curve, etc.) — possible coding errors or selection.
+    6. List the top-3 most important missing experiments.
+
+    Output: ordered list of issues with severity (CRITICAL / MAJOR / MINOR).
+```
+
+Reconcile Codex's findings with Claude's audit. Disagreements get flagged for user.
+
+### Output for AUDIT mode
+
+```
+papers/<paper-name>/simulation_audit/
+  EXISTING_SIMS.md          # parsed inventory
+  COVERAGE_MATRIX.md        # claims × evidence
+  ADEQUACY_AUDIT.md         # per-experiment scoring
+  GAP_ANALYSIS.md           # what's missing
+  IMPROVEMENT_PLAN.md       # targeted, minimal new work
+  codex_audit.md            # independent second opinion (if Codex available)
+```
+
+After AUDIT, if user wants to implement the improvement plan, the skill switches
+to HYBRID mode: re-uses Steps 1-7 below for ONLY the new experiments identified
+in `IMPROVEMENT_PLAN.md`.
 
 ---
 
