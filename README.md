@@ -11,13 +11,13 @@ all the way to **theoretical sharpening with literature support**.
 ## The Pipeline
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌──────────────┐
-│ /proofcheck │ →  │ /proof-repair│ →  │/theory-sharpen │ →  │ /proof-writer│
-│             │    │              │    │                │    │              │
-│ Find proof  │    │ Fix issues + │    │ Strengthen the │    │ Write the    │
-│ errors      │    │ literature   │    │ theory itself  │    │ corrected /  │
-│             │    │ support      │    │                │    │ new proof    │
-└─────────────┘    └──────────────┘    └────────────────┘    └──────────────┘
+┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌────────────────────┐    ┌──────────────┐
+│ /proofcheck │ →  │ /proof-repair│ →  │/theory-sharpen │ →  │ /theory-simulation │ →  │ /proof-writer│
+│             │    │              │    │                │    │                    │    │              │
+│ Find proof  │    │ Fix issues + │    │ Strengthen the │    │ Monte Carlo verify │    │ Write the    │
+│ errors      │    │ literature   │    │ theory itself  │    │ + stress-test +    │    │ corrected /  │
+│             │    │ support      │    │                │    │ feed back to theory│    │ new proof    │
+└─────────────┘    └──────────────┘    └────────────────┘    └────────────────────┘    └──────────────┘
 ```
 
 Each skill can be used standalone, or chained together.
@@ -65,6 +65,28 @@ Goes beyond "is the proof correct" to "can the theory be stronger":
 - **9 reviewer-critical dimensions** (lower bounds, identification, adaptivity,
   structural guarantees, computational attainability, …) + assumption verifiability
 - Codex MCP independent assessment
+
+### `/theory-simulation` — Bridge theory and Monte Carlo simulation
+
+Designs and runs reproducible simulations to top-stat-journal standards
+(AoS / JASA / JRSS-B / Biometrika / Bernoulli):
+
+- **Theory-to-simulation mapping**: every theorem gets a verification experiment
+- **Stress tests**: violate each assumption one at a time
+- **Rate verification**: log-log slope analysis with confidence bands
+- **Coverage verification**: empirical coverage of CIs vs nominal level
+- **Reproducibility**: deterministic seeds, parallel execution, versioned dependencies
+- **Publication-grade figures** (stat-journal conventions, NOT Nature defaults):
+  - **NO titles** on plots — all content goes in LaTeX `\caption{}`
+  - Concise axis labels, no jargon
+  - Legend placement verified for non-overlap with data
+  - Color-blind safe palettes (Okabe-Ito for lines, viridis/cividis for heatmaps)
+  - PDF/EPS export with embedded fonts; no raster for line plots
+  - Pre-export checklist enforced
+- **Theory ↔ simulation reconciliation**:
+  - Confirmed predictions → tagged for paper
+  - Discrepancies → feedback to `/theory-sharpen` (relax) or `/proof-writer` (strengthen)
+  - Drop-in `SIMULATION_SECTION.tex` for the paper
 
 ### `/proof-writer` — Rigorous proof drafting
 

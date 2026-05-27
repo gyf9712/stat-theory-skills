@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.1.0 — New skill: theory-simulation
+
+Adds a fifth skill, `theory-simulation`, that bridges theoretical results and
+Monte Carlo simulation to top-statistics-journal standards.
+
+### Pipeline now (5 skills)
+```
+/proofcheck → /proof-repair → /theory-sharpen → /theory-simulation → /proof-writer
+```
+
+### theory-simulation skill (583 lines)
+- **Theory-to-simulation mapping**: each theorem gets a verification experiment
+  with explicit DGP, sample-size grid, reps, metrics, pass/fail criteria
+- **Stress-test design**: violate each critical assumption one at a time
+  (heavy tails, dependence, misspecification, boundary, identifiability,
+  growing dim, outliers, small sample)
+- **Rate verification protocol**: ≥6 sample sizes, log-log slope regression
+  with 95% CI on the slope
+- **Coverage verification**: empirical coverage at multiple n with Wilson CI
+- **Method comparison**: required ≥1 baseline (oracle/competitor/naive)
+- **Implementation conventions**: seed determinism, parallel runner, atomic
+  CSV writes, reproducibility check
+- **Stat-journal figure conventions** (different from Nature defaults):
+  - **NO titles** on plots — all content in LaTeX `\caption{}`
+  - Okabe-Ito palette (color-blind safe) for lines
+  - Viridis/cividis for heatmaps; never jet/rainbow
+  - Embedded fonts (`pdf.fonttype = 42`) for editable text
+  - Reference dashed lines for theoretical rates / nominal coverage
+  - Multi-panel with (a),(b),(c) labels in-panel, no panel titles
+  - Pre-export checklist (no titles, legend doesn't cover data, etc.)
+- **Theory ↔ simulation reconciliation**: feedback loop to upstream skills
+  - Confirmed predictions → ready for paper
+  - Theory under-claims → forward to `/theory-sharpen`
+  - Theory over-claims → forward to `/proofcheck` for re-audit
+  - Assumption unnecessary → relaxation candidate
+  - Assumption genuinely needed → strengthen statement
+- **Drop-in SIMULATION_SECTION.tex** for the paper
+
 ## v1.0.3 — Reference Mode Awareness (single-file vs two-file submissions)
 
 Handles the practical reality that JASA / AoS / JRSS-B / Biometrika / Econometrica
