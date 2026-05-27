@@ -1,5 +1,64 @@
 # Changelog
 
+## v1.3.1 — theory-design: Mandatory literature anchoring
+
+Designing a theoretical framework without first reading recent top-venue
+literature is unsafe — you risk reinventing existing work, deviating from
+field conventions for no reason, or being unable to position the contribution.
+The skill now enforces literature anchoring BEFORE any phase decision.
+
+### New Step 0.5: Mandatory Literature Anchoring
+
+**0.5A Topic signature**: structured search keywords (subject + technique + data
+structure + framework + regime + application area).
+
+**0.5B Multi-source T1 search** (4 parallel agents):
+- T1 statistics journals (AoS, JASA T&M/ACS, AOAS, JRSS-B, Biometrika,
+  Bernoulli, EJS, Statistica Sinica, Biostatistics, JCGS)
+- T1 ML/AI conferences (NeurIPS, ICML, ICLR, COLT, AISTATS, JMLR, UAI)
+- T1 econometrics journals (Econometrica, JOE, REStud, QE, JBES, ET)
+- Highly-cited consensus papers (last 10 years, citation-sorted)
+
+Prefers last 3 years, hard cap at last 5 years. Citation gates calibrated by recency.
+
+**0.5C Per-paper structured extraction**:
+problem framing, theoretical anchor, assumption profile, result type, proof
+technique, position in literature.
+
+**0.5D Theoretical inertia identification**:
+What is the current consensus on data structure, modeling framework, asymptotic
+regime, proof technique, contribution shape? This is the "default path" the
+field expects.
+
+**0.5E Positioning options** (3 choices, each with trade-offs):
+- INCREMENTAL: refine within the inertia (lower friction, lower novelty)
+- LATERAL: same problem, different angle (justifies the angle change)
+- DISRUPTIVE: challenges the inertia (highest reward, must build the case)
+
+**0.5F Anchor → design constraints**:
+Every subsequent phase must reference the anchor when making decisions:
+"You're adopting the inertia here — cite [canonical papers]"
+"You're deviating here — justify with [specific reasoning]"
+
+**0.5G Mandatory user confirmation**:
+Skill REFUSES to proceed to Step T1/M1/A1 until user confirms the anchor.
+
+### New Step X2.5: Positioning audit
+
+After framework design, verify:
+- Did each phase decision match the chosen positioning?
+- Did the framework drift from positioning during T1-T7 / M1-M7 / A1-A7?
+- Citation strategy alignment: which 5-10 papers cited prominently, in what role?
+
+If positioning drifted, decide: revert framework to match original positioning,
+OR update positioning to match what framework evolved into. Either is fine;
+the mismatch is the problem.
+
+### Output addition
+- New artifact: `papers/<paper-name>/design/LITERATURE_ANCHOR.md`
+- Consumed by all downstream skills (proof-writer, theory-simulation, proofcheck)
+  for context
+
 ## v1.3.0 — New skill: theory-design (paper-type-aware framework planning)
 
 Adds a 6th skill that handles the **planning phase** — from "I have a new

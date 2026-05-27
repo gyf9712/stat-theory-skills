@@ -7,13 +7,14 @@ description: >-
   theoretical guarantees), Application paper (apply existing methods to scientific
   data with assumption verification). Each mode walks a different logical order:
   the centerpiece of a theory paper is the theorem itself, of a methodology paper
-  the estimator, of an application paper the empirical findings. The skill forces
-  the user to declare paper type first, then asks paper-type-appropriate questions
-  in the correct order, and produces a FRAMEWORK_DESIGN.md that downstream skills
-  (proof-writer, theory-simulation, proofcheck) consume. Use when user says
-  "design theory framework", "理论框架设计", "新课题怎么开始", "新方向 design",
-  "from scratch theory", "构建理论框架", "start a new topic", or asks for the
-  logical order to build a statistics paper's theoretical content from a blank
+  the estimator, of an application paper the empirical findings. Mandatory literature
+  anchoring step (recent top-venue papers) identifies the field's theoretical
+  inertia and positioning options BEFORE any phase decision, then constrains every
+  subsequent decision. Produces FRAMEWORK_DESIGN.md + LITERATURE_ANCHOR.md that
+  downstream skills (proof-writer, theory-simulation, proofcheck) consume. Use when
+  user says "design theory framework", "理论框架设计", "新课题怎么开始", "新方向
+  design", "from scratch theory", "构建理论框架", "start a new topic", or asks for
+  the logical order to build a statistics paper's theoretical content from a blank
   page.
 argument-hint: [topic-or-rough-idea]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
@@ -87,6 +88,225 @@ Based on declared type, the skill runs ONE of three workflows:
 - **Theory mode** → Step T1-T7
 - **Methodology mode** → Step M1-M7
 - **Application mode** → Step A1-A7
+
+But FIRST, regardless of mode, run Step 0.5.
+
+---
+
+## Step 0.5: MANDATORY Literature Anchoring
+
+**This step is NON-NEGOTIABLE.** A theoretical framework designed without
+literature context is almost certainly either:
+- Reinventing what's already done
+- Deviating from field conventions for no reason
+- Missing the "theoretical inertia" — how the community frames this problem
+- Unpositioned — making it hard to assess the contribution
+
+Build the literature anchor BEFORE any phase decision. Every subsequent phase
+must reference back to this anchor when making a choice.
+
+### 0.5A: Topic signature for search
+
+Build a structured topic signature for the search queries:
+
+```
+Topic signature:
+- Primary subject:     [1-3 word phrase, e.g., "treatment effect estimation"]
+- Method/technique:    [e.g., "doubly robust", "Poisson equation", "lasso", "M-estimation"]
+- Data structure:      [iid / TS / mixing / Markov / panel / spatial / sequential / network]
+- Modeling framework:  [parametric / semiparametric / nonparametric]
+- Regime:              [classical / proportional / high-d / non-asymptotic / online]
+- Application area (if applicable): [causal inference / genomics / finance / etc.]
+```
+
+### 0.5B: Multi-source T1 literature search (parallel)
+
+Run in parallel — use Agent tool for each search agent:
+
+**Agent 1: T1 statistics journals (last 5 years preferred)**
+```
+Search Semantic Scholar API:
+  query = [topic signature components]
+  year = current_year - 5 .. current_year
+  venue ∈ {Annals of Statistics, JASA T&M, JASA ACS, AOAS, JRSS-B, Biometrika,
+            Bernoulli, EJS, Statistica Sinica, Biostatistics, JCGS}
+  fields = title, authors, year, abstract, venue, citationCount, externalIds
+
+Apply filters:
+  - Sort by recency; prefer last 3 years
+  - Drop low-citation older papers
+  - Keep top 10-15 most-relevant
+```
+
+**Agent 2: T1 ML/AI conferences (last 5 years preferred)**
+```
+WebSearch + Semantic Scholar:
+  query = [topic signature components]
+  venue ∈ {NeurIPS, ICML, ICLR, COLT, AISTATS, JMLR, UAI}
+  
+Same filtering rules.
+```
+
+**Agent 3: T1 econometrics journals (if applicable)**
+```
+Search:
+  venue ∈ {Econometrica, Journal of Econometrics (JOE), Review of Economic Studies,
+            Quantitative Economics, JBES, Econometric Theory, RFS, JF}
+```
+
+**Agent 4: Highly-cited "consensus" papers (last 10 years)**
+```
+Search:
+  query = broader topic signature
+  sort = citationCount desc
+  year = current_year - 10 .. current_year
+  limit = 10
+
+Purpose: identify what the field considers CANONICAL recent work
+(papers that define the current framework).
+```
+
+### 0.5C: Extract from each found paper
+
+For each paper, extract structured information:
+
+```markdown
+## [Paper N] Author (Year, Venue, citations)
+
+### Problem framing
+- How is the problem stated?
+- What gap does it address?
+- One-sentence contribution
+
+### Theoretical anchor
+- Data structure used
+- Modeling framework
+- Asymptotic regime
+- Target estimand/object
+
+### Assumption profile
+- Key assumptions (≤5)
+- Anything unusual or contested
+
+### Result type
+- Rate / asymptotic distribution / coverage / lower bound / structural recovery?
+
+### Proof technique
+- Main tool used
+
+### Position in literature
+- Direct predecessor it extends
+- Alternative approach it competes with
+```
+
+Compile into `papers/<paper-name>/design/LITERATURE_ANCHOR.md`.
+
+### 0.5D: Identify the "theoretical inertia"
+
+From the extracted papers, identify the **current consensus framework**:
+
+```markdown
+## Theoretical Inertia of the Field
+
+### Default data structure: [most common across recent T1 papers]
+Example: "Most recent CATE papers use i.i.d. observations even when
+applications are clustered."
+
+### Default modeling framework: [most common]
+Example: "Semiparametric framework with infinite-dim nuisance is dominant
+for treatment effect since Robins-Rotnitzky-Zhao (1994); pure parametric
+is now rare."
+
+### Default asymptotic regime: [most common]
+Example: "Non-asymptotic high-d bounds with sparsity have become standard
+in the last 5 years; classical asymptotic n→∞ with d fixed is now seen
+as a special case to confirm."
+
+### Default proof technique: [most common]
+Example: "Cross-fitting + orthogonal scores is now the dominant proof
+technique in this subfield (Chernozhukov et al. 2018)."
+
+### Default contribution shape
+Example: "Recent papers tend to: (a) propose a new method, (b) prove
+n^{-1/2} rate under semiparametric assumptions, (c) demonstrate finite-sample
+performance via simulation."
+```
+
+This is the **inertia** — the path of least resistance for the field. You can
+either follow it (lower friction in review) or deviate from it (higher reward
+but must justify the deviation).
+
+### 0.5E: Identify positioning options
+
+For your contribution, where does it sit relative to the inertia?
+
+```markdown
+## Positioning Options
+
+### Option 1: INCREMENTAL — refine within the inertia
+- Adopts default data structure, framework, regime
+- Provides a sharper rate, weaker assumption, OR new estimator in the standard frame
+- Easier to review and publish (referees see a familiar landscape)
+- Lower-novelty perception unless the refinement is technically substantial
+
+### Option 2: LATERAL — same problem, different angle
+- Same problem, but pick an alternative framework or regime
+- Example: most CATE papers use cross-fitting; you might use posterior contraction
+- Must justify why your angle reveals something the standard angle misses
+- Higher review difficulty (referee needs to be familiar with your alternative)
+
+### Option 3: DISRUPTIVE — challenges the inertia
+- Argues the standard framework is wrong / suboptimal / mis-applied here
+- Requires either (a) a counterexample showing standard framework fails, or
+  (b) a new framework that supersedes the standard
+- Highest reward, highest risk; usually requires a paper-length argument for the
+  reframing itself
+```
+
+For each option, also identify:
+- Which T1 venues are most receptive
+- Which 3-5 reference papers should be cited for positioning
+
+### 0.5F: Anchor → design constraints
+
+The literature anchor feeds into every subsequent phase as constraints:
+
+```markdown
+## Constraints derived from anchor
+
+For Step 1 (problem framing):
+- The motivation must distinguish from [list 3 most similar papers]
+- The gap must be precisely articulated; vague gaps will be attacked
+
+For Step 2-3 (model/framework choice):
+- If you adopt the inertia: cite [canonical papers]
+- If you deviate: justify deviation with [specific reasoning]
+
+For Step 5-6 (target results / proof):
+- Your rate must beat / match / explicitly differ from [best known: list]
+- Your proof technique should either use [dominant tool] or justify why not
+
+For Step 7 (downstream connections):
+- Specify which existing papers your work supersedes or complements
+```
+
+### 0.5G: Mandatory user confirmation
+
+Present the LITERATURE_ANCHOR.md to the user. Force confirmation:
+
+```
+"Here is the literature anchor for your topic.
+
+  - X recent T1 papers identified
+  - Theoretical inertia: [summary]
+  - Recommended positioning: [option]
+
+Do you confirm this anchor before proceeding to framework design?"
+```
+
+User can: confirm / correct misreadings / add papers / change positioning.
+
+Without explicit confirmation, the skill REFUSES to proceed to Step T1/M1/A1.
 
 ---
 
@@ -493,15 +713,55 @@ After the type-specific workflow, run these universal checks:
 - Is the asymptotic regime consistent throughout?
 ```
 
-### X2: Novelty / contribution audit
+### X2: Novelty / contribution audit (literature-anchored)
 
 ```
 - Is the contribution clearly stated in 1-2 sentences?
 - Does it match the paper-type's expected contribution kind?
-- Is there a "kill shot" risk — a recent paper that scoops 80% of this?
+- Cross-reference against LITERATURE_ANCHOR.md:
+  * Is the contribution genuinely distinct from the 10-15 recent T1 papers?
+  * Is there a "kill shot" risk — a recent paper that scoops 80% of this?
+  * Is the contribution magnitude appropriate for the positioning chosen
+    (incremental / lateral / disruptive)?
+- For DISRUPTIVE positioning: does the framework actually justify the deviation?
+- For INCREMENTAL positioning: is the refinement substantial enough to publish?
 ```
 
 Cross-check with `/novelty-check` or `/research-lit` if available.
+
+### X2.5: Positioning audit (literature-anchored)
+
+Re-examine the positioning from Step 0.5E against the now-detailed framework:
+
+```markdown
+## Positioning Verification
+
+### Chosen positioning: [INCREMENTAL / LATERAL / DISRUPTIVE]
+
+### Coherence check
+- Does each phase decision match the positioning?
+  * INCREMENTAL: Did you adopt the inertia's defaults except where you refine?
+  * LATERAL: Did you justify the angle change?
+  * DISRUPTIVE: Did you build the case for the new framework?
+
+### Drift check
+- During T1-T7 / M1-M7 / A1-A7, did the framework drift from the chosen positioning?
+  Example: started INCREMENTAL but ended up using a non-standard regime — should
+  either re-route to LATERAL or revert.
+
+### Citation strategy alignment
+- Which 5-10 papers from LITERATURE_ANCHOR.md will be cited prominently?
+- Citation structure: predecessors → competitors → adjacent → applications
+- For each, what role do they play?
+  * "Our paper extends [predecessor] by..."
+  * "Unlike [competitor], we..."
+  * "[Adjacent] uses similar tools in a different setting..."
+  * "[Application] motivates the practical need..."
+```
+
+If positioning has drifted, decide: revert framework to match original positioning,
+or update positioning to match what framework evolved into. Either is fine; the
+mismatch is the problem.
 
 ### X3: Reviewer hot-button check
 
