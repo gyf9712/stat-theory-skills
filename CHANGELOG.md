@@ -1,5 +1,69 @@
 # Changelog
 
+## v1.3.0 — New skill: theory-design (paper-type-aware framework planning)
+
+Adds a 6th skill that handles the **planning phase** — from "I have a new
+research topic" to a structured FRAMEWORK_DESIGN.md.
+
+### Key insight
+Statistics papers come in three types with FUNDAMENTALLY different logical
+orders for theoretical-framework design:
+
+| Type | Centerpiece | Theory's role |
+|------|-------------|---------------|
+| THEORY paper | The theorem itself | The contribution |
+| METHODOLOGY paper | The estimator/method | Guarantees method correctness |
+| APPLICATION paper | Empirical findings | Justifies method choice + verifies assumptions |
+
+Previous version of this skill family conflated these three. The new skill
+forces a paper-type declaration first, then walks a type-specific 7-phase
+logical order:
+
+**THEORY mode (T1-T7)**:
+T1: Phenomenon / mathematical-object identification
+T2: Mathematical landscape mapping (existing toolkit gap)
+T3: Conceptual framework & notation
+T4: Formal problem setup (spaces, parameter classes, regimes)
+T5: Target theorems — upper AND lower bounds equally first-class
+T6: Proof strategy & lemma scaffold
+T7: Connections to downstream (what methods this enables)
+
+**METHODOLOGY mode (M1-M7)**:
+M1: Practical problem & method gap
+M2: Method design (CENTERPIECE)
+M3: Model setup for analysis
+M4: Identification
+M5: Theoretical guarantees needed (consistency / rate / inference / etc.)
+M6: Simulation + real-data validation plan
+M7: Proof strategy (technical labor supporting the method)
+
+**APPLICATION mode (A1-A7)**:
+A1: Scientific question & data
+A2: Existing-method selection
+A3: Assumption verification on THIS dataset (distinguishes APP from METHO)
+A4: Empirical findings
+A5: Inference & uncertainty quantification
+A6: Sensitivity analyses
+A7: Connection to literature & implications
+
+**Cross-type checks (X1-X4)** run for all modes:
+- Internal consistency
+- Novelty / contribution audit
+- Reviewer hot-button preemption
+- Codex independent framework review
+
+### Pipeline placement
+```
+research-refine → /theory-design → /proof-writer → /theory-simulation → /proofcheck → /theory-sharpen → /proof-repair
+(rough idea)      (framework)      (theorems)      (verify)              (audit)         (improve)         (fix)
+```
+
+theory-design is the planning layer BEFORE any theorem is written or experiment
+run. It hands off:
+- Theorem statements (T5/M5) → /proof-writer
+- Validation plan (M6/A4-A5) → /theory-simulation
+- Pre-paper checks → /proofcheck (after proofs drafted)
+
 ## v1.2.0 — theory-simulation: AUDIT MODE for existing simulations
 
 Adds a second operating mode to theory-simulation, after a third round of Codex
