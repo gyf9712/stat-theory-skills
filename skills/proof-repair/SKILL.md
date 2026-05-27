@@ -166,6 +166,16 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 
 ### Expand-Sketch-to-Proof repair workflow (when unit was SKETCH-ONLY / PARTIAL-SKETCH)
 
+**HARD PRIORITY RULE**: Any unit flagged SKETCH-ONLY or PARTIAL-SKETCH by
+/proofcheck is **automatically P0 priority** for this repair class, regardless
+of severity ranking on other dimensions. Sketches MUST be expanded — they
+cannot be deferred to "later revision" or "future work".
+
+The reason: a sketch is not just a low-quality proof; it is the **absence of
+verification**. Other issues (constants, quantifiers, etc.) are corrections of
+something that exists. A sketch needs the proof to be CREATED. Until it exists,
+the theorem's status is unsupported.
+
 When proofcheck flags a unit as `SKETCH-ONLY` or `PARTIAL-SKETCH`, the repair is
 to **write the entire proof** — not just fix a step. This is distinct from
 Fill-Skipped-Steps (which fills isolated gaps inside an otherwise rigorous proof).
@@ -197,13 +207,41 @@ Fill-Skipped-Steps (which fills isolated gaps inside an otherwise rigorous proof
 **Output**: a complete proof replacing the sketch, with explicit derivations and
 proper citations. Marked in PATCHES.md as `Patch: replace sketch with full proof`.
 
+**Hard completion rule**: REPAIR_PLAN.md cannot be marked complete while ANY
+sketch unit remains unexpanded. Each detected sketch must end in one of two
+terminal states:
+- **EXPANDED**: full proof written by /proof-writer, re-classified as COMPLETE
+  by /proofcheck
+- **BLOCKAGE**: blockage report written explaining why the sketch cannot be
+  expanded (theorem itself is downgraded to NOT CURRENTLY JUSTIFIED)
+
+There is no third option. "Partially expanded" or "expansion deferred to
+revision" are NOT terminal states.
+
+The REPAIR_PLAN.md must contain a sketch-tracking section:
+
+```markdown
+## Sketch Expansion Tracker (auto-generated)
+
+| Unit | Sketch class (from proofcheck) | Expansion state | Final status |
+|------|------------------------------|----------------|-------------|
+| Thm 3.1 | SKETCH-ONLY | EXPANDED | COMPLETE proof written; verified by re-check |
+| Lemma B.2 | PARTIAL-SKETCH | EXPANDED | 4 gaps filled with full derivations |
+| Cor 5.3 | SKETCH-ONLY | BLOCKAGE | Cited technique inapplicable; theorem downgraded |
+
+Outstanding sketches: 0  ← MUST be 0 for plan to be marked complete
+```
+
+If any row has Expansion state ≠ EXPANDED / BLOCKAGE, the skill returns to
+expansion before producing the final plan.
+
 **Common failure modes for this repair class**:
 - The sketch was actually NOT provable as stated (was hiding the real issue)
-  → downgrade to NOT CURRENTLY JUSTIFIED + blockage report
+  → downgrade to NOT CURRENTLY JUSTIFIED + blockage report (this is BLOCKAGE state, valid terminal)
 - The cited technique doesn't actually apply
-  → reclassify as Replace-Technique
+  → reclassify as Replace-Technique → still must expand the resulting alternative proof
 - Expansion reveals a missing assumption
-  → reclassify as Add-Assumption
+  → reclassify as Add-Assumption → still must expand the resulting proof under the new assumption
 
 ### Fill-Skipped-Steps repair workflow (special handling)
 

@@ -184,6 +184,36 @@ or coverage claim), a complete proof is typically ≥ 1 page of dense derivation
 unless the proof genuinely reduces to a single named result + verification of
 its prerequisites. If your proof is ≤ 10 lines for a theorem that's a paragraph
 to state, suspect it's actually a sketch.
+
+## HARD COMPLETION RULE (when invoked to expand a sketch)
+
+When proof-writer is invoked by /proof-repair (Expand-Sketch-to-Proof workflow)
+or by the user directly to expand an existing sketch, the output MUST be one
+of exactly two terminal states:
+
+1. **COMPLETE PROOF**: every step rigorously derived, no remaining sketch
+   indicators, length appropriate to claim complexity. Output a proof package
+   with status `PROVABLE AS STATED` or `PROVABLE AFTER WEAKENING`.
+
+2. **BLOCKAGE REPORT**: explicit `NOT CURRENTLY JUSTIFIED` status with:
+   - The specific step that cannot be expanded and why
+   - What additional assumption, lemma, or technique would be needed
+   - Whether a weaker claim is provable (if so, prove that weaker claim
+     completely)
+
+The skill is **forbidden** from producing:
+- A second sketch (even one labeled differently)
+- A "partial expansion" that fills some steps but leaves others sketched
+- A proof of a strictly weaker claim without clearly relabeling the claim
+- An expansion that introduces silent assumptions to make the proof work
+
+If the user invokes proof-writer with the intent of "just expand this a bit",
+refuse and explain: either FULL expansion (with all hidden assumptions surfaced)
+or BLOCKAGE REPORT. There is no middle ground.
+
+This rule prevents the failure mode where a sketch is "expanded" into another
+sketch with slightly more words, which is the most common silent failure when
+asking LLMs to expand proofs.
 - if the proof uses an equivalent normalization that is stronger in appearance than the user's original theorem statement, label it explicitly as a proof device and keep the original claim separate
 
 ### Step 6: Final Verification

@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.5.1 — Detection-MUST-trigger-completion (sketch handling hardened)
+
+User observation: v1.5.0 added sketch detection and an Expand-Sketch-to-Proof
+repair class, but it was still possible for the system to flag a sketch and
+move on without expanding it. v1.5.1 closes that loophole.
+
+### Hard rules added (across 3 skills)
+
+**proofcheck**: A detected sketch MUST be expanded before the audit can be
+marked complete.
+- New mandatory field `Expansion status: REQUIRED / IN-PROGRESS / COMPLETED`
+  on every flagged unit
+- Audit refuses to advance to Pass 5 (Final Report) while any sketch remains
+  in REQUIRED or IN-PROGRESS state
+- Final Report's executive summary REQUIRES a line accounting for every
+  detected sketch (must end as EXPANDED or BLOCKAGE — no partial states)
+
+**proof-repair**: Expand-Sketch-to-Proof becomes **P0 priority unconditionally**
+- Cannot be deferred to "future revision"
+- REPAIR_PLAN.md now has a mandatory Sketch Expansion Tracker section
+  showing every flagged sketch and its terminal state
+- Plan refuses to mark complete with "Outstanding sketches > 0"
+- Reclassified failure modes still must expand: Replace-Technique → expand the
+  alternative proof; Add-Assumption → expand under new assumption
+
+**proof-writer**: New HARD COMPLETION RULE when invoked to expand sketches
+- Output MUST be exactly one of two terminal states:
+  - COMPLETE PROOF (every step rigorously derived)
+  - BLOCKAGE REPORT (explicit NOT-CURRENTLY-JUSTIFIED with what's missing)
+- Explicitly FORBIDDEN: second sketch, partial expansion, weaker claim
+  without relabeling, silent assumption injection
+- Refuses requests to "just expand this a bit" — forces full expansion
+  or blockage report
+
+### Why this matters
+
+The most common failure mode when LLMs are asked to "expand a proof sketch" is
+producing another sketch with slightly more words. v1.5.0 detected sketches
+but did not enforce that detection lead to terminal expansion. v1.5.1 makes
+"sketch detected and not expanded" an impossible terminal state of the pipeline.
+
 ## v1.5.0 — Sketch vs Complete Proof discipline (3 skills)
 
 User observation: many papers present "proof sketches" that are actually research

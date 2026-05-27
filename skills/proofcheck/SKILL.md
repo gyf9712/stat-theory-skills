@@ -284,11 +284,43 @@ sketches without full proofs in supplement.
 - For PARTIAL-SKETCH: each gap recorded as an S1 issue requiring expansion
 - For SKETCH-ONLY: STATUS is forced to "SKETCH-ONLY — NO PROOF PROVIDED"
 - Supplement location (if proof is supposed to be elsewhere): [pointer + verify it IS complete there]
+- **Expansion status**: [REQUIRED / IN-PROGRESS / COMPLETED] ← MANDATORY field
+- **Expanded proof file**: [path, set once expansion is complete]
 ```
 
 If the "real" proof is supposed to be in supplementary material, follow the link
 and audit the supplement proof; if the supplement proof is also a sketch, both
 get tagged SKETCH-ONLY.
+
+#### HARD RULE: detection requires immediate expansion
+
+A sketch detected during /proofcheck **cannot remain unexpanded** in the final
+audit output. The audit is NOT complete while sketches remain.
+
+When SKETCH-ONLY or PARTIAL-SKETCH is found:
+1. Mark the unit with `Expansion status: REQUIRED`
+2. **Immediately hand off** to /proof-repair (Expand-Sketch-to-Proof repair class)
+   which then invokes /proof-writer for the actual writing
+3. /proof-writer must produce either:
+   - A COMPLETE proof (Expansion status → COMPLETED)
+   - An explicit NOT-CURRENTLY-JUSTIFIED blockage report (then the theorem
+     itself is downgraded; the sketch is still removed)
+4. After expansion, re-run the Sketch-vs-Complete classification on the new
+   proof body — verify it now classifies as COMPLETE
+5. The audit is blocked from "Pass 5: Final Report" until every detected
+   sketch has Expansion status of either COMPLETED or BLOCKAGE-REPORT-WRITTEN
+
+The Final Report's executive summary MUST contain a row:
+```
+Sketches detected: N
+├── Expanded to complete proof: M
+├── Determined to be unprovable as stated (blockage report): K
+└── Outstanding (NOT ALLOWED in final state): 0
+```
+
+If any sketch remains in "REQUIRED" or "IN-PROGRESS" state when the audit
+attempts to finalize, the skill REFUSES to mark the audit complete and
+returns to expansion.
 
 For EACH proof unit, create one file: `audit/04_local_checks/section_X/{ID}_{name}_check.md`
 
