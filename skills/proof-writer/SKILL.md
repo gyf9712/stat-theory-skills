@@ -3,9 +3,14 @@ name: proof-writer
 description: Writes rigorous mathematical proofs for ML/AI theory. Use when asked to prove a theorem, lemma, proposition, or corollary, fill in missing proof steps, formalize a proof sketch, 补全证明, 写证明, 证明某个命题, or determine whether a claimed proof can actually be completed under the stated assumptions.
 argument-hint: [theorem-statement-and-assumptions]
 allowed-tools: Read, Write, Edit, Grep, Glob
+model: opus
 ---
 
 # Proof Write: Rigorous Theorem / Lemma Drafting
+
+> 🔬 **Model Recommendation**: Run this skill on **Claude Opus** for best results.
+> Writing rigorous mathematical proofs requires deep reasoning. If your session is
+> not on Opus, run `/model opus` before invoking.
 
 Write a mathematically honest proof package, not a polished fake proof.
 

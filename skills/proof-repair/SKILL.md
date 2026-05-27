@@ -10,9 +10,15 @@ description: >-
   actionable repair plan with literature support.
 argument-hint: [path-to-paper-dir or path-to-audit-dir]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+model: opus
 ---
 
 # Proof-Repair — Literature-Backed Repair Plans for Mathematical Proofs
+
+> 🔬 **Model Recommendation**: Run this skill on **Claude Opus** for best results.
+> Repair design + literature verification requires deep reasoning. If your session is
+> not on Opus, run `/model opus` before invoking. Heavy reasoning (literature search,
+> verification, full proof writing) will use Opus sub-agents.
 
 Takes a `/proofcheck` audit (or a raw .tex file with known issues) and produces
 self-consistent repair plans with new literature references for every fixable issue.

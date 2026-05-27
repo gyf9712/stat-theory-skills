@@ -91,7 +91,39 @@ cp -r skills/theory-sharpen   ~/.claude/skills/
 cp -r skills/proof-writer     ~/.claude/skills/
 ```
 
-After install, in Claude Code use:
+## ⚠️ Important: Use Claude Opus
+
+These skills are designed for **deep mathematical reasoning** and are optimized for
+**Claude Opus**. Each skill's YAML frontmatter declares `model: opus`, and the
+skill body reminds you at the top.
+
+Before invoking any of these skills, ensure your Claude Code session is on Opus:
+
+```
+/model opus
+```
+
+You can also set Opus as your default in `~/.claude/settings.json`:
+
+```json
+{
+  "model": "opus",
+  "effortLevel": "high"
+}
+```
+
+Why Opus matters here:
+- `proofcheck`: needs to spot subtle quantifier errors, hidden assumptions
+- `proof-repair`: needs to verify cited theorems match prerequisites exactly
+- `theory-sharpen`: needs to reason about minimax lower bounds and rate optimality
+- `proof-writer`: needs to write rigorous proofs without fabrication
+
+Sonnet/Haiku may produce results that *look* right but miss critical mathematical
+gaps. The difference compounds across the 4-skill pipeline.
+
+## Invocation
+
+After install + `/model opus`:
 ```
 /proofcheck papers/my-paper/paper.tex
 /proof-repair papers/my-paper/

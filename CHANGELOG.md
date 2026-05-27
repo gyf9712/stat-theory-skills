@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1 — Model recommendation: Opus
+
+- Added `model: opus` to YAML frontmatter of all 4 skills (forward-compatible
+  with future Claude Code versions; harmless if not yet honored)
+- Added prominent "Model Recommendation" callout at the top of each SKILL.md
+- Updated README with required Opus setup section and rationale per skill
+- Updated install.sh to print the model reminder after installation
+
 ## v1.0.0 — Initial release
 
 ### Skills included

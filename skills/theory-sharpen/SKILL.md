@@ -9,9 +9,16 @@ description: >-
   toward theoretical optimality and practical relevance.
 argument-hint: [path-to-paper.tex or paper-dir]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+model: opus
 ---
 
 # Theory-Sharpen — Systematic Theoretical Improvement Assessment
+
+> 🔬 **Model Recommendation**: Run this skill on **Claude Opus** for best results.
+> Framework classification, assumption-relaxation analysis, and rate-sharpening all
+> require deep mathematical reasoning. If your session is not on Opus, run
+> `/model opus` before invoking. Literature search and Codex cross-review will use
+> Opus sub-agents.
 
 Go beyond "is the proof correct?" to ask "can the theory be stronger, sharper, and
 better aligned with the model, the literature, and the experiments?"

@@ -3,9 +3,15 @@ name: proofcheck
 description: Systematically verify mathematical proofs in statistics/ML theory paper appendices. Use when user says "proof check", "check proofs", "verify proofs", "audit paper", "检查证明", "证明验证", or wants to verify correctness of a paper's mathematical proofs.
 argument-hint: [path-to-paper.tex or paper-name]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
+model: opus
 ---
 
 # ProofCheck — Mathematical Proof Verification for Statistics/ML Theory Papers
+
+> 🔬 **Model Recommendation**: Run this skill on **Claude Opus** for best results.
+> Mathematical proof verification requires deep reasoning. If your session is not on
+> Opus, run `/model opus` before invoking. The skill will also delegate heavy
+> reasoning to Opus sub-agents internally when the Agent tool is used.
 
 Systematically check proofs in long technical appendices using a structured, evidence-based methodology with multi-pass verification.
 
