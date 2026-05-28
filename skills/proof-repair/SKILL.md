@@ -311,69 +311,16 @@ a base lemma assumption before fixing the theorem that uses it).
 
 ## Step 3: Enforce the Repair Priority Ladder (HARD GATE)
 
-Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. These are different objects:
+Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. The full ladder definition (Phase A / B / C, L1-L6), the mapping from levels to repair classes, the sibling-not-ordered rules for L2/L3 and L4/L5, and the hard enforcement requirements all live in `stat-shared-references/proof-closure-machinery.md` under "Repair Priority Ladder".
 
-- **Ladder level** = how invasive the repair is with respect to the theorem's semantics.
-- **Repair class** = the mechanism used to implement the repair.
+Operational summary for this step:
 
-The ladder is mandatory and enforced.
+1. For each issue from Step 1, identify the relevant Phase A branches (L1 internal correction / L2 supporting lemma / L3 alternative technique). Attempt them with concrete candidate sketches.
+2. A candidate enters Phase B (L4 Add-Assumption or L5 Weaken-Claim) only after the per-issue repair file records a Phase A exhaustion entry for the relevant branches. The Phase A Exhaustion Record block schema is in `proof-closure-machinery.md`.
+3. L4 requires an Assumption-Extension Change Log entry; L5 requires a Weaken-Claim Change Log entry. Both schemas are in `proof-closure-machinery.md`. A Phase B repair without the matching log is invalid and is demoted to L6 (Blockage / NOT CURRENTLY JUSTIFIED).
+4. The chosen repair's `Repair Ladder Defense` block (schema in `proof-closure-machinery.md`) must be written into the per-issue repair file before the repair is admitted to Step 5 (Complete-Proof Writing).
 
-### Phase A: Claim-preserving and assumption-preserving repairs only
-
-Exhaust the relevant branches in Phase A before allowing any semantic edit.
-
-- **L1. Internal correction**: fix a local logical error, omitted step, citation misuse, constant slip, quantifier slip, or proof gap without changing the claim, the assumptions, or the proof's dependency scope in any substantive way.
-- **L2. Supporting lemma from existing assumptions**: add a helper lemma or intermediate proposition proved entirely from the existing assumption set; the main theorem statement and its assumptions remain unchanged.
-- **L3. Alternative proof technique under existing assumptions**: replace the proof route, decomposition, or imported theorem while still proving the same claim from the same assumptions.
-
-There is **no hard order between L2 and L3**. They are sibling branches within Phase A. Consider the **relevant** Phase A branches for the issue at hand; do not mechanically force all branches when some are plainly irrelevant.
-
-### Phase B: Semantic edits, allowed only after documented Phase A exhaustion
-
-A repair may enter Phase B only if the per-issue repair file contains a **Phase A exhaustion record** showing why the relevant claim-preserving branches did not work.
-
-- **L4. Add assumption**: introduce the minimal defensible additional assumption that makes the original claim provable.
-- **L5. Weaken claim**: replace the original claim with the strongest claim that the existing assumptions, or the chosen repaired assumption set, honestly support.
-
-There is **no universal order between L4 and L5**. Choose based on mathematical necessity and scientific-scope impact. A stronger assumption that preserves the headline theorem is not automatically preferable to a weaker theorem under the original assumptions. A heavy-tail paper that adds sub-Gaussian to preserve the original rate is often worse than a weaker rate under the original tail assumption.
-
-### Phase C: Terminal failure
-
-- **L6. Blockage / NOT CURRENTLY JUSTIFIED**: no honest repair works.
-
-### Relationship to repair-class mechanisms
-
-The ladder level is not the same as the repair class. Typical mappings:
-
-| Ladder level | Primary repair classes |
-|---|---|
-| L1 | Strengthen-Proof (inline fix), Fill-Skipped-Steps, Citation-Fix, Fix-Constants, Fix-Quantifiers |
-| L2 | Insert-Lemma (or Strengthen-Proof when the helper stays inline) |
-| L3 | Replace-Technique (or Strengthen-Proof when the new route is closely related to the old) |
-| L4 | Add-Assumption |
-| L5 | Weaken-Claim |
-| L6 | Blockage report |
-
-`Expand-Sketch-to-Proof` is orthogonal: an expanded sketch may land at any ladder level depending on what the full proof actually requires.
-
-### Hard enforcement rule
-
-`proof-repair` may not mark an `L4` or `L5` candidate as the chosen repair unless the per-issue repair file includes:
-
-1. the chosen ladder level,
-2. the chosen repair class,
-3. whether the claim is preserved,
-4. whether the assumptions are preserved,
-5. a **Phase A exhaustion record** for the relevant lower-level branches, with:
-   - what was tried,
-   - the specific obstacle,
-   - why the obstacle is genuine rather than merely unseen.
-
-For `L4`, the repair must also include an `Assumption-Extension Change Log` entry.
-
-For `L5`, the repair must also include a `Weaken-Claim Change Log` entry.
-
-A Phase B repair without these artifacts is invalid and must be demoted to `NOT CURRENTLY JUSTIFIED`.
+`/proofcheck --post-repair` enforces all of the above by checking the schema instances on the patched paper.
 
 ---
 
@@ -437,77 +384,15 @@ Instead write a **Blockage Report**:
 - Whether the main theorem survives if this unit is dropped
 - Honest assessment: is the paper's claim false, or just unproven?
 
-### Mandatory output for Weaken-Claim candidates
+### Mandatory output blocks per candidate
 
-When a candidate's feasibility triage returns `PROVABLE AFTER WEAKENING`, or the chosen candidate is class `Weaken-Claim`, the repair file in `audit/07_repairs/section_*/` MUST contain a `## Weaken-Claim Change Log` block with the following four columns:
+Each candidate selected for the next step (Step 4 literature search and Step 5 complete-proof writing) requires the following mandatory blocks in its per-issue repair file at `audit/07_repairs/section_*/*_repair.md`. The schemas live in `stat-shared-references/proof-closure-machinery.md` and are not duplicated here.
 
-```markdown
-## Weaken-Claim Change Log
+- **Always**: `## Repair Ladder Defense` block (chosen level + repair class + claim/assumption preservation + Phase A Exhaustion Record + Phase B Justification if L4/L5 + Semantic-Edit Log Pointer + Blockage Pointer if L6).
+- **If chosen class is `Weaken-Claim` (ladder L5) or candidate feasibility was `PROVABLE AFTER WEAKENING`**: `## Weaken-Claim Change Log` block (four columns: original claim verbatim, revised claim verbatim, reason for weakening, downstream impact). Without this block, the repair is demoted to `NOT CURRENTLY JUSTIFIED`.
+- **If chosen class is `Add-Assumption` (ladder L4)**: `## Assumption-Extension Change Log` block (seven columns including original assumption set, added assumption verbatim, natural weaker variant considered, why the weaker variant fails, scientific-scope impact, downstream propagation). The "Natural weaker variant considered" column is the local-minimality defense. Without this block, the repair is demoted to `NOT CURRENTLY JUSTIFIED`.
 
-| Original claim (verbatim) | Revised claim (verbatim) | Reason for weakening | Downstream impact |
-|---|---|---|---|
-| [paste original theorem / lemma / corollary statement] | [paste revised statement] | [why the original is not provable: which step failed, which assumption was missing, which rate is the actual tight rate; one or two sentences with concrete technical detail, not "the original was too strong"] | [list every downstream unit (lemma, theorem, corollary, application, abstract sentence) that consumed the original strength. For each, name the patch ID that updates it to use the revised strength.] |
-```
-
-This block is the propagation contract for the repair. When `/proof-repair` writes PATCHES.md (Step 7C) and REPAIR_PLAN.md (Step 7A), the corresponding rows in those files copy from this block. `/proofcheck --post-repair` reads the block as the change log of intended semantic edits.
-
-A Weaken-Claim repair WITHOUT this block in the per-unit repair file is treated as `NOT CURRENTLY JUSTIFIED` and demoted to a blockage report. There is no third path: either the weakening is documented + propagated, or the theorem is downgraded.
-
-The Downstream Impact column has a hard rule: every listed unit must have a corresponding `Cycle 1 — Patch N` entry in PATCHES.md. The re-audit treats an unpropagated downstream consumer as `NEW-S0` (the patched paper now has a corollary or application that silently overstates what the weakened theorem actually delivers).
-
-### Mandatory output for Add-Assumption candidates
-
-When the chosen candidate is class `Add-Assumption` (ladder level `L4`), the repair file in `audit/07_repairs/section_*/` MUST contain an `## Assumption-Extension Change Log` block. This is the propagation contract for assumption changes, analogous to the Weaken-Claim Change Log for claim changes. An `L4` repair without this log is treated as `NOT CURRENTLY JUSTIFIED`.
-
-```markdown
-## Assumption-Extension Change Log
-
-| Issue ID | Original assumption set | Added assumption (verbatim) | Natural weaker variant considered | Why the weaker variant fails | Scientific-scope impact | Propagation to downstream theorems/lemmas |
-|---|---|---|---|---|---|---|
-| I-01 | [list the original assumptions exactly as used by the repaired unit] | [state the new assumption exactly as added to the theorem / lemma / assumption block] | [state at least one natural weaker alternative that was considered] | [give the concrete blocking reason: which step still fails, which theorem remains inapplicable, or which counterexample direction survives] | [describe how the new assumption changes the paper's regime, applicability, model class, tail condition, dependence structure, or rate interpretation] | [list every downstream lemma, theorem, corollary, application, abstract sentence, or introduction claim that now depends on the added assumption; for each, name the patch ID or repair file that propagates the change] |
-```
-
-The "Natural weaker variant considered" column is the local-minimality defense. The author does not need to prove global minimality (usually impossible) but does need to show that one obvious weakening of the added assumption was tried and rejected with a concrete reason. Without this, the audit treats the added assumption as overstrengthening.
-
-### Mandatory output: Repair Ladder Defense (per repair file)
-
-Every per-issue repair file MUST contain a `## Repair Ladder Defense` block documenting the ladder discipline decision.
-
-```markdown
-## Repair Ladder Defense
-
-- Chosen ladder level: [L1 / L2 / L3 / L4 / L5 / L6]
-- Chosen repair class: [Strengthen-Proof / Insert-Lemma / Replace-Technique / Add-Assumption / Weaken-Claim / Fill-Skipped-Steps / Citation-Fix / Fix-Constants / Fix-Quantifiers / Expand-Sketch-to-Proof / Blockage]
-- Claim preserved: [yes / no]
-- Assumptions preserved: [yes / no]
-
-### Phase A Exhaustion Record
-Record only the **relevant** lower-level branches. Do not fabricate attempts for irrelevant branches.
-
-| Branch | Tried? | Concrete attempt | Specific obstacle | Why the obstacle is genuine | Verdict |
-|---|---|---|---|---|---|
-| L1 Internal correction | [yes / no / not relevant] | [exact local rewrite, skipped-step fill, citation correction, constant fix, etc.] | [what failed] | [counterexample, contradiction, theorem mismatch, dependency failure, or formal blocking issue] | [ruled out / succeeded / not relevant] |
-| L2 Supporting lemma | [yes / no / not relevant] | [candidate helper lemma from existing assumptions] | [what failed] | [why the lemma cannot be proved from the current assumptions, or why it is insufficient] | [ruled out / succeeded / not relevant] |
-| L3 Alternative technique | [yes / no / not relevant] | [named alternative proof route, theorem, or decomposition] | [what failed] | [why the alternative route still cannot prove the original claim under current assumptions] | [ruled out / succeeded / not relevant] |
-
-### Phase B Justification
-Required only for `L4` or `L5`.
-
-- Why Phase A did not close the issue: [one concise paragraph]
-- Why this semantic edit was chosen over the other Phase B option:
-  - If chosen level is `L4`: explain why adding an assumption is scientifically preferable to weakening the claim here.
-  - If chosen level is `L5`: explain why weakening the claim is scientifically preferable to strengthening the assumptions here.
-
-### Semantic-Edit Log Pointer
-- If chosen level is `L4`: `Assumption-Extension Change Log` row pointer: [Issue ID / row reference]
-- If chosen level is `L5`: `Weaken-Claim Change Log` row pointer: [Patch ID / row reference]
-- Otherwise: [NA]
-
-### Blockage Pointer
-Required only for `L6`.
-
-- Blockage report: [path / section pointer]
-```
+The `Downstream impact` / `Propagation` columns in both Change Logs are propagation contracts: every listed unit must have a corresponding patch in PATCHES.md. The re-audit treats unpropagated downstream consumers as `NEW-S0` (silent overstatement in the patched paper).
 
 ### Proof Strategy Selection for Repairs
 
@@ -866,123 +751,17 @@ written and verified, not when the strategy is sketched.
 
 ### Step 5C: Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
 
-**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
-to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
-requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION with reasoning.
-Especially critical here: a repair shaped by reflexive Codex acceptance can
-silently change the paper's contribution. The skill must emit `codex_discussion.md`
-documenting the full round-by-round dialogue.
+For every P0 and P1 repair with a complete proof, run the per-repair fresh-thread stress-test defined in `CODEX_PROTOCOL.md` under "Per-Repair Fresh Thread" and "Per-Repair Stress-Test Call Template".
 
-#### The fresh-thread requirement (anti-anchoring)
+Rules (full rationale and template in `CODEX_PROTOCOL.md`):
 
-Each independent repair gets a **fresh `mcp__codex__codex` thread**. Sequentially batching all P0 / P1 repairs in a single accumulating thread is **forbidden** — Codex anchors to its emerging narrative across calls. See `CODEX_PROTOCOL.md` "Per-Repair Fresh Thread" for the rationale and Codex's own self-assessment of the anchoring effect.
+- One fresh `mcp__codex__codex` thread per logically-independent repair; up to 2-3 repairs may share a thread only if they sit on the same dependency edge or assumption block.
+- `model_reasoning_effort: xhigh` is forced (the scope hits the Reasoning Effort Ladder triggers: theorem / lemma / proof step / rate / quantifier).
+- Anti-anchor opening prompt; forced falsification attempt; structured PASS / FIXABLE / FAIL verdict.
+- FIXABLE / FAIL iterate via `mcp__codex__codex-reply` on the same thread (Case B continuation).
+- Verdicts are recorded in `audit/07_repairs/codex_stress_test.md` per the artifact schema in `CODEX_PROTOCOL.md` "Per-Repair Stress-Test Verdict Recording" (one row per repair, threadId tracked).
 
-Rules:
-
-- **One fresh thread per logically-independent repair**. Use `mcp__codex__codex`, not `codex-reply`.
-- **Small dependency clusters** (Patch 3 fixing Lemma B.2 and Patch 4 fixing Lemma B.4 that uses B.2) may share a fresh thread, up to 2-3 repairs.
-- **No batching of unrelated repairs.** Patch 1 (Lemma C.3) and Patch 5 (Theorem 3.1) on different dependency branches must be separate threads.
-- **Manifest travels; conversation does not.** Each call carries the artifact manifests for the current patch + direct dependencies. Prior repair verdicts are NOT in the prompt context.
-- **Anti-anchor prompt language** opens every call: "This is an independent repair review. Treat the proposed repair on its merits. Prior repair verdicts in this pipeline are not part of your context."
-- **Forced falsification attempt.** The verdict must name which falsification it attempted (missing assumption / dependency break / rate or quantifier mismatch / downstream theorem impact) and whether the attempt succeeded.
-
-#### Reasoning effort
-
-Use `xhigh` (per `CODEX_PROTOCOL.md` "Reasoning Effort Ladder" forced trigger: the call's scope is a theorem / lemma / proof step / rate / quantifier).
-
-#### Per-repair call template
-
-For each P0 / P1 repair with a complete proof, in its own fresh thread:
-
-```
-mcp__codex__codex:
-  config: {"model_reasoning_effort": "xhigh"}
-  prompt: |
-    This is an independent repair review. Treat the proposed repair on its
-    merits. Prior repair verdicts in this pipeline are not part of your
-    context. You are an adversarial reviewer / senior referee for a top
-    stat journal.
-
-    Artifact manifest for this call:
-    - artifact: repair_review
-    - scope: dependency_expanded
-    - source_files: [paper.tex, supplement.tex if Mode B]
-    - theorem_ids: [the unit being repaired + direct dependents]
-    - assumption_ids: [original assumptions in scope + any new ones added by this patch]
-    - issue_ids: [the original issue ID this repair targets]
-    - generator: proof-repair v1.7.0 Step 5C
-
-    ORIGINAL ISSUE:
-    [Paste: issue description, affected unit, severity]
-
-    PROPOSED REPAIR (this patch only):
-    [Paste: repair strategy, new/modified lemma statement, complete proof]
-
-    NEW REFERENCES CITED (this patch only):
-    [Paste: each cited result with venue, theorem statement, assumptions]
-
-    DIRECT DEPENDENCIES (manifest references only, not full content):
-    - Assumption ledger: papers/<name>/audit/02_ledgers/assumption_ledger.md
-    - Dependency graph: papers/<name>/audit/03_dependencies/dependency_graph.md
-    Request these by ID if you need them.
-
-    ADVERSARIAL TASKS — pick at least one falsification attempt:
-    1. Missing-assumption attack: does the repaired proof rely on a condition
-       not in the assumption block?
-    2. Dependency-break attack: does the repair weaken a property that a
-       downstream theorem needs at the original strength?
-    3. Rate / quantifier mismatch attack: are quantifiers pointwise where
-       the conclusion needs uniform? Does a constant secretly depend on
-       dimension / sample size?
-    4. Downstream theorem impact: if this repair propagates, do declared
-       downstream patches in the Weaken-Claim Change Log cover every affected
-       consumer?
-
-    Output (required structure):
-    - Falsification attempt: [name which attack you tried]
-    - Falsification result: [succeeded — repair has a real defect / failed —
-      repair survives this attack]
-    - Verdict: PASS / FIXABLE / FAIL
-    - If FIXABLE or FAIL: specific objection, location in proof, proposed minimal fix
-    - If PASS: state the strongest specific objection you considered and
-      rejected, so the discussion log shows the attack you ran
-```
-
-If Codex returns FIXABLE or FAIL on a given thread:
-
-1. Address Codex's specific objections
-2. Revise the repair
-3. Re-submit to Codex via `mcp__codex__codex-reply` **on that thread** (the iterative push-back protocol from `CODEX_PROTOCOL.md`'s 5-round dialogue applies here — Case B continuation, same thread, same finding under discussion)
-4. Iterate until PASS or document the disagreement
-
-#### Recording the verdicts
-
-Write results to `audit/07_repairs/codex_stress_test.md`. The file begins with the artifact manifest header (see `CODEX_PROTOCOL.md`) and has one row per repair:
-
-```markdown
----
-artifact: codex_stress_test
-scope: dependency_expanded
-source_files: [paper.tex, supplement.tex]
-theorem_ids: [Thm 2.1, Thm 3.1, Lemma B.2, Lemma B.4, Lemma C.3, Cor 2.2, ...]
-assumption_ids: [A1, A2, A_new1, A_new2, ...]
-issue_ids: [I-01, I-03, I-05, ...]
-commit: [paper-repo short SHA]
-generated: [YYYY-MM-DD HH:MM]
-generator: proof-repair v1.7.0 Step 5C
----
-
-# Codex Stress-Test Verdicts (per-repair, fresh threads)
-
-| Repair | Codex threadId | Falsification attempt | Verdict | Issues raised | Resolved? | Final status |
-|--------|---------------|----------------------|---------|---------------|-----------|--------------|
-| I-01 | 019eXXXX-... | Missing assumption | PASS | None | — | Confirmed |
-| I-03 | 019eXXXX-... | Dependency break | FIXABLE | Edge case d=1 not handled | Yes, added | Confirmed after revision |
-| I-05 | 019eXXXX-... | Quantifier mismatch | FAIL → revised → PASS | Original proof had sign error in step 4 | Rewritten | Confirmed after rewrite |
-| I-07 + I-08 (cluster, share dependency edge) | 019eXXXX-... | Downstream impact | PASS | None | — | Confirmed |
-```
-
-The `Codex threadId` column is required so the user can resume any individual repair's dialogue. Each threadId is a fresh thread per the OPT7-C protocol, not a continuation of an earlier repair's thread.
+The full per-repair call template, the verdict recording schema, the rationale (Codex's honest anchoring self-assessment), and the iterative push-back protocol all live in `CODEX_PROTOCOL.md`. This skill does not duplicate them inline.
 
 ---
 
@@ -1065,69 +844,40 @@ Execute repairs in this order (respects dependency DAG):
 
 ## Repair Ladder Summary
 
-The paper-level summary of how each issue satisfied the ladder discipline. The full defense lives in the per-issue repair file (see `## Repair Ladder Defense` in each repair file).
-
-| Issue ID | Unit | Chosen repair class | Chosen ladder level | Claim preserved? | Assumptions preserved? | Escalation justified? | Pointer to per-issue defense |
-|---|---|---|---|---|---|---|---|
-| I-01 | Lemma C.3 | Insert-Lemma | L2 | yes | yes | NA | `audit/07_repairs/section_C/lemma_C_3_repair.md` |
-| I-02 | Thm 3.1 | Add-Assumption | L4 | yes | no | yes | `audit/07_repairs/section_3/thm_3_1_repair.md` |
-| I-03 | Cor 4.2 | Weaken-Claim | L5 | no | yes | yes | `audit/07_repairs/section_4/cor_4_2_repair.md` |
-
-Use `Escalation justified? = yes` only when the required Phase A exhaustion record exists and the relevant semantic-edit log entry is present. For Phase A repairs (L1-L3), this column is `NA`.
-
-The summary table is a documentation contract: `/proofcheck --post-repair` cross-checks it against the per-issue Repair Ladder Defense blocks and the Assumption-Extension Change Log / Weaken-Claim Change Log entries.
+Insert the `## Repair Ladder Summary` table per the schema in `stat-shared-references/proof-closure-machinery.md`. One row per issue with columns: Issue ID, Unit, Chosen repair class, Chosen ladder level, Claim preserved?, Assumptions preserved?, Escalation justified?, Pointer to per-issue defense.
 
 ## Per-Issue Repair Specifications
-[Link to each audit/07_repairs/section_X/*_repair.md file]
+
+Link to each `audit/07_repairs/section_X/*_repair.md` file. Each repair file contains a `Repair Ladder Defense` block per the schema in `proof-closure-machinery.md`.
 
 ## Repair Closure Matrix
 
-This matrix is the canonical record of issue closure. Each row tracks one original issue from `audit/06_reports/issue_log.md` from issue identification through post-repair verification. `/proofcheck --post-repair` reads this matrix to verify convergence.
-
-| Issue ID | Original severity | Unit | Repair class | Patch ID | Touched units | Closure status | Post-repair status | Downstream affected units |
-|---|---|---|---|---|---|---|---|---|
-| I-01 | S0 | Lemma C.3 | Add-Assumption | Patch 1 | Lemma C.3 + assumption block | DESIGNED | (set by re-audit) | Thm 2.1, Cor 2.2, Sec 5 |
-| I-02 | S1 | Thm 3.1 | Weaken-Claim | Patch 5 | Thm 3.1, intro | DESIGNED | (set by re-audit) | Cor 3.2 |
-| I-03 | S1 | Prop B.2 | Insert-Lemma | Patch 3 | Prop B.2 + new Lemma B.5 | DESIGNED | (set by re-audit) | Lemma B.4, Thm 4.1 |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... |
-
-**Closure status** (set by `/proof-repair` when designing the repair):
-- `DESIGNED` — repair strategy specified, patch written, complete proof drafted, Codex Step 5C passed
-- `DEFERRED` — repair postponed (user decision); paper carries the unrepaired issue forward
-- `BLOCKAGE` — repair impossible; theorem downgraded to NOT CURRENTLY JUSTIFIED with a blockage report
-
-**Post-repair status** (set by `/proofcheck --post-repair` on the next pass; blank until re-audit runs):
-- `CLOSED-VERIFIED` — re-audit confirms the unit now passes verification under the revised claim
-- `CLOSED-WEAKENED` — the original claim was unprovable; the patch weakened it, and the weakening is documented in PATCHES.md and propagated to every downstream unit listed in the matrix
-- `CLOSED-BLOCKAGE` — the unit could not be repaired; the patched paper downgrades it; all downstream consumers are also downgraded or removed
-- `STILL-OPEN` — the patch did not actually close the issue (re-audit failure)
-- `WAIVED` — explicitly waived by the user with documented rationale (allowed for S2/S3, almost never for S0/S1)
-
-### Closure Matrix completeness rule
-
-Every issue in `06_reports/issue_log.md` must have a row. Issues without a row are treated as `STILL-OPEN` by the re-audit. If `/proof-repair` chooses to ignore an issue (rare, only for S3), the row still exists with closure status `DEFERRED` and a rationale.
+Insert the `## Repair Closure Matrix` table per the schema in `proof-closure-machinery.md`. Every issue from `06_reports/issue_log.md` must have a row (closure-matrix completeness rule).
 
 ## Weaken-Claim Change Log
 
-This section is **MANDATORY** when any repair is class `Weaken-Claim`. It is the input that `/proofcheck --post-repair` reads to distinguish intentional semantic changes from defects. A Weaken-Claim repair without a row in this log is a re-audit defect.
+Insert the `## Weaken-Claim Change Log` block per the schema in `proof-closure-machinery.md`. **MANDATORY** if any repair is class `Weaken-Claim`. A row is required even when there is exactly one Weaken-Claim repair.
 
-| Patch ID | Original claim (verbatim) | Revised claim (verbatim) | Reason for weakening | Downstream impact (units that consumed the original strength) |
-|---|---|---|---|---|
-| Patch 5 | "$\hat\theta_n - \theta^* = O_P(n^{-1/2})$ for all $\theta^* \in \Theta$" | "$\hat\theta_n - \theta^* = O_P(n^{-1/2} \log n)$ for all $\theta^* \in \Theta$" | Original proof used a chaining argument that did not yield the parametric rate; the $\log n$ factor is the tight rate under the stated assumptions. See repair file `07_repairs/section_3/thm_3_1_repair.md`. | Cor 3.2 (rate restated as $O_P(n^{-1/2} \log n)$); Sec 5 abstract / introduction (rate now stated with the log factor); rate comparison table updated. |
+## Assumption-Extension Change Log
 
-The `Downstream impact` column is the propagation contract. Every unit listed there must have a corresponding patch in PATCHES.md that updates the consumer.
+The per-issue repair file (not the master REPAIR_PLAN.md) holds the canonical Assumption-Extension Change Log block per the schema in `proof-closure-machinery.md`. **MANDATORY** if any repair is class `Add-Assumption` (ladder L4). The master plan's Repair Ladder Summary row points to the per-issue file's Change Log entry.
 
 ## New References Summary
-| # | Key | Full citation | Venue | Tier | Credibility | Supports repair of | Verified? |
-|---|-----|--------------|-------|------|-------------|-------------------|-----------|
+
+| # | Key | Full citation | Venue | Tier | Credibility | Supports repair of | Verified? | Cache reference |
+|---|-----|--------------|-------|------|-------------|-------------------|-----------|----------------|
+
+Each row's `Cache reference` resolves to a `paper:<bibkey>#<result_id>` entry per `literature-cache-protocol.md`. The lock manifest at `papers/<project>/cited_results.lock.md` records the citation purpose and verification level used at decision time.
 
 ## Reference Quality Summary
+
 - T1 (Gold Standard) references: X / Y total
 - T2 (Strong) references: _
 - T3 (Supplementary / preprint): _ ← flag each with ⚠ if used
 - Self-proved lemmas (no external ref): _
 
 ## Consistency Verification
+
 - [ ] Assumption matrix: no contradictions
 - [ ] Rate propagation: main theorem rate preserved (or, if not, documented in Weaken-Claim Change Log)
 - [ ] New references: mutually compatible
@@ -1136,23 +886,20 @@ The `Downstream impact` column is the propagation contract. Every unit listed th
 - [ ] Downstream units: all re-verified after repair (via post-repair audit)
 - [ ] Repair Closure Matrix is complete (every original issue has a row)
 - [ ] Weaken-Claim Change Log is complete (every Weaken-Claim repair has a row + propagation patches)
+- [ ] Assumption-Extension Change Log is complete (every Add-Assumption repair has a row in its per-issue file)
+- [ ] Every per-issue repair file has a Repair Ladder Defense block (L4/L5 include Phase A Exhaustion Record + Phase B Justification + Semantic-Edit Log Pointer)
 
 ## Residual Issues (cannot repair without major rework)
+
 | Issue | Why unrepairable | Impact |
 
 ## Hard-Gate Completion Rule
 
-REPAIR_PLAN.md is marked `complete` only when ALL of the following are true:
+The full Hard-Gate Completion Rule (9 conditions) lives in `stat-shared-references/proof-closure-machinery.md`. Headline conditions:
 
-1. Every original issue has a row in the Repair Closure Matrix with a terminal `Closure status` (`DESIGNED`, `DEFERRED`, or `BLOCKAGE`); no row is blank or in-progress.
-2. Every Weaken-Claim repair has a row in the Weaken-Claim Change Log, including the downstream impact propagation list.
-3. Outstanding sketches = 0 in the Sketch Expansion Tracker.
-4. Every P0/P1 repair has passed Codex Step 5C (status `PASS` or `Confirmed after revision`).
-5. The Consistency Verification checklist is fully checked.
-6. **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. This is a HARD GATE — the plan cannot be marked complete without it.
-7. **If the original audit contained only S2 and S3 issues**: `/proofcheck --post-repair` is strongly recommended but not a hard gate. The plan can be marked complete without it, but the executive summary must explicitly state `Convergence status: NOT YET RE-AUDITED (S2/S3-only — re-audit recommended but not required)`.
-
-If any condition fails, the plan status is `IN-PROGRESS` and the skill reports which conditions remain unmet.
+- Every issue has a terminal closure row; every Weaken-Claim and Add-Assumption repair has its mandatory Change Log entry; outstanding sketches = 0; every P0/P1 repair passed the per-repair Codex stress-test (per `CODEX_PROTOCOL.md`); the Consistency Verification checklist is fully checked.
+- **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. HARD GATE.
+- **If the original audit contained only S2 and S3 issues**: `--post-repair` is strongly recommended; the executive summary states `Convergence status: NOT YET RE-AUDITED (S2/S3-only)`.
 
 ### 7B: Generate BibTeX Entries
 

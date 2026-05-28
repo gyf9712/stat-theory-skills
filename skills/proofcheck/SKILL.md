@@ -35,34 +35,15 @@ Based on: https://github.com/maweiruc/proofcheck-stat-paper
 4. **No Silent Repairs**: If proof proves B but claims A, record the mismatch explicitly.
 5. **Human Owns Final Judgment**: Agent indexes, cross-checks, and reconstructs. Human reviews all S0/S1 issues.
 
-## Severity System
+## Severity System, Verification Statuses, and Provability Triage
 
-| Level | Meaning | Examples |
-|-------|---------|---------|
-| S0 | Fatal — main theorem does not follow | Circular dependency, wrong inequality direction in critical chain |
-| S1 | Major — missing assumption or step, likely repairable | Hidden invertibility assumption, missing log factor |
-| S2 | Moderate — local ambiguity, may not affect final result | Unclear quantifier scope, uncited intermediate step |
-| S3 | Minor — typo, notation, reference | Missing label, inconsistent symbol |
+The S0-S3 severity system, the five verification statuses (Verified / Conditionally verified / Gap found / Incorrect / Not checked), and the three-class provability triage (PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED) are defined in `stat-shared-references/proof-closure-machinery.md`. That file is the single source of truth shared with `proof-repair` and `proof-writer`.
 
-## Verification Statuses
+Operational note for this skill:
 
-- **Verified** — all dependencies checked, logic sound
-- **Conditionally verified** — correct IF listed dependencies hold
-- **Gap found** — specific missing step identified
-- **Incorrect** — error found
-- **Not checked** — not yet examined
-
-## Provability Assessment (per unit, from /proof-writer methodology)
-
-Before deep-checking any unit, first triage its provability:
-
-| Status | Meaning | Action |
-|--------|---------|--------|
-| PROVABLE AS STATED | Claim follows from listed assumptions | Proceed with full verification |
-| PROVABLE AFTER WEAKENING | Needs extra assumption or narrower claim | Record gap, verify the weakened version |
-| NOT CURRENTLY JUSTIFIED | No clear path to a valid proof | Write blockage report, skip deep-check |
-
-This triage prevents wasting effort on units where the claim is fundamentally flawed.
+- Apply the severity system in Pass 5 (Final Report) when assigning severity to each open issue.
+- Apply the provability triage at the start of each unit's deep-check (per Pass 1 Step 3, "Sketch-vs-Complete classification" + this triage).
+- Set verification statuses on each unit's local check file in `audit/04_local_checks/`.
 
 ## Proof Strategy Classification (per unit)
 
