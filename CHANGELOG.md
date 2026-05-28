@@ -1,5 +1,94 @@
 # Changelog
 
+## v1.7.0 — Token economy and anti-anchoring (reasoning ladder + artifact manifest + per-repair fresh thread)
+
+User surveyed [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (a Rust CLI proxy that compresses Bash output by 60-90% with deterministic rules) and asked which strategies could save tokens in this pipeline without harming the math. A second Codex MCP review (threadId `019e6ed3-0b5d-7e72-b424-5428423a2276`, `model_reasoning_effort: xhigh`) evaluated seven candidate optimizations, of which three were ADOPTED outright, three ADOPTED with scope refinements, and one (OPT7 "shared thread for 8 sequential stress-tests") was MODIFIED into a fresh-thread-per-repair anti-anchoring protocol after Codex honestly self-assessed:
+
+> "I do anchor somewhat. Not catastrophically, but enough that eight sequential stress-test calls in one thread will drift toward the thread's emerging narrative, especially if earlier repairs were accepted."
+
+This release codifies the three highest-ROI changes. The remaining four (per-venue file split, paths+read-receipt in `cwd` mode, anchor-then-window Read pattern, canonical-store + ID references) are tracked as deferred items.
+
+### New: Reasoning Effort Ladder in `CODEX_PROTOCOL.md`
+
+Every Codex call now defaults to `model_reasoning_effort: medium`. The ladder forces `xhigh` whenever **what is being audited** (not which skill is calling) falls into a high-risk content class: theorem / lemma / proposition / corollary statement, assumption block change, proof step, rate / constant, quantifier, probability level, dependency edge, Weaken-Claim change-log row, post-repair convergence verdict, assumption-ledger consistency check, minimax lower bound.
+
+Allowed `medium` calls are spelled out explicitly: prose polish on non-math sentences, figure caption critique, figure-design audit, reproducibility checklist triage, LaTeX template conformance, citation completeness, style-discipline / em-dash / watchword scans, venue-checklist triage.
+
+The honest failure cases motivating the ladder (Codex's own self-reported `medium` blind spots): quantifier-order errors in empirical-process arguments, rate bookkeeping requiring sparsity / log conditions, dependency-depth misses after weakened assumptions.
+
+### New: Artifact Manifest Header (six-line YAML at the top of every generated artifact)
+
+Every generated `.md` artifact begins with `artifact: <type> / scope: <local|dependency_expanded|global> / source_files / theorem_ids / assumption_ids / issue_ids / commit / generated / generator`.
+
+This enables three downstream behaviors:
+
+- **Lazy loading**: a downstream call checks the manifest first and only expands when the scope tag says the artifact is insufficient
+- **Staleness detection**: re-audit compares the manifest's `commit` against the paper repo's current SHA
+- **Token economy in chained calls**: a Codex call can refer to upstream artifacts by ID and only request them on demand
+
+The manifest is mandatory for FINAL_REPORT, issue_log, per-unit checks, REPAIR_PLAN, PATCHES, codex_stress_test, codex_discussion, RE-AUDIT_REPORT, diff_ledger, CONVERGENCE_VERDICT, and PROOF_PACKAGE files.
+
+### New: Per-Repair Fresh Thread (OPT7-C anti-anchoring fix) in `CODEX_PROTOCOL.md` and `proof-repair` Step 5C
+
+The previous `proof-repair` Step 5C suggested running all P0/P1 repairs through Codex sequentially. Under the OPT7 review, Codex self-assessed that this anchors verdicts to the thread's emerging narrative. The protocol now requires:
+
+- **One fresh `mcp__codex__codex` thread per logically-independent repair.** No `codex-reply` continuation.
+- **Small dependency clusters** (2-3 repairs sharing a dependency edge, the same assumption block, or one Weaken-Claim propagation chain) may share a fresh thread.
+- **No batching of unrelated repairs.** Patches on different dependency branches are separate threads.
+- **Manifest travels; conversation does not.** Each fresh call carries the artifact manifests for the current patch and direct dependencies.
+- **Anti-anchor prompt language** opens every call: "This is an independent repair review. Treat the proposed repair on its merits. Prior repair verdicts in this pipeline are not part of your context."
+- **Forced falsification attempt.** The verdict must name which attack was tried (missing assumption / dependency break / rate-or-quantifier mismatch / downstream impact) and whether it succeeded.
+
+The within-phase iterative push-back protocol (the existing 5-round dialogue) still uses `codex-reply` on the same thread, because the object under discussion is the same finding. This is Case B and is correctly served by thread reuse; it is not the anchoring failure mode.
+
+Across phases (audit → repair → post-repair), each phase opens a fresh thread; only the manifest travels.
+
+### `proof-repair` Step 5C concrete updates
+
+- `model_reasoning_effort: xhigh` forced (the scope hits the ladder's trigger list).
+- Manifest header included in each call's prompt; full source files referenced by path + section anchors rather than pasted.
+- Per-repair stress-test table in `codex_stress_test.md` now records the `Codex threadId` column so the user can resume any individual repair's dialogue.
+- Falsification attempt column added to the table.
+
+### `proofcheck` artifacts now carry manifests
+
+- `audit/06_reports/FINAL_REPORT.md`: `scope: global`, every theorem/lemma in inventory, every issue.
+- `audit/06_reports/issue_log.md`: `scope: global`.
+- `audit/04_local_checks/section_*/*.md`: `scope: local`, single `theorem_id`.
+- `audit/08_post_repair/RE-AUDIT_REPORT.md`, `diff_ledger.md`, `CONVERGENCE_VERDICT.md`: `scope: dependency_expanded`, paper-repo SHA at re-audit time recorded as `commit`.
+
+### What this does NOT change
+
+- The within-phase iterative dialogue protocol (5-round push-back via `codex-reply`) is unchanged.
+- The cross-review independence requirement (different phases use different threads) is unchanged.
+- The hard-gate convergence rule from v1.6.0 is unchanged: `/proofcheck --post-repair` is required for any S0/S1 issue.
+- The Repair Closure Matrix and Weaken-Claim Change Log from v1.6.0 are unchanged.
+
+### Token-savings estimate
+
+Compound effect across a typical proof-cycle session:
+
+- Manifest-enabled lazy loading and ID references: ~10-15% on artifact reloads
+- Reasoning effort ladder (most polish-level Codex calls drop to `medium`): ~15% on Codex output tokens
+- Per-repair fresh thread + manifest: roughly neutral on tokens (manifest re-sent), but fixes the silent-anchoring quality bug
+- rtk Bash wrapping (recommended at `brew install rtk` / `rtk init`): ~60-90% on `git`/`wc`/`find`/`ls` calls inside skill workflows, ~10% session-level
+
+The aggregate target is ~25-30% session-level token reduction with strict zero compromise on proof verification quality.
+
+### Codex dialogue log
+
+- threadId: `019e6ed3-0b5d-7e72-b424-5428423a2276`
+- Configuration: `mcp__codex__codex`, `model_reasoning_effort: xhigh`, sandbox `read-only`
+- Round 1 outcome (7 candidate optimizations): 3 ADOPT, 3 MODIFY-with-scope, 1 SKIP-with-modification-to-fresh-thread-protocol; one missed-optimization suggested (artifact manifest header).
+- Round 2 outcome (push-back on OPT7's blanket "skip all shared threads"): Codex honestly self-assessed anchoring effect, distinguished Case A (cross-phase, fresh thread), Case B (within-phase iterative pushback, same thread per the existing protocol), Case C (within-phase independent units, fresh thread per repair or 2-3 cluster). All four refinements I proposed (OPT1 via rtk's own exclude_commands; OPT3 scoped to long stat-theory papers; OPT4 ladder by content not by skill; OPT5 anchor-then-window only when ledger + DAG pre-loaded) confirmed.
+
+### Deferred items (token economy roadmap)
+
+- **OPT2** Per-venue file split + venue-index file. ~5% session savings. Half-day effort. Targeted at `stat-venue-checklists.md`-equivalent content. Sibling repo `stat-writing-skills` has the analogous opportunity and tracks it in its roadmap.
+- **OPT3** Paths + read-receipt protocol for Codex calls on long appendix proofs. ~15% on long-paper Codex calls. 1-2 days effort. Requires read-receipt protocol enforcement (Codex must list files opened, anchors inspected, line ranges read, and explicitly say `INSUFFICIENT CONTEXT` rather than infer).
+- **OPT5** Anchor-then-window Read pattern (grep for anchor → Read with offset/limit), conditional on assumption ledger and dependency graph being pre-loaded into the call. ~10% session savings. Half-day effort.
+- **OPT6** Canonical store + ID references in audit artifacts (issue_log.md as the only source of truth; other artifacts reference by ID with a compact auto-generated legend per call). ~5% token savings + significant consistency benefit. 1-2 days effort.
+
 ## v1.6.0 — Post-repair re-audit closure (convergence test for the repair phase)
 
 User observation: the pipeline went `/proofcheck → /proof-repair → /theory-sharpen → ...` linearly, but had no formal mechanism to verify the repairs actually closed the original issues without introducing new ones. The per-repair Codex adversarial stress-test (Step 5C) catches local errors but cannot see downstream / global breakage. The output text suggested users "Re-verify: /proofcheck papers/my-paper/" but this was a soft hint, not a built-in convergence test.

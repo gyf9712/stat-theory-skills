@@ -743,62 +743,116 @@ Especially critical here: a repair shaped by reflexive Codex acceptance can
 silently change the paper's contribution. The skill must emit `codex_discussion.md`
 documenting the full round-by-round dialogue.
 
-After Claude writes each repair + proof, send it to Codex for adversarial stress-testing.
-Codex's job: try to BREAK the proposed repair.
+#### The fresh-thread requirement (anti-anchoring)
 
-**For each P0/P1 repair with a complete proof**:
+Each independent repair gets a **fresh `mcp__codex__codex` thread**. Sequentially batching all P0 / P1 repairs in a single accumulating thread is **forbidden** — Codex anchors to its emerging narrative across calls. See `CODEX_PROTOCOL.md` "Per-Repair Fresh Thread" for the rationale and Codex's own self-assessment of the anchoring effect.
+
+Rules:
+
+- **One fresh thread per logically-independent repair**. Use `mcp__codex__codex`, not `codex-reply`.
+- **Small dependency clusters** (Patch 3 fixing Lemma B.2 and Patch 4 fixing Lemma B.4 that uses B.2) may share a fresh thread, up to 2-3 repairs.
+- **No batching of unrelated repairs.** Patch 1 (Lemma C.3) and Patch 5 (Theorem 3.1) on different dependency branches must be separate threads.
+- **Manifest travels; conversation does not.** Each call carries the artifact manifests for the current patch + direct dependencies. Prior repair verdicts are NOT in the prompt context.
+- **Anti-anchor prompt language** opens every call: "This is an independent repair review. Treat the proposed repair on its merits. Prior repair verdicts in this pipeline are not part of your context."
+- **Forced falsification attempt.** The verdict must name which falsification it attempted (missing assumption / dependency break / rate or quantifier mismatch / downstream theorem impact) and whether the attempt succeeded.
+
+#### Reasoning effort
+
+Use `xhigh` (per `CODEX_PROTOCOL.md` "Reasoning Effort Ladder" forced trigger: the call's scope is a theorem / lemma / proof step / rate / quantifier).
+
+#### Per-repair call template
+
+For each P0 / P1 repair with a complete proof, in its own fresh thread:
+
 ```
 mcp__codex__codex:
-  config: {"model_reasoning_effort": "high"}
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
-    You are stress-testing a proposed REPAIR to a mathematical proof in a statistics/ML
-    theory paper. The original proof had an issue; a fix has been proposed.
+    This is an independent repair review. Treat the proposed repair on its
+    merits. Prior repair verdicts in this pipeline are not part of your
+    context. You are an adversarial reviewer / senior referee for a top
+    stat journal.
+
+    Artifact manifest for this call:
+    - artifact: repair_review
+    - scope: dependency_expanded
+    - source_files: [paper.tex, supplement.tex if Mode B]
+    - theorem_ids: [the unit being repaired + direct dependents]
+    - assumption_ids: [original assumptions in scope + any new ones added by this patch]
+    - issue_ids: [the original issue ID this repair targets]
+    - generator: proof-repair v1.7.0 Step 5C
 
     ORIGINAL ISSUE:
     [Paste: issue description, affected unit, severity]
 
-    PROPOSED REPAIR:
+    PROPOSED REPAIR (this patch only):
     [Paste: repair strategy, new/modified lemma statement, complete proof]
 
-    NEW REFERENCES CITED:
+    NEW REFERENCES CITED (this patch only):
     [Paste: each cited result with venue, theorem statement, assumptions]
 
-    Your tasks (be adversarial — try to break it):
-    1. Is the repaired proof ACTUALLY correct?
-       - Check every step for validity
-       - Check inequality directions, quantifier order, edge cases
-       - Check that cited references actually provide what is claimed
-    2. Does the repair INTRODUCE new problems?
-       - New hidden assumptions?
-       - Changed constants or rates?
-       - Broken downstream dependencies?
-    3. Is the repair MINIMAL?
-       - Could a simpler fix work?
-       - Are the new assumptions weaker than necessary?
-    4. Are the cited references APPROPRIATE?
-       - Do their prerequisites match our setting?
-       - Is there a stronger/more standard reference?
+    DIRECT DEPENDENCIES (manifest references only, not full content):
+    - Assumption ledger: papers/<name>/audit/02_ledgers/assumption_ledger.md
+    - Dependency graph: papers/<name>/audit/03_dependencies/dependency_graph.md
+    Request these by ID if you need them.
 
-    Output:
-    - PASS: repair is correct and minimal
-    - FIXABLE: repair has issues but they're minor [list them]
-    - FAIL: repair is fundamentally flawed [explain why]
+    ADVERSARIAL TASKS — pick at least one falsification attempt:
+    1. Missing-assumption attack: does the repaired proof rely on a condition
+       not in the assumption block?
+    2. Dependency-break attack: does the repair weaken a property that a
+       downstream theorem needs at the original strength?
+    3. Rate / quantifier mismatch attack: are quantifiers pointwise where
+       the conclusion needs uniform? Does a constant secretly depend on
+       dimension / sample size?
+    4. Downstream theorem impact: if this repair propagates, do declared
+       downstream patches in the Weaken-Claim Change Log cover every affected
+       consumer?
+
+    Output (required structure):
+    - Falsification attempt: [name which attack you tried]
+    - Falsification result: [succeeded — repair has a real defect / failed —
+      repair survives this attack]
+    - Verdict: PASS / FIXABLE / FAIL
+    - If FIXABLE or FAIL: specific objection, location in proof, proposed minimal fix
+    - If PASS: state the strongest specific objection you considered and
+      rejected, so the discussion log shows the attack you ran
 ```
 
-If Codex returns FIXABLE or FAIL:
+If Codex returns FIXABLE or FAIL on a given thread:
+
 1. Address Codex's specific objections
 2. Revise the repair
-3. Re-submit to Codex (use `mcp__codex__codex-reply` on the same thread)
+3. Re-submit to Codex via `mcp__codex__codex-reply` **on that thread** (the iterative push-back protocol from `CODEX_PROTOCOL.md`'s 5-round dialogue applies here — Case B continuation, same thread, same finding under discussion)
 4. Iterate until PASS or document the disagreement
 
-Write results to `audit/07_repairs/codex_stress_test.md`:
+#### Recording the verdicts
+
+Write results to `audit/07_repairs/codex_stress_test.md`. The file begins with the artifact manifest header (see `CODEX_PROTOCOL.md`) and has one row per repair:
+
 ```markdown
-| Repair | Codex verdict | Issues raised | Resolved? | Final status |
-|--------|--------------|---------------|-----------|-------------|
-| I-01 | PASS | None | — | Confirmed |
-| I-03 | FIXABLE | Edge case d=1 not handled | Yes, added | Confirmed after revision |
-| I-05 | FAIL → revised → PASS | Original proof had sign error | Rewritten | Confirmed after rewrite |
+---
+artifact: codex_stress_test
+scope: dependency_expanded
+source_files: [paper.tex, supplement.tex]
+theorem_ids: [Thm 2.1, Thm 3.1, Lemma B.2, Lemma B.4, Lemma C.3, Cor 2.2, ...]
+assumption_ids: [A1, A2, A_new1, A_new2, ...]
+issue_ids: [I-01, I-03, I-05, ...]
+commit: [paper-repo short SHA]
+generated: [YYYY-MM-DD HH:MM]
+generator: proof-repair v1.7.0 Step 5C
+---
+
+# Codex Stress-Test Verdicts (per-repair, fresh threads)
+
+| Repair | Codex threadId | Falsification attempt | Verdict | Issues raised | Resolved? | Final status |
+|--------|---------------|----------------------|---------|---------------|-----------|--------------|
+| I-01 | 019eXXXX-... | Missing assumption | PASS | None | — | Confirmed |
+| I-03 | 019eXXXX-... | Dependency break | FIXABLE | Edge case d=1 not handled | Yes, added | Confirmed after revision |
+| I-05 | 019eXXXX-... | Quantifier mismatch | FAIL → revised → PASS | Original proof had sign error in step 4 | Rewritten | Confirmed after rewrite |
+| I-07 + I-08 (cluster, share dependency edge) | 019eXXXX-... | Downstream impact | PASS | None | — | Confirmed |
 ```
+
+The `Codex threadId` column is required so the user can resume any individual repair's dialogue. Each threadId is a fresh thread per the OPT7-C protocol, not a continuation of an earlier repair's thread.
 
 ---
 

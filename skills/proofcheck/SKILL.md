@@ -589,9 +589,23 @@ Write reconciliation to `audit/05_adversarial/codex_cross_review.md`.
 
 ### Step 7: Pass 5 — Final Report
 
+Every generated artifact begins with the **Artifact Manifest Header** described in `CODEX_PROTOCOL.md`. The manifest lets downstream skills (`proof-repair`, `--post-repair`, `theory-sharpen`) load only what they need and detect staleness against the paper's current state.
+
 Write `audit/06_reports/FINAL_REPORT.md`:
 
 ```markdown
+---
+artifact: audit_final_report
+scope: global
+source_files: [paper.tex, supplement.tex if Mode B]
+theorem_ids: [every theorem / lemma / proposition / corollary in the inventory]
+assumption_ids: [every assumption in the assumption ledger]
+issue_ids: [every issue in issue_log.md]
+commit: [paper-repo short SHA at audit time, or content hash if not in git]
+generated: [YYYY-MM-DD HH:MM]
+generator: proofcheck v1.7.0 Pass 5
+---
+
 # Final Proof-Check Report: [Paper]
 
 ## Executive Summary
@@ -625,7 +639,11 @@ Write `audit/06_reports/FINAL_REPORT.md`:
 [Correct / Correct modulo repairs / Incomplete / Incorrect]
 ```
 
-Also write `audit/06_reports/issue_log.md` with all issues.
+Also write `audit/06_reports/issue_log.md` with all issues. Same manifest header (`artifact: issue_log`, `scope: global`).
+
+Per-unit local check files in `audit/04_local_checks/section_*/` carry their own manifest with `scope: local`, `theorem_ids: [single unit being checked]`, and `assumption_ids: [assumptions used in that unit's proof]`. This lets downstream calls (and re-audit) skip loading the full FINAL_REPORT.md when they only need one unit's verdict.
+
+`audit/08_post_repair/RE-AUDIT_REPORT.md` and `audit/08_post_repair/diff_ledger.md` likewise begin with manifest headers; their `scope` is usually `dependency_expanded` (the touched units plus their dependencies) and their `commit` field records the paper-repo SHA at re-audit time, allowing downstream consumers to detect whether the re-audit is fresh.
 
 ---
 
@@ -930,6 +948,13 @@ papers/<paper-name>/audit/08_post_repair/
   per_issue_closure.md         # Per-original-issue closure verification
   new_issues.md                # NEW-S0/S1/S2/S3 detected by patches
 ```
+
+Every file in `08_post_repair/` begins with the Artifact Manifest Header (see `CODEX_PROTOCOL.md`). For these post-repair artifacts:
+- `scope: dependency_expanded` (the touched units plus their direct dependencies)
+- `theorem_ids` lists every unit whose patch is verified by this artifact
+- `assumption_ids` lists every assumption referenced (original + new from patches)
+- `issue_ids` lists every original issue verified for closure plus every NEW-S* issue created
+- `commit` is the paper-repo short SHA at re-audit time (so downstream can detect staleness if a later patch lands)
 
 ### Interaction with Codex Step 5C
 
