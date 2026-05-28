@@ -309,31 +309,107 @@ a base lemma assumption before fixing the theorem that uses it).
 
 ---
 
-## Step 3: Generate Candidate Repairs (per issue)
+## Step 3: Enforce the Repair Priority Ladder (HARD GATE)
 
-For each issue, generate 1-3 candidate repair strategies ranked by invasiveness:
+Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. These are different objects:
+
+- **Ladder level** = how invasive the repair is with respect to the theorem's semantics.
+- **Repair class** = the mechanism used to implement the repair.
+
+The ladder is mandatory and enforced.
+
+### Phase A: Claim-preserving and assumption-preserving repairs only
+
+Exhaust the relevant branches in Phase A before allowing any semantic edit.
+
+- **L1. Internal correction**: fix a local logical error, omitted step, citation misuse, constant slip, quantifier slip, or proof gap without changing the claim, the assumptions, or the proof's dependency scope in any substantive way.
+- **L2. Supporting lemma from existing assumptions**: add a helper lemma or intermediate proposition proved entirely from the existing assumption set; the main theorem statement and its assumptions remain unchanged.
+- **L3. Alternative proof technique under existing assumptions**: replace the proof route, decomposition, or imported theorem while still proving the same claim from the same assumptions.
+
+There is **no hard order between L2 and L3**. They are sibling branches within Phase A. Consider the **relevant** Phase A branches for the issue at hand; do not mechanically force all branches when some are plainly irrelevant.
+
+### Phase B: Semantic edits, allowed only after documented Phase A exhaustion
+
+A repair may enter Phase B only if the per-issue repair file contains a **Phase A exhaustion record** showing why the relevant claim-preserving branches did not work.
+
+- **L4. Add assumption**: introduce the minimal defensible additional assumption that makes the original claim provable.
+- **L5. Weaken claim**: replace the original claim with the strongest claim that the existing assumptions, or the chosen repaired assumption set, honestly support.
+
+There is **no universal order between L4 and L5**. Choose based on mathematical necessity and scientific-scope impact. A stronger assumption that preserves the headline theorem is not automatically preferable to a weaker theorem under the original assumptions. A heavy-tail paper that adds sub-Gaussian to preserve the original rate is often worse than a weaker rate under the original tail assumption.
+
+### Phase C: Terminal failure
+
+- **L6. Blockage / NOT CURRENTLY JUSTIFIED**: no honest repair works.
+
+### Relationship to repair-class mechanisms
+
+The ladder level is not the same as the repair class. Typical mappings:
+
+| Ladder level | Primary repair classes |
+|---|---|
+| L1 | Strengthen-Proof (inline fix), Fill-Skipped-Steps, Citation-Fix, Fix-Constants, Fix-Quantifiers |
+| L2 | Insert-Lemma (or Strengthen-Proof when the helper stays inline) |
+| L3 | Replace-Technique (or Strengthen-Proof when the new route is closely related to the old) |
+| L4 | Add-Assumption |
+| L5 | Weaken-Claim |
+| L6 | Blockage report |
+
+`Expand-Sketch-to-Proof` is orthogonal: an expanded sketch may land at any ladder level depending on what the full proof actually requires.
+
+### Hard enforcement rule
+
+`proof-repair` may not mark an `L4` or `L5` candidate as the chosen repair unless the per-issue repair file includes:
+
+1. the chosen ladder level,
+2. the chosen repair class,
+3. whether the claim is preserved,
+4. whether the assumptions are preserved,
+5. a **Phase A exhaustion record** for the relevant lower-level branches, with:
+   - what was tried,
+   - the specific obstacle,
+   - why the obstacle is genuine rather than merely unseen.
+
+For `L4`, the repair must also include an `Assumption-Extension Change Log` entry.
+
+For `L5`, the repair must also include a `Weaken-Claim Change Log` entry.
+
+A Phase B repair without these artifacts is invalid and must be demoted to `NOT CURRENTLY JUSTIFIED`.
+
+---
+
+## Step 3B: Generate Candidate Repairs (per issue)
+
+For each issue, generate 1-3 candidate repair strategies, each typed with a **ladder level** in addition to invasiveness:
 
 ```markdown
 ## Repair Candidates: I-01 (Lemma C.3 — hidden invertibility assumption)
 
-### Candidate A: Minimal — Add explicit assumption (invasiveness: LOW)
+### Candidate A: Add explicit assumption (Ladder level: L4 / invasiveness: LOW within Phase B)
+- Repair class: Add-Assumption
+- Claim preserved: yes; Assumptions preserved: no
 - Add "Assume H(θ) is invertible for all θ ∈ Θ" to Lemma C.3 statement
 - Propagate to Theorem 2.1 assumptions
-- Check: is this already implied by existing Assumption 2 (strong convexity)?
+- Check: is this already implied by existing Assumption 2 (strong convexity)? If yes, this is actually an L2 candidate, not L4.
 - Risk: may narrow the theorem's applicability
 
-### Candidate B: Prove invertibility — Insert supporting lemma (invasiveness: MEDIUM)
+### Candidate B: Insert supporting lemma (Ladder level: L2 / invasiveness: MEDIUM)
+- Repair class: Insert-Lemma
+- Claim preserved: yes; Assumptions preserved: yes
 - Add Lemma C.3' proving H(θ) invertibility under existing assumptions
 - Needs: strong convexity (Assumption 2) ⟹ H(θ) ≻ 0
-- Advantage: no new assumptions needed in main theorem
+- Advantage: Phase A repair; no main-theorem assumption change
 - Literature needed: standard result connecting strong convexity to Hessian invertibility
 
-### Candidate C: Alternative technique — Avoid inversion entirely (invasiveness: HIGH)
+### Candidate C: Alternative technique — Avoid inversion entirely (Ladder level: L3 / invasiveness: HIGH)
+- Repair class: Replace-Technique
+- Claim preserved: yes; Assumptions preserved: yes
 - Replace matrix inversion step with pseudo-inverse + regularization
 - Requires reworking Eqs. (47)-(52)
 - May change constants but preserves rate
 - Literature needed: perturbation theory for pseudo-inverse in M-estimation
 ```
+
+Note that Candidate A above is `L4` (Phase B). If Candidate B (`L2`) or C (`L3`) reaches `PROVABLE AS STATED`, the ladder rule requires choosing B or C over A; A may be selected only with a documented Phase A exhaustion record.
 
 ### Repair Quality Criteria
 
@@ -378,6 +454,60 @@ This block is the propagation contract for the repair. When `/proof-repair` writ
 A Weaken-Claim repair WITHOUT this block in the per-unit repair file is treated as `NOT CURRENTLY JUSTIFIED` and demoted to a blockage report. There is no third path: either the weakening is documented + propagated, or the theorem is downgraded.
 
 The Downstream Impact column has a hard rule: every listed unit must have a corresponding `Cycle 1 — Patch N` entry in PATCHES.md. The re-audit treats an unpropagated downstream consumer as `NEW-S0` (the patched paper now has a corollary or application that silently overstates what the weakened theorem actually delivers).
+
+### Mandatory output for Add-Assumption candidates
+
+When the chosen candidate is class `Add-Assumption` (ladder level `L4`), the repair file in `audit/07_repairs/section_*/` MUST contain an `## Assumption-Extension Change Log` block. This is the propagation contract for assumption changes, analogous to the Weaken-Claim Change Log for claim changes. An `L4` repair without this log is treated as `NOT CURRENTLY JUSTIFIED`.
+
+```markdown
+## Assumption-Extension Change Log
+
+| Issue ID | Original assumption set | Added assumption (verbatim) | Natural weaker variant considered | Why the weaker variant fails | Scientific-scope impact | Propagation to downstream theorems/lemmas |
+|---|---|---|---|---|---|---|
+| I-01 | [list the original assumptions exactly as used by the repaired unit] | [state the new assumption exactly as added to the theorem / lemma / assumption block] | [state at least one natural weaker alternative that was considered] | [give the concrete blocking reason: which step still fails, which theorem remains inapplicable, or which counterexample direction survives] | [describe how the new assumption changes the paper's regime, applicability, model class, tail condition, dependence structure, or rate interpretation] | [list every downstream lemma, theorem, corollary, application, abstract sentence, or introduction claim that now depends on the added assumption; for each, name the patch ID or repair file that propagates the change] |
+```
+
+The "Natural weaker variant considered" column is the local-minimality defense. The author does not need to prove global minimality (usually impossible) but does need to show that one obvious weakening of the added assumption was tried and rejected with a concrete reason. Without this, the audit treats the added assumption as overstrengthening.
+
+### Mandatory output: Repair Ladder Defense (per repair file)
+
+Every per-issue repair file MUST contain a `## Repair Ladder Defense` block documenting the ladder discipline decision.
+
+```markdown
+## Repair Ladder Defense
+
+- Chosen ladder level: [L1 / L2 / L3 / L4 / L5 / L6]
+- Chosen repair class: [Strengthen-Proof / Insert-Lemma / Replace-Technique / Add-Assumption / Weaken-Claim / Fill-Skipped-Steps / Citation-Fix / Fix-Constants / Fix-Quantifiers / Expand-Sketch-to-Proof / Blockage]
+- Claim preserved: [yes / no]
+- Assumptions preserved: [yes / no]
+
+### Phase A Exhaustion Record
+Record only the **relevant** lower-level branches. Do not fabricate attempts for irrelevant branches.
+
+| Branch | Tried? | Concrete attempt | Specific obstacle | Why the obstacle is genuine | Verdict |
+|---|---|---|---|---|---|
+| L1 Internal correction | [yes / no / not relevant] | [exact local rewrite, skipped-step fill, citation correction, constant fix, etc.] | [what failed] | [counterexample, contradiction, theorem mismatch, dependency failure, or formal blocking issue] | [ruled out / succeeded / not relevant] |
+| L2 Supporting lemma | [yes / no / not relevant] | [candidate helper lemma from existing assumptions] | [what failed] | [why the lemma cannot be proved from the current assumptions, or why it is insufficient] | [ruled out / succeeded / not relevant] |
+| L3 Alternative technique | [yes / no / not relevant] | [named alternative proof route, theorem, or decomposition] | [what failed] | [why the alternative route still cannot prove the original claim under current assumptions] | [ruled out / succeeded / not relevant] |
+
+### Phase B Justification
+Required only for `L4` or `L5`.
+
+- Why Phase A did not close the issue: [one concise paragraph]
+- Why this semantic edit was chosen over the other Phase B option:
+  - If chosen level is `L4`: explain why adding an assumption is scientifically preferable to weakening the claim here.
+  - If chosen level is `L5`: explain why weakening the claim is scientifically preferable to strengthening the assumptions here.
+
+### Semantic-Edit Log Pointer
+- If chosen level is `L4`: `Assumption-Extension Change Log` row pointer: [Issue ID / row reference]
+- If chosen level is `L5`: `Weaken-Claim Change Log` row pointer: [Patch ID / row reference]
+- Otherwise: [NA]
+
+### Blockage Pointer
+Required only for `L6`.
+
+- Blockage report: [path / section pointer]
+```
 
 ### Proof Strategy Selection for Repairs
 
@@ -932,6 +1062,20 @@ Execute repairs in this order (respects dependency DAG):
 
 ### Phase 3: Support Repairs
 | ... |
+
+## Repair Ladder Summary
+
+The paper-level summary of how each issue satisfied the ladder discipline. The full defense lives in the per-issue repair file (see `## Repair Ladder Defense` in each repair file).
+
+| Issue ID | Unit | Chosen repair class | Chosen ladder level | Claim preserved? | Assumptions preserved? | Escalation justified? | Pointer to per-issue defense |
+|---|---|---|---|---|---|---|---|
+| I-01 | Lemma C.3 | Insert-Lemma | L2 | yes | yes | NA | `audit/07_repairs/section_C/lemma_C_3_repair.md` |
+| I-02 | Thm 3.1 | Add-Assumption | L4 | yes | no | yes | `audit/07_repairs/section_3/thm_3_1_repair.md` |
+| I-03 | Cor 4.2 | Weaken-Claim | L5 | no | yes | yes | `audit/07_repairs/section_4/cor_4_2_repair.md` |
+
+Use `Escalation justified? = yes` only when the required Phase A exhaustion record exists and the relevant semantic-edit log entry is present. For Phase A repairs (L1-L3), this column is `NA`.
+
+The summary table is a documentation contract: `/proofcheck --post-repair` cross-checks it against the per-issue Repair Ladder Defense blocks and the Assumption-Extension Change Log / Weaken-Claim Change Log entries.
 
 ## Per-Issue Repair Specifications
 [Link to each audit/07_repairs/section_X/*_repair.md file]

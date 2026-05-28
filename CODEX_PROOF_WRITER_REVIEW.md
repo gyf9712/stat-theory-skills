@@ -225,3 +225,57 @@ Everything else needs statement-level audit: Skorohod, dependent LLN/CLT, functi
 - `skills/proof-writer/SKILL.md`: new `## Cited Results Audit` section in the required file structure with per-row schema and Literature-Retrieval Handoff table; Step 6 Final Verification updated to apply both new diagnostics; Open Risks template renumbered to the 8-trap set.
 
 The thread remains at `019e7024-bea4-7171-aa11-4c352baebebe`.
+
+---
+
+## Round 3 dialogue (2026-05-28): repair-priority ladder
+
+**threadId (continued):** `019e7024-bea4-7171-aa11-4c352baebebe`
+
+**Trigger:** the user asked proof-repair to enforce a strict priority principle: when fixing a proof, try first to repair WITHOUT adding or strengthening assumptions and WITHOUT weakening the claim; only if that route fails, extend (add assumptions or weaken). The existing skill had invasiveness LOW/MEDIUM/HIGH and "Repair Quality Criteria" #3 ("Minimal — prefer the least invasive fix") and #4 ("Preserves claims — ideally keeps the theorem statement unchanged or weakens minimally") — but these were advisory, not enforced. A user could pick a HIGH-invasiveness Add-Assumption candidate without first defending why LOW candidates failed.
+
+### What converged
+
+**Two-phase ladder, not six-level total order.** My initial draft was strict L1 < L2 < L3 < L4 < L5 < L6. Codex correctly pushed back: L2 and L3 are not linearly ordered by invasiveness (Insert-Lemma vs Replace-Technique is a sibling choice), and L4 vs L5 is not universally ordered either (a heavy-tail paper adding sub-Gaussian to preserve the original rate may be worse than a weaker rate under the original tail assumption). The right structure is:
+
+- **Phase A (claim-preserving, assumption-preserving)**: L1 Internal correction, L2 Supporting lemma, L3 Alternative technique. No hard order between L2 and L3.
+- **Phase B (semantic edits)**: L4 Add assumption, L5 Weaken claim. Allowed only after a Phase A exhaustion record. No universal preference between L4 and L5.
+- **Phase C**: L6 Blockage / NOT CURRENTLY JUSTIFIED.
+
+**No checkbox serialism.** Codex pushed back on requiring all three Phase A branches for every issue. The right rule: document the **relevant** lower-level branches. Misapplied citation: L1 and L3 relevant, L2 irrelevant. Missing bridge inequality: L1 and L2 relevant, L3 only if route collapses.
+
+**Phase B requires escalation artifacts.** L4 needs an Assumption-Extension Change Log (analogous to Weaken-Claim Change Log). L5 needs the Weaken-Claim Change Log. Both need the Phase A Exhaustion Record. Without these, the candidate is demoted to NOT CURRENTLY JUSTIFIED.
+
+**Repair Ladder Defense per repair file.** A new mandatory block in each per-issue repair file: chosen level, chosen repair class, claim preserved (yes/no), assumptions preserved (yes/no), Phase A exhaustion table (with concrete attempts, specific obstacles, and why the obstacles are genuine), Phase B justification (only for L4/L5), semantic-edit log pointer.
+
+**Repair Ladder Summary at REPAIR_PLAN.md level.** Paper-level summary table showing chosen level, claim/assumption preservation, and escalation justification status per issue, with pointers to the per-issue defense.
+
+**Mapping ladder ↔ repair class.** Codex corrected my draft:
+- L2 → Insert-Lemma (primary), Strengthen-Proof (if helper stays inline)
+- L3 → Replace-Technique (primary), Strengthen-Proof (if new route is closely related to the old)
+- L1 → Strengthen-Proof, Fill-Skipped-Steps, Citation-Fix, Fix-Constants, Fix-Quantifiers
+- L4 → Add-Assumption
+- L5 → Weaken-Claim
+- L6 → Blockage report
+- Expand-Sketch-to-Proof is orthogonal (lands at any level)
+
+### Where I pushed back on Codex
+
+**Pushback A: undefined whitelist** — see round 2 above; same dialogue principle, this time on the claim that "Phase A exhaustion" without scope would generate checkbox serialism. Codex agreed and refined to "relevant branches only."
+
+**Pushback B: my draft inverted the L4-vs-L5 preference** — I had implicitly assumed L4 (add assumption) is less invasive than L5 (weaken claim). Codex corrected: not universally true. A weaker claim under the original tail assumption is often better than the original claim under sub-Gaussian when the paper is about heavy tails. Accepted; neither L4 nor L5 is universally preferred.
+
+**Pushback C: "smallest possible" assumption defense was too strong** — I asked Codex to require the author to prove the added assumption is minimal. Codex correctly said: that's globally unprovable. The audit rule should be "natural weaker variant considered and rejected with a concrete reason." Accepted.
+
+### Where Codex held the line
+
+- **No order between L2 and L3, and no order between L4 and L5.** Both are sibling choices within their phase.
+- **No re-solving Phase A in /proofcheck --post-repair.** The re-audit checks discipline (presence of artifacts, propagation, consistency), not whether a cleverer Phase A repair existed. Disputing the choice of ladder level is out of scope for the convergence test.
+- **L4 + missing Assumption-Extension Change Log = NOT CURRENTLY JUSTIFIED.** Same severity as L5 + missing Weaken-Claim Change Log. Both are hard gates.
+
+### Files changed in this round
+
+- `skills/proof-repair/SKILL.md`: new Step 3 "Enforce the Repair Priority Ladder (HARD GATE)" before candidate generation; existing candidate-generation step renamed to Step 3B; candidate template adds `Ladder level` field next to invasiveness; new mandatory blocks added — Assumption-Extension Change Log (analogous to Weaken-Claim Change Log), Repair Ladder Defense (per-issue); new Repair Ladder Summary table added to REPAIR_PLAN.md template.
+- `skills/proofcheck/SKILL.md`: new Step P3.5 "Ladder-discipline check (semantic-edit audit)" between P3 and P4 in `--post-repair` mode. Audits L4 escalation (Repair Ladder Defense block, Phase A Exhaustion Record, Assumption-Extension Change Log, propagation) and L5 escalation (Repair Ladder Defense block, Phase A Exhaustion Record, Weaken-Claim Change Log, propagation). Phase A repairs require only the Repair Ladder Defense block. Scope is documentation and propagation, not re-design.
+
+The thread remains at `019e7024-bea4-7171-aa11-4c352baebebe`.

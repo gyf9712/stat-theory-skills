@@ -858,6 +858,56 @@ Checks performed:
 
 Issues found in this step are labeled `NEW-S0`, `NEW-S1`, `NEW-S2`, `NEW-S3`. They are distinct from `STILL-OPEN` issues, which are original-audit issues the patch failed to close.
 
+#### Step P3.5: Ladder-discipline check (semantic-edit audit)
+
+This step audits the repair ladder discipline introduced in `/proof-repair` Step 3. It is a documentation-and-propagation check only. The re-audit does **not** try to re-solve whether a cleverer Phase A repair existed; that is not the job of the convergence test.
+
+**For any repair with chosen ladder level `L4` (Add-Assumption):**
+
+Verify all of the following:
+
+1. The per-issue repair file contains a `## Repair Ladder Defense` block.
+2. The `Phase A Exhaustion Record` is present and non-empty for the relevant lower-level branches.
+3. The chosen repair is marked `Claim preserved: yes` and `Assumptions preserved: no`.
+4. An `## Assumption-Extension Change Log` row exists for the issue.
+5. The added assumption in the log matches the assumption actually inserted into the patched theorem / lemma / assumption block.
+6. The `Scientific-scope impact` field is filled.
+7. Every downstream unit listed in `Propagation to downstream theorems/lemmas` has a corresponding patch in PATCHES.md or a documented re-verification.
+8. The patched paper's assumption ledger reflects the new assumption consistently and without contradiction.
+
+If any item fails, record a new re-audit issue:
+- `NEW-S0` for missing log row, missing propagation, or silent assumption injection
+- `NEW-S1` for incomplete scope-impact documentation or inconsistent assumption bookkeeping
+
+**For any repair with chosen ladder level `L5` (Weaken-Claim):**
+
+Verify all of the following:
+
+1. The per-issue repair file contains a `## Repair Ladder Defense` block.
+2. The `Phase A Exhaustion Record` is present and non-empty for the relevant lower-level branches.
+3. The chosen repair is marked `Claim preserved: no`.
+4. A `## Weaken-Claim Change Log` row exists for the issue / patch.
+5. The revised claim in the log matches the claim actually inserted into the patched paper.
+6. Every downstream consumer listed in the change log has a corresponding propagation patch or documented downgrade.
+7. The abstract, introduction, corollaries, and applications no longer silently use the original stronger claim.
+
+If any item fails, record a new re-audit issue:
+- `NEW-S0` for missing change-log row, silent weakening, or missing downstream propagation
+- `NEW-S1` for incomplete documentation of the weakening rationale
+
+**For repairs at L1, L2, L3 (Phase A) or L6 (blockage):**
+
+Verify only that the Repair Ladder Defense block is present with the correct level recorded. No semantic-edit log is required for Phase A repairs.
+
+**Scope limit of this check:**
+
+This ladder-discipline check verifies:
+- presence of the required escalation artifacts,
+- propagation of semantic edits,
+- consistency of the patched paper with those edits.
+
+It does **not** require the re-audit to prove that no better Phase A repair existed. Disputing the choice of ladder level itself is out of scope; the re-audit's job is to verify the discipline, not to second-guess the design.
+
 #### Step P4: Global consistency re-run (assumption ledger + dependency graph only)
 
 Re-build the assumption ledger and the dependency graph from the patched paper. Compare against the originals:
