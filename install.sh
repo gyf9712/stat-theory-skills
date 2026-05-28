@@ -32,6 +32,30 @@ for skill_path in "${SOURCE_DIR}"/*/; do
   echo "  [OK]   ${skill_name}"
 done
 
+# Install shared reference files (proof-strategy etc.) into stat-shared-references/.
+# Files are copied individually so we do not clobber stat-shared-references/
+# content owned by stat-writing-skills.
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SHARED_SRC="${REPO_DIR}/stat-shared-references"
+SHARED_DST="${SKILL_DIR}/stat-shared-references"
+
+if [[ -d "${SHARED_SRC}" ]]; then
+  mkdir -p "${SHARED_DST}"
+  echo ""
+  echo "Installing shared references → ${SHARED_DST}"
+  for f in "${SHARED_SRC}"/*.md; do
+    [[ -e "${f}" ]] || continue
+    fname="$(basename "${f}")"
+    target="${SHARED_DST}/${fname}"
+    if [[ -e "${target}" && "${FORCE}" != "--force" ]]; then
+      echo "  [SKIP] ${fname} (already exists — use --force to overwrite)"
+      continue
+    fi
+    cp "${f}" "${target}"
+    echo "  [OK]   ${fname}"
+  done
+fi
+
 echo ""
 echo "Done. Available skills:"
 echo "  /proofcheck      — verify mathematical proofs"

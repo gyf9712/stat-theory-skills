@@ -89,8 +89,62 @@ Check explicitly:
 If the claim is not provable as stated, do NOT fabricate a proof.
 Do NOT silently strengthen assumptions or narrow the theorem's scope just to make the proof work.
 
-### Step 4: Build a Dependency Map
-Choose a proof strategy, for example:
+### Step 3.5: Locate the Verification Target and Bottleneck
+
+Before building the dependency map, locate the proof's strategic center. This is the senior-statistician move that distinguishes battlefield selection from blind algebra. Strong PhD students push forward from assumptions; senior statisticians work backward to the right verification target first.
+
+Read `../stat-shared-references/proof-strategy.md`, especially the *Claim Families → Verification Targets* table, the *Anchor Selection and Comparison* section, and the *Trap Catalogue with Diagnostic Tests*.
+
+Decide three things and write them into the proof package as a section titled `## Verification Target and Bottleneck`.
+
+**(a) Verification target.** The precise intermediate statement whose verification would close the claim under your chosen reduction.
+
+Examples:
+- For LASSO ℓ_2 error: "Cone condition $\|\Delta_{S^c}\|_1 \leq 3\|\Delta_S\|_1$ plus quadratic basic inequality $\|X\Delta\|_2^2/n \lesssim \lambda \sqrt{s}\|\Delta_S\|_2$; then RE closes the rate."
+- For M-estimator asymptotic normality: "Asymptotic linear representation $\sqrt{n}(\hat\theta - \theta_0) = -A^{-1} (1/\sqrt{n})\sum \psi(Z_i, \theta_0) + o_p(1)$; then CLT plus Slutsky."
+- For a Sobolev-ball minimax lower bound via Fano: "Comparison family of size $M$ in $W^{s,2}(L)$ with pairwise loss separation $\delta_n$ and pairwise KL $\leq \beta$, satisfying Fano's hypothesis $\log M \geq 2n\beta + \log 2$."
+
+The target must be theorem-specific. "Use Fano" is a slogan; "construct a comparison family satisfying Fano's separation and information conditions at scale $\delta_n$" is a target.
+
+**(b) Bottleneck.** The first unresolved leaf: the specific inequality, localization claim, entropy bound, invertibility step, or prerequisite of a cited theorem that currently lacks a verification. Express as a statement, not as prose.
+
+**(c) Resolution path.** How you intend to break the bottleneck: prove a new lemma, verify prerequisites of a cited theorem, weaken the claim, or downgrade status if no path exists.
+
+If the proof has two co-equal hard centers, declare one primary verification target for the main claim and secondary targets for each genuinely independent hard lemma.
+
+**Declare the proof's relation to the literature** per *Anchor Selection and Comparison* in the shared reference:
+
+- **Template adaptation**: identify 1-3 closest anchors, their proof spine, what is borrowed, what is genuinely new.
+- **Standard-result invocation**: name the theorem and list the prerequisites you will verify.
+- **Self-contained**: this requires explicit defense via the *Implicit Machinery Disclosure* block. Most claims of self-containment are false; if you cannot honestly fill the disclosure, the proof is not self-contained and an anchor walk is required.
+
+`proof-writer` does not have its own web tools. Anchor identification draws on the model's training, the user's narrative, and any local notes referenced in Step 1. If the closest anchor is unclear, say so explicitly rather than fabricating a citation. If the proof is genuinely new and self-contained, defend that.
+
+### Step 4: Build a Dependency Map (backward-first, forward-verified)
+
+With the verification target in hand, build the dependency map.
+
+**Backward pass.** Start from the claim. For each unresolved subgoal, ask: what would imply this? Continue backward until the leaves are one of:
+- an explicit assumption (A1), (A2), ...
+- a verified prerequisite of a cited theorem
+- an isolated new lemma that you will prove separately
+
+**Forward pass.** From the leaves, verify by forward reasoning that the assumptions actually support each leaf claim. A backward decomposition can produce subgoals that look plausible but do not actually hold; the forward pass catches this.
+
+If the forward pass fails on a leaf, either:
+- change strategy (try a different verification target or anchor)
+- isolate that leaf as a lemma and find a different proof for it
+- downgrade the status of the main claim
+
+The dependency map is then a structured inventory:
+- main claim
+- the verification target (from Step 3.5)
+- required intermediate lemmas
+- named theorems or inequalities to cite
+- which assumptions each nontrivial step depends on
+- boundary cases that must be handled separately
+
+Choose a proof strategy from the menu only after the verification target and bottleneck are clear:
 - direct
 - contradiction
 - induction
@@ -99,14 +153,7 @@ Choose a proof strategy, for example:
 - coupling / probabilistic argument
 - optimization inequality chaining
 
-Then write a dependency map:
-- main claim
-- required intermediate lemmas
-- named theorems or inequalities that will be cited
-- which assumptions each nontrivial step depends on
-- boundary cases that must be handled separately
-
-If one step is substantial, isolate it as a lemma instead of burying it in one sentence.
+A strategy chosen before locating the verification target is a label, not a proof method. If one step is substantial, isolate it as a lemma instead of burying it in one sentence.
 
 ### Step 5: Write the Proof Document
 Write to the chosen target proof file.
@@ -225,6 +272,21 @@ Before finishing the target proof file, verify:
 - every cited result is applicable under the stated assumptions
 - edge cases are handled or explicitly excluded
 - no hidden dependence on an unproved lemma remains
+- the verification target stated in Step 3.5 is actually reached by the proof
+- the anchor disclosure honestly reflects what was borrowed
+- the implicit machinery disclosure (if any) is filled in honestly
+
+Then apply each of the seven diagnostic tests from the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
+
+1. **Localization-before-expansion**: find the first Taylor / linearization step; verify a high-probability localization statement precedes it.
+2. **Wrong norm / wrong mode**: underline the norm and convergence mode in the claim; verify the last bound before the conclusion uses the same norm and mode.
+3. **Good-event bookkeeping**: every "on the event $E_n$" or "with high probability" must be paired with a bound on $\mathbb{P}(E_n^c)$.
+4. **Rate leakage**: list every rate factor introduced; verify the final rate accounts for each one or shows an explicit cancellation.
+5. **Quantifier inflation**: every "uniformly", "for all", "sup", "simultaneously" must be supported by an upgrade argument if the input result is pointwise.
+6. **Imported-theorem prerequisite drift**: for each "by Theorem X", verify X's assumptions are locally satisfied.
+7. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
+
+Record the result of each test in the `Open Risks` section. Any FAIL must be fixed or the status downgraded.
 
 If a key step still cannot be justified, downgrade the status and write a blockage report instead of forcing a proof.
 
@@ -247,13 +309,32 @@ PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
 ## Notation
 - ...
 
+## Verification Target and Bottleneck
+- Verification target: If [precise intermediate statement] holds, then the claim follows by [named final argument].
+- Bottleneck: The first unresolved leaf is [specific inequality, localization claim, entropy bound, invertibility step, or citation prerequisite].
+- Resolution path: [prove a new lemma / verify prerequisites of a cited theorem / weaken the claim].
+
+## Anchors and Borrowing
+- Relation to literature: [template adaptation / standard-result invocation / self-contained]
+- Anchor 1: [reference], [theorem number]. Verification target: [...]. Borrowed: [...]. New: [...].
+- Anchor 2 (if any): ...
+- If self-contained: see Implicit Machinery Disclosure below.
+
+## Implicit Machinery Disclosure (if proof labeled self-contained)
+- Mature machinery used implicitly: [list]
+- Background needed by a strong PhD student to verify the proof unaided: [list]
+- Pieces re-proved here rather than imported: [list]
+- Paper-self-contained or locally self-contained: [one of these labels]
+
 ## Proof Strategy
-[chosen approach and why]
+[chosen approach and why; should follow from the verification target above]
 
 ## Dependency Map
-1. Main claim depends on ...
-2. Lemma A depends on ...
-3. Step k uses ...
+1. Main claim depends on the verification target above.
+2. Verification target depends on ...
+3. Lemma A depends on ...
+4. Step k uses ...
+[Built backward from the claim, then forward-verified that leaves are supported.]
 
 ## Proof
 Step 1. ...
@@ -266,6 +347,14 @@ Therefore the claim follows. ∎
 
 ## Open Risks
 - [remaining fragile points, if any]
+- Cross-check against the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
+  - Localization-before-expansion: [pass / fail / not applicable]
+  - Wrong norm / wrong mode: [pass / fail / NA]
+  - Good-event bookkeeping: [pass / fail / NA]
+  - Rate leakage: [pass / fail / NA]
+  - Quantifier inflation: [pass / fail / NA]
+  - Imported-theorem prerequisite drift: [pass / fail / NA]
+  - Boundary / singularity: [pass / fail / NA]
 ```
 
 ## Output Modes
