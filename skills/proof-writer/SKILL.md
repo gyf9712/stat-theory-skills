@@ -283,8 +283,9 @@ Then apply each of the seven diagnostic tests from the *Trap Catalogue* in `../s
 3. **Good-event bookkeeping**: every "on the event $E_n$" or "with high probability" must be paired with a bound on $\mathbb{P}(E_n^c)$.
 4. **Rate leakage**: list every rate factor introduced; verify the final rate accounts for each one or shows an explicit cancellation.
 5. **Quantifier inflation**: every "uniformly", "for all", "sup", "simultaneously" must be supported by an upgrade argument if the input result is pointwise.
-6. **Imported-theorem prerequisite drift**: for each "by Theorem X", verify X's assumptions are locally satisfied.
-7. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
+6. **Citation identity / version drift**: for each "by Theorem / Lemma / Proposition / Corollary / Eq. X", verify a matching row exists in `## Cited Results Audit` with full source identity, locator, source-of-record, direct-inspection status, page or equation pointer, and version / errata note. If inspection status is `checked-now-alternate-source`, the version crosswalk must be filled.
+7. **Imported-result applicability drift**: for each row in `## Cited Results Audit`, verify every source assumption is mapped to a local item; the local step closed is named; the conclusion fit is `exact`, `stronger than needed`, or `weaker than needed with explicit bridge`. Any unmapped assumption, missing local step, `weaker than needed` without bridge, `ambiguous-mismatch`, or proof-dispositive row marked `previously-checked-no-current-access` or `never-checked` is a flag.
+8. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
 
 Record the result of each test in the `Open Risks` section. Any FAIL must be fixed or the status downgraded.
 
@@ -326,6 +327,51 @@ PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
 - Pieces re-proved here rather than imported: [list]
 - Paper-self-contained or locally self-contained: [one of these labels]
 
+## Cited Results Audit
+
+Use one block per imported result that is either proof-dispositive, or cited by specific theorem / lemma / proposition / corollary / equation number.
+
+Do not create rows for background or positioning citations. Do not use this section to hide primitive techniques such as Cauchy-Schwarz or Fubini; those belong in the local proof verification, not here. For graduate-core citation-exempt schemas (see `../stat-shared-references/proof-strategy.md`), a single schema-applicability note suffices instead of a full row.
+
+Rows with `never-checked` are inadmissible. Rows with `previously-checked-no-current-access` may remain only as open risks for `P1` or `P2` items. If such a row is `P0` proof-dispositive, it blocks `PROVABLE AS STATED` unless the step is reproved locally or `/proof-repair` retrieves the source.
+
+### CR1. [Short label]
+
+- Role class: [proof-dispositive / schema-level / anchor-specific]
+- Audit priority: [P0 essential / P1 supportive / P2 optional]
+- Local proof location: [Step number, equation transition, lemma use, or sentence closed by this citation]
+- Full source identity: [authors, year, title, venue / book]
+- Cited locator in proof: [Theorem / Lemma / Proposition / Corollary / Equation number exactly as written]
+- Source of record: [journal version / book edition / arXiv vN / erratum-corrected source]
+- Version / numbering crosswalk: [required if numbering differs across versions, or if alternate source inspected]
+- Errata status: [checked / none known / unknown]
+- Direct inspection status: [checked-now-source-of-record / checked-now-alternate-source / previously-checked-no-current-access / never-checked]
+- Inspection note: [what was inspected, or when / where it was last checked]
+- Page / equation pointer: [page(s), theorem page, equation number]
+- Exact used clause: [the exact clause actually consumed; quote only the needed clause]
+- Source assumptions:
+  - (S1) ...
+  - (S2) ...
+- Local verification map:
+  - (S1) ← [A_k / Lemma m / verified prerequisite / local derivation]
+  - (S2) ← [...]
+- Local step closed by the citation: [exact step this result is supposed to justify]
+- Conclusion needed locally: [exact statement needed at that step]
+- Conclusion fit: [exact / stronger than needed / weaker than needed with explicit bridge / ambiguous-mismatch]
+- Bridge argument if not exact: [required when `Conclusion fit` is `weaker than needed with explicit bridge`]
+- Audit verdict: [PASS / OPEN RISK / FAIL]
+- Failure or risk reason: [one sentence]
+
+### Literature-Retrieval Handoff
+
+List only rows that are not cleanly verified. `proof-writer` itself does not have web tools and cannot retrieve sources; this table is the prioritized handoff to `/proof-repair` or to the author.
+
+| Priority | Audit row | Why retrieval is needed | If retrieval fails | Effect on proof status |
+|---|---|---|---|---|
+| P0 | CR_ | Proof-dispositive citation not directly inspected | Reprove locally or downgrade claim | Cannot remain `PROVABLE AS STATED` |
+| P1 | CR_ | Supporting citation checked only via memory / alternate source | Replace with accessible source or keep as explicit open risk | Proof may survive with disclosed risk |
+| P2 | CR_ | Nonessential citation precision issue | Drop or replace citation | No effect on core proof |
+
 ## Proof Strategy
 [chosen approach and why; should follow from the verification target above]
 
@@ -353,7 +399,8 @@ Therefore the claim follows. ∎
   - Good-event bookkeeping: [pass / fail / NA]
   - Rate leakage: [pass / fail / NA]
   - Quantifier inflation: [pass / fail / NA]
-  - Imported-theorem prerequisite drift: [pass / fail / NA]
+  - Citation identity / version drift: [pass / fail / NA]
+  - Imported-result applicability drift: [pass / fail / NA]
   - Boundary / singularity: [pass / fail / NA]
 ```
 

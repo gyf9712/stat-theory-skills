@@ -147,3 +147,81 @@ Shared with proof-repair:
 ```
 
 The Codex thread remains open for resumption at `019e6fe3-9a34-70e2-942b-ab8343e491d4` if these items need to be re-engaged.
+
+---
+
+## Round 2 dialogue (2026-05-28): citation precision
+
+**threadId:** `019e7024-bea4-7171-aa11-4c352baebebe` (the previous thread expired)
+
+**Trigger:** the user flagged that the Trap Catalogue's single "Imported-theorem prerequisite drift" item conflates two failure modes. When a statistics proof cites "by Theorem 3.2 of Bickel-Ritov-Tsybakov (2009)", LLMs habitually misattribute theorems, swap theorem numbers between papers, or state "Theorem X.Y says Z" when it actually says Z' (close but different). This is the citation-precision audit problem: the proof-level twin of the positioning audit in `stat-positioning-and-claims.md`.
+
+### What converged
+
+**Two-layer citation discipline.** Codex's framing: citation work in theoretical statistics fails on two independent layers.
+
+- **Layer 1 (Citation identity / version drift)**: did the proof identify the right source, version, theorem number, and exact clause?
+- **Layer 2 (Imported-result applicability drift)**: given that the identity is correct, do the source assumptions actually hold here, and is the conclusion exactly what we need?
+
+Both must pass. The previous single diagnostic confused them.
+
+**Four-class scope for citation audit.** Not every citation needs a statement-level audit; only proof-dispositive imported results:
+
+| Class | Audit requirement |
+|---|---|
+| Background / positioning | None |
+| Anchor / template | None unless a specific result is imported as black box |
+| Named theorem schema, uncited | Applicability audit only (theorem-schema level) |
+| Specific theorem / lemma / proposition / corollary / equation citation used to discharge a step | Full two-layer audit |
+
+Primitive inequalities (Cauchy-Schwarz, Markov, Hölder, Jensen, Fubini, Taylor, eigenvalue bounds, Woodbury) are pattern-level checks, not whitelist citations.
+
+**Graduate-core citation-exempt schemas (closed list).**
+
+- Borel-Cantelli I and II (II only with independence checked locally)
+- WLLN and classical CLT for iid finite-dimensional observations
+- Continuous mapping, Slutsky, portmanteau (basic forms), finite-dimensional delta method
+- Glivenko-Cantelli for empirical CDF of iid real-valued data
+- Hoeffding, Bernstein for independent scalar sums (basic forms)
+- Doob's $L^p$ inequality (basic submartingale form)
+
+Everything else needs statement-level audit: Skorohod, dependent LLN/CLT, functional delta methods, generic Glivenko-Cantelli / Donsker / VC / bracketing-entropy, Talagrand / chaining, Fano / Le Cam / Assouad with constants, argmax / Z-estimator consistency theorems beyond basic, asymptotic linearity with nuisance, BvM, or any theorem-numbered citation.
+
+**Four direct-inspection states** with admissibility tied to proof-dispositive role:
+
+| State | Admissibility |
+|---|---|
+| `checked-now-source-of-record` | Passes |
+| `checked-now-alternate-source` | Passes with version / numbering crosswalk required |
+| `previously-checked-no-current-access` | Open risk only; P0 use blocks `PROVABLE AS STATED` |
+| `never-checked` | Inadmissible |
+
+**Cited Results Audit section** added to `PROOF_PACKAGE.md`. Per-row schema covers role class, audit priority, full source identity, source-of-record, version crosswalk, errata, direct-inspection status, exact used clause, source assumptions, local verification map, conclusion fit, audit verdict.
+
+**Literature-Retrieval Handoff table** at the end of the audit section. Lists rows that need retrieval, marked P0 / P1 / P2 with explicit "if retrieval fails" consequences. Since `proof-writer` has no web tools, this is the prioritized handoff to `/proof-repair`.
+
+### Where I pushed back on Codex (Round 2)
+
+**Pushback A: Undefined whitelist is an empty escape hatch.** Codex's round-1 reply mentioned a "graduate-core whitelist" without defining it. I drafted my own list and asked Codex to either accept, modify, or extend. Codex accepted most of my list but corrected two errors:
+
+1. Primitive inequalities (Markov, Cauchy-Schwarz, Fubini, Taylor) should not be on the whitelist — they are local pattern checks, not "exempt schemas." The whitelist is named theorem schemas only.
+2. The whitelist must be narrow: Talagrand, VC, Donsker, BvM, Le Cam with constants are NOT graduate-core even though everyone uses them.
+
+**Pushback B: My applicability diagnostic was inverted.** I drafted that the `Conclusion fit` field flagged "stronger than needed" or "ambiguous." Codex corrected: stronger conclusions can always be used; the dangerous fits are `weaker than needed` (without an explicit bridge) and `ambiguous-mismatch`. I had the direction backward. Accepted.
+
+**Pushback C: Three vs four access states.** I proposed three states. Codex preferred four, renamed for admissibility clarity. I accepted because the renaming makes the rule clear: only the first two pass for proof-dispositive use; the third is admissible only as an open risk for P1/P2 work; the fourth is never admissible.
+
+**Pushback D: Pipeline handoff.** I asked whether `proof-writer` (single-shot, no web tools) should produce a handoff list to `/proof-repair` (which does have literature retrieval). Codex confirmed: yes, the audit ends with a prioritized retrieval list. The user reads it and decides which P0 rows are essential enough to invoke `/proof-repair` on.
+
+### Where Codex held the line (and I accepted)
+
+- **No "stronger than needed" as a flag**: stronger conclusions discharge the proof step.
+- **P0 + `previously-checked-no-current-access` is a hard fail, not a soft risk**: Codex's final tightening. The PROOF_PACKAGE cannot be `PROVABLE AS STATED` if a load-bearing citation has not been directly inspected during the current proof work.
+- **No `never-checked` admission**: even for the schema-level cases that look harmless.
+
+### Files changed in this round
+
+- `stat-shared-references/proof-strategy.md`: trap #6 split into two (#6 Citation identity / version drift, #7 Imported-result applicability drift); boundary trap renumbered to #8; new sections *Citation Identity vs Applicability*, *Scope: which citations need a statement-level audit*, *Graduate-core citation-exempt schemas*, and *Access states for cited sources*.
+- `skills/proof-writer/SKILL.md`: new `## Cited Results Audit` section in the required file structure with per-row schema and Literature-Retrieval Handoff table; Step 6 Final Verification updated to apply both new diagnostics; Open Risks template renumbered to the 8-trap set.
+
+The thread remains at `019e7024-bea4-7171-aa11-4c352baebebe`.

@@ -165,6 +165,69 @@ Prerequisite audit checklist for an imported theorem:
 
 A frequent failure mode: a proof transplants a result across different dependence / design / smoothness regimes without auditing the prerequisites. The transplanted theorem may not apply, and the proof silently breaks.
 
+### Citation Identity vs Applicability
+
+Citation precision in statistics theory is two-layered, and both layers fail independently.
+
+**Layer 1: Citation identity / version consistency.** Did the proof identify the right source, version, theorem number, and exact clause? LLMs habitually misattribute theorems, swap theorem numbers between papers, confidently state "Theorem X.Y says Z" when it actually says Z' (close but different), or confuse versions across arXiv preprints, journal papers, and errata.
+
+**Layer 2: Imported-result applicability.** Given that the identity is correct, do the source assumptions actually hold in the current setting, and is the source conclusion exactly what the local proof step needs?
+
+Both layers must be passed. A proof that confidently verifies prerequisites of the wrong theorem is wrong; a proof that identifies the right theorem but uses it under different conditions is also wrong. The trap catalogue items #6 (citation identity / version drift) and #7 (imported-result applicability drift) target these layers separately.
+
+### Scope: which citations need a statement-level audit
+
+A statement-level audit is required for **proof-dispositive imported results**: results invoked as black-box steps that discharge a specific point of the proof. Not every citation. Four classes:
+
+| Class | Audit requirement |
+|---|---|
+| Background / positioning citation | No audit; the citation does not feed into the proof |
+| Anchor / template citation | No audit unless a specific result is imported as a black box |
+| Named theorem schema used without specific paper citation (e.g., "by symmetrization", "by Slutsky") | Applicability audit (theorem-schema level); no bibliographic theorem-number audit |
+| Specific external result with theorem / lemma / proposition / corollary / equation number used to discharge a proof step | Full statement-level audit (both layers) |
+
+Primitive inequalities and analysis tools (Markov, Cauchy-Schwarz, Hölder, Minkowski, Jensen, Fubini, Tonelli, dominated convergence, Fatou, Taylor, conditional-expectation identities, eigenvalue inequalities, Woodbury) are pattern-level checks. They are not whitelist citations; they require verification that the pattern is applied to the right object, but not a bibliographic audit.
+
+### Graduate-core citation-exempt schemas (closed, narrow list)
+
+Treat the following as citation-exempt named schemas only when invoked in their canonical basic forms and with local applicability verified:
+
+- Borel-Cantelli I and II (II only with independence checked locally)
+- Weak law of large numbers and classical CLT for iid finite-dimensional observations under their standard finite-moment assumptions
+- Continuous mapping theorem
+- Slutsky's theorem
+- Portmanteau in its basic bounded-continuous / closed-set forms
+- The basic finite-dimensional delta method
+- Glivenko-Cantelli for the empirical CDF of iid real-valued data
+- Hoeffding and Bernstein for independent scalar sums in their standard basic forms
+- Doob's $L^p$ inequality in its basic submartingale form
+
+Everything outside this list requires statement-level audit if imported:
+
+- Skorohod representation
+- LLN / CLT under dependence or triangular arrays
+- Functional or semiparametric delta methods
+- Generic Glivenko-Cantelli / Donsker / VC / bracketing-entropy results
+- Talagrand / chaining / maximal inequalities
+- Fano / Le Cam / Assouad with constants
+- argmax or Z-estimator consistency theorems beyond the basic finite-dimensional case
+- Asymptotic linearity with nuisance
+- Bernstein-von Mises
+- Any author / title / theorem-number citation
+
+The whitelist is intentionally narrow. If a result feels routine but is not on this list, it still needs the audit.
+
+### Access states for cited sources
+
+Each proof-dispositive imported result has a direct-inspection status. Four levels, only the first two pass for proof-dispositive use:
+
+- `checked-now-source-of-record`: the source-of-record (journal version, latest preprint, book edition) was directly inspected during this proof. **Passes.**
+- `checked-now-alternate-source`: an equivalent statement in an alternate source (different paper, different edition) was directly inspected; the version / numbering crosswalk is filled in. **Passes** with the crosswalk recorded.
+- `previously-checked-no-current-access`: the author read the source previously but does not currently have access. **Admissible only as an open risk for P1 or P2 items.** For a P0 proof-dispositive item, this status blocks `PROVABLE AS STATED`; the step must be reproved locally or the source must be retrieved (via `/proof-repair`).
+- `never-checked`: the citation was added without direct inspection. **Inadmissible.** Obtain, replace, or prove locally.
+
+For paywalled papers the author has not read: not admissible as a proof-dispositive citation. For "standard textbook results" not on the graduate-core whitelist: if cited with a specific theorem number, the number must be verified. Do not cite theorem numbers from memory. For unpublished or personal communication: not acceptable as a black-box proof step in an archival theory paper; restate and prove locally.
+
 ## Trap Catalogue with Diagnostic Tests
 
 Seven common middle-regime traps. Each has a one-line diagnostic test the polisher can apply mechanically.
@@ -189,11 +252,15 @@ Seven common middle-regime traps. Each has a one-line diagnostic test the polish
 
 > Diagnostic: search for "uniformly", "for all", "sup", or "simultaneously". If the cited or input result is pointwise and no upgrade argument is shown, flag.
 
-**6. Imported-theorem prerequisite drift.** A cited theorem is used outside its scope.
+**6. Citation identity / version drift.** A theorem is cited, but the proof never pins down exactly which source, version, numbering, or clause is being used.
 
-> Diagnostic: for each "by Theorem/Lemma X", write down X's assumptions and check that the proof verifies them locally. Any unchecked prerequisite is a flag. Less ctrl-F-able than the others; this requires reading.
+> Diagnostic: search for `by Theorem`, `by Lemma`, `by Proposition`, `by Corollary`, or `by Eq.` together with an author name, citation key, or bibliographic label. Each proof-dispositive citation must have a matching row in `## Cited Results Audit` with: (i) full source identity, (ii) theorem/lemma/equation number as cited in the proof, (iii) source-of-record, (iv) direct-inspection status, (v) page or equation pointer, and (vi) version / errata note. If a citation has no matching row, or the row omits any of these fields, flag. If the inspection status is `checked-now-alternate-source`, the version / numbering crosswalk field must be filled; otherwise flag.
 
-**7. Boundary / singularity trap.** The proof uses inverses, divisions, argmax differentiability, support recovery, or Hessian inversion at a point where the model is singular or on the boundary.
+**7. Imported-result applicability drift.** The cited result is identified, but its hypotheses or conclusion do not actually match the local use.
+
+> Diagnostic: for each row in `## Cited Results Audit`, write down every source assumption and check that each is mapped to a local item `(A_k)`, a previously proved lemma, or a verified prerequisite. Then check that the local proof step closed by the citation is named explicitly, and that the `Conclusion fit` field is one of: `exact`, `stronger than needed`, or `weaker than needed with explicit bridge`. Any unmapped assumption, missing local step, `weaker than needed` without a bridge, `ambiguous-mismatch`, or proof-dispositive row with direct-inspection status `previously-checked-no-current-access` or `never-checked` is a flag.
+
+**8. Boundary / singularity trap.** The proof uses inverses, divisions, argmax differentiability, support recovery, or Hessian inversion at a point where the model is singular or on the boundary.
 
 > Diagnostic: search for inverses, divisions, argmax differentiability, support recovery, or Hessian inversion. If the proof never explicitly excludes zero denominators, singular matrices, boundary parameters, or ties, flag.
 
