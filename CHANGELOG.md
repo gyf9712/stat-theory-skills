@@ -1,5 +1,70 @@
 # Changelog
 
+## v1.6.0 — Post-repair re-audit closure (convergence test for the repair phase)
+
+User observation: the pipeline went `/proofcheck → /proof-repair → /theory-sharpen → ...` linearly, but had no formal mechanism to verify the repairs actually closed the original issues without introducing new ones. The per-repair Codex adversarial stress-test (Step 5C) catches local errors but cannot see downstream / global breakage. The output text suggested users "Re-verify: /proofcheck papers/my-paper/" but this was a soft hint, not a built-in convergence test.
+
+A second Codex MCP review (threadId `019e6c52-59ca-7642-9797-a9fb686ea127`, `model_reasoning_effort: xhigh`) confirmed the gap and gave architectural guidance. Codex's verdict on the four candidate designs: **B (focused `--post-repair` mode)** was correct; full `/proofcheck` re-run is overkill for a solo workflow; stricter Step 5C alone is insufficient because it is local-only; the README pipeline diagram should show the loop explicitly. All 9 of Codex's points were accepted with no push-back; the dialogue converged in round 1.
+
+### New: `/proofcheck --post-repair` mode
+
+Focused delta audit, **not** a full 6-pass re-run. Reads the original audit + `REPAIR_PLAN.md` + `PATCHES.md` + the patched paper, and produces a convergence verdict.
+
+Six steps:
+
+- **P1**: Treat `PATCHES.md` as the semantic change log. Reads the Weaken-Claim Change Log so an intentionally weakened claim is judged against the REVISED statement, not the original. An undocumented or unpropagated semantic change is itself a `NEW-S0` defect.
+- **P2**: Per-issue closure verification. Every row of the Repair Closure Matrix must reach a terminal status (`CLOSED-VERIFIED`, `CLOSED-WEAKENED`, `CLOSED-BLOCKAGE`, `STILL-OPEN`, or `WAIVED`). Targeted re-verification of `CLOSED-VERIFIED` units; propagation check for `CLOSED-WEAKENED`.
+- **P3**: New-issue scan on touched units only (not on the whole paper). Detects new hidden assumptions, new quantifier mismatches, new rate dependence, new circular dependencies, new notation drift, new cross-file references broken by Mode B numbering. Labeled `NEW-S0` / `NEW-S1` / `NEW-S2` / `NEW-S3`, distinct from `STILL-OPEN` (which means the patch failed to close an original issue).
+- **P4**: Global consistency re-run (assumption ledger + dependency graph only). Catches the integration-level failure modes that per-repair Step 5C cannot see by design.
+- **P5**: **Assumption / Rate Diff Ledger** generated at `audit/08_post_repair/diff_ledger.md`. Compact diff across changed assumptions, constants, rates, probability levels, norms, sample-size regimes, and dependency requirements. Codex explicitly flagged this as high-ROI because in statistics-theory, most bad repairs are not algebraic errors but silent strengthening, silent rate degradation, or silent incompatibility across lemmas.
+- **P6**: Convergence verdict written to `audit/08_post_repair/CONVERGENCE_VERDICT.md`. Three terminal states: `CONVERGED`, `NOT CONVERGED — RE-REPAIR REQUIRED` (cycleable via `/proof-repair --from-reaudit`), or `NOT CONVERGED — HUMAN INTERVENTION REQUIRED` (paper-level intent or assumption set must be revisited).
+
+### New: `/proof-repair --from-reaudit` mode
+
+Manual-only sub-mode. Triggered when `/proofcheck --post-repair` reports `NOT CONVERGED — RE-REPAIR REQUIRED`. Reads the residual issues from the post-repair audit, classifies them by cause (`INCOMPLETE-FIX`, `WRONG-CLASSIFICATION`, `UNDOCUMENTED-WEAKENING`, `PROPAGATION-GAP`, `NEW-DEFECT`), and runs Steps 3-5 of the main workflow on residuals only. Appends a new section to `REPAIR_PLAN.md` labeled `Repair Cycle 2`. Re-invokes `/proofcheck --post-repair` is required afterward; convergence cannot be declared by `--from-reaudit` itself.
+
+**Hard rule against auto-looping**: the pipeline never automatically chains `--from-reaudit` and `--post-repair`. After two cycles without convergence, the affected theorem is downgraded to NOT CURRENTLY JUSTIFIED and the abstract / introduction are updated to remove the claim.
+
+### `proof-repair` hard-gate completion rule
+
+REPAIR_PLAN.md is `complete` only when ALL of the following are true:
+
+1. Every original issue has a row in the Repair Closure Matrix with a terminal closure status.
+2. Every Weaken-Claim repair has a row in the Weaken-Claim Change Log with the downstream impact propagation list.
+3. Outstanding sketches = 0.
+4. Every P0/P1 repair has passed Codex Step 5C.
+5. The Consistency Verification checklist is fully checked.
+6. **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has run AND `CONVERGENCE_VERDICT.md` reports `CONVERGED`. HARD GATE.
+7. **If the original audit contained only S2 and S3 issues**: `--post-repair` is strongly recommended but not gated.
+
+### New: Repair Closure Matrix in REPAIR_PLAN.md
+
+Canonical record of issue closure. Columns: `Issue ID | Original severity | Unit | Repair class | Patch ID | Touched units | Closure status | Post-repair status | Downstream affected units`. `/proof-repair` fills in the design-time columns; `/proofcheck --post-repair` fills in `Post-repair status`. Every issue in `issue_log.md` must have a row, even deferred or blocked ones.
+
+### New: Weaken-Claim Change Log in REPAIR_PLAN.md and per-unit repair files
+
+Mandatory four-column table for every Weaken-Claim repair: `Original claim (verbatim) | Revised claim (verbatim) | Reason for weakening | Downstream impact`. The downstream impact column is the propagation contract — every listed unit must have a corresponding patch. A Weaken-Claim repair without this table is treated as `NOT CURRENTLY JUSTIFIED` and demoted to a blockage report.
+
+### README updates
+
+The pipeline diagram now shows `/proofcheck --post-repair` as the explicit convergence test between `/proof-repair` and `/theory-sharpen`. The label uses `--post-repair` (not generic `/proofcheck`) so users understand this is a focused delta audit, not a full re-audit. The pipeline example block adds the `Step 2.5` re-audit call and the optional `Step 2.6` `--from-reaudit` cycle.
+
+### What this catches that v1.5.1 missed
+
+- A repair that locally proves a correct lemma but no longer correctly feeds the downstream theorem
+- A weakened rate in a lemma that breaks a corollary's rate without any patch updating the corollary
+- A new assumption in Lemma 5 that contradicts an existing assumption in Lemma 8
+- A silent change in the paper's headline claim that downstream sections (abstract, introduction, application) do not reflect
+- A patched proof that introduces a hidden assumption not present in the original assumption block
+
+Codex Step 5C alone could not catch any of these because it reviews each repair in isolation, without a global view of the patched paper.
+
+### Codex dialogue log
+
+- threadId: `019e6c52-59ca-7642-9797-a9fb686ea127`
+- Configuration: `mcp__codex__codex`, `model_reasoning_effort: xhigh`, sandbox `read-only`
+- Outcome: 9 verdicts (Design A MODIFY, Design B ADOPT, Design C SKIP, Design D ADOPT; Step 5C vs re-audit complementary; Weaken-Claim handling via PATCHES.md; new S0/S1 = NOT CONVERGED with manual `--from-reaudit`; Repair Closure Matrix; Diff Ledger). All accepted, no push-back, dialogue converged in round 1.
+
 ## v1.5.1 — Detection-MUST-trigger-completion (sketch handling hardened)
 
 User observation: v1.5.0 added sketch detection and an Expand-Sketch-to-Proof

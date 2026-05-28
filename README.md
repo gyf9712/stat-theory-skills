@@ -11,16 +11,32 @@ all the way to **theoretical sharpening with literature support**.
 ## The Pipeline
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌────────────────────┐    ┌──────────────┐
-│ /proofcheck │ →  │ /proof-repair│ →  │/theory-sharpen │ →  │ /theory-simulation │ →  │ /proof-writer│
-│             │    │              │    │                │    │                    │    │              │
-│ Find proof  │    │ Fix issues + │    │ Strengthen the │    │ Monte Carlo verify │    │ Write the    │
-│ errors      │    │ literature   │    │ theory itself  │    │ + stress-test +    │    │ corrected /  │
-│             │    │ support      │    │                │    │ feed back to theory│    │ new proof    │
-└─────────────┘    └──────────────┘    └────────────────┘    └────────────────────┘    └──────────────┘
+┌─────────────┐    ┌──────────────┐    ┌──────────────────────────┐    ┌────────────────┐    ┌────────────────────┐    ┌──────────────┐
+│ /proofcheck │ →  │ /proof-repair│ →  │ /proofcheck --post-repair │ →  │/theory-sharpen │ →  │ /theory-simulation │ →  │ /proof-writer│
+│             │    │              │    │                          │    │                │    │                    │    │              │
+│ Find proof  │    │ Fix issues + │    │ Convergence test:        │    │ Strengthen the │    │ Monte Carlo verify │    │ Write the    │
+│ errors      │    │ literature   │    │ verify every original    │    │ theory itself  │    │ + stress-test +    │    │ corrected /  │
+│ (full 6-pass│    │ support +    │    │ S0/S1 closed; no new     │    │                │    │ feed back to theory│    │ new proof    │
+│ audit)      │    │ closure mtx  │    │ defect introduced        │    │                │    │                    │    │              │
+└─────────────┘    └──────────────┘    └──────────────────────────┘    └────────────────┘    └────────────────────┘    └──────────────┘
+                            ↑                          │
+                            └──── /proof-repair ───────┘
+                                   --from-reaudit
+                              (only when re-audit finds residual issues;
+                               manual trigger, no auto-loop)
 ```
 
 Each skill can be used standalone, or chained together.
+
+The new `/proofcheck --post-repair` step is the **convergence test** for the repair phase. It is a focused delta audit, **not** a full re-run of the 6-pass `/proofcheck`. It reads the original audit + `REPAIR_PLAN.md` (with its Repair Closure Matrix) + `PATCHES.md` (with the Weaken-Claim Change Log) and verifies:
+
+- Every originally flagged issue is closed (`CLOSED-VERIFIED`, `CLOSED-WEAKENED`, or `CLOSED-BLOCKAGE`)
+- No new S0/S1 issue was introduced by the patches
+- The assumption / rate / probability / norm / sample-size / dependency **diff ledger** has no unjustified rows
+
+This step is a **hard gate** when the original audit found any S0 or S1 issue: `REPAIR_PLAN.md` cannot be marked complete until `CONVERGENCE_VERDICT.md` reports `CONVERGED`. For S2/S3-only repair plans it is a strong recommendation.
+
+If the re-audit finds residual issues, the user manually invokes `/proof-repair --from-reaudit` to address only the residuals, then re-runs `--post-repair`. The cycle is human-driven; the pipeline never auto-loops, and after two `--from-reaudit` cycles without convergence the affected theorems are downgraded to NOT CURRENTLY JUSTIFIED.
 
 ## What each skill does
 
@@ -226,7 +242,25 @@ Full workflow on a single paper:
 
 # 2. Design repairs with literature support
 /proof-repair papers/my-paper/
-# → produces REPAIR_PLAN.md, PATCHES.md, repair_references.bib
+# → produces REPAIR_PLAN.md (with Repair Closure Matrix and
+#   Weaken-Claim Change Log), PATCHES.md, repair_references.bib
+
+# 2.5. Convergence test — verify the repairs actually closed every original issue
+#      and did not introduce new defects
+/proofcheck --post-repair papers/my-paper/
+# → produces audit/08_post_repair/ with RE-AUDIT_REPORT.md,
+#   diff_ledger.md, per_issue_closure.md, new_issues.md, and
+#   CONVERGENCE_VERDICT.md (CONVERGED / NOT CONVERGED)
+#
+# This step is REQUIRED before REPAIR_PLAN.md can be marked complete
+# if the original audit had any S0 or S1 issue. For S2/S3-only plans
+# it is strongly recommended but not gated.
+
+# 2.6 (only if needed). Address residual issues found by re-audit
+/proof-repair --from-reaudit papers/my-paper/
+# → appends Cycle 2 patches to REPAIR_PLAN.md and PATCHES.md
+# → after this, re-invoke /proofcheck --post-repair to confirm CONVERGED
+# → never auto-loop; user explicitly invokes each cycle
 
 # 3. Strengthen the theory beyond fixing errors
 /theory-sharpen papers/my-paper/

@@ -153,7 +153,7 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 | Class | When to use | Needs literature? |
 |-------|-------------|-------------------|
 | **Add-Assumption** | Proof uses unstated condition | Yes — find papers with similar assumption or weaker alternative |
-| **Weaken-Claim** | Theorem claims more than proved | Maybe — find if stronger result exists elsewhere |
+| **Weaken-Claim** | Theorem claims more than proved | Maybe — find if stronger result exists elsewhere. **MANDATORY**: produce a 4-column change-log table for the Weaken-Claim Change Log in REPAIR_PLAN.md Step 7A. Without the table, `/proofcheck --post-repair` will flag this as `NEW-S0` (undocumented semantic change). |
 | **Strengthen-Proof** | Gap in reasoning, but claim is likely true | Yes — find technique/lemma to fill the gap |
 | **Insert-Lemma** | Missing intermediate step | Yes — may exist as known result in literature |
 | **Fill-Skipped-Steps** | Author skipped intermediate steps; proofcheck flagged NONTRIVIAL or UNRECONSTRUCTIBLE jumps | Sometimes — TRIVIAL/VERIFIABLE need no refs, NONTRIVIAL may need a named technique, UNRECONSTRUCTIBLE may need new lemma + refs |
@@ -360,6 +360,24 @@ Instead write a **Blockage Report**:
 - What additional theoretical development would be needed
 - Whether the main theorem survives if this unit is dropped
 - Honest assessment: is the paper's claim false, or just unproven?
+
+### Mandatory output for Weaken-Claim candidates
+
+When a candidate's feasibility triage returns `PROVABLE AFTER WEAKENING`, or the chosen candidate is class `Weaken-Claim`, the repair file in `audit/07_repairs/section_*/` MUST contain a `## Weaken-Claim Change Log` block with the following four columns:
+
+```markdown
+## Weaken-Claim Change Log
+
+| Original claim (verbatim) | Revised claim (verbatim) | Reason for weakening | Downstream impact |
+|---|---|---|---|
+| [paste original theorem / lemma / corollary statement] | [paste revised statement] | [why the original is not provable: which step failed, which assumption was missing, which rate is the actual tight rate; one or two sentences with concrete technical detail, not "the original was too strong"] | [list every downstream unit (lemma, theorem, corollary, application, abstract sentence) that consumed the original strength. For each, name the patch ID that updates it to use the revised strength.] |
+```
+
+This block is the propagation contract for the repair. When `/proof-repair` writes PATCHES.md (Step 7C) and REPAIR_PLAN.md (Step 7A), the corresponding rows in those files copy from this block. `/proofcheck --post-repair` reads the block as the change log of intended semantic edits.
+
+A Weaken-Claim repair WITHOUT this block in the per-unit repair file is treated as `NOT CURRENTLY JUSTIFIED` and demoted to a blockage report. There is no third path: either the weakening is documented + propagated, or the theorem is downgraded.
+
+The Downstream Impact column has a hard rule: every listed unit must have a corresponding `Cycle 1 — Patch N` entry in PATCHES.md. The re-audit treats an unpropagated downstream consumer as `NEW-S0` (the patched paper now has a corollary or application that silently overstates what the weakened theorem actually delivers).
 
 ### Proof Strategy Selection for Repairs
 
@@ -845,6 +863,7 @@ Generated from /proofcheck audit on [date].
 - Repairs requiring new literature: K
 - New references needed: R
 - Main theorem status after repair: [Preserved / Weakened to ...]
+- Convergence status: [NOT YET RE-AUDITED / CONVERGED / NOT CONVERGED]
 
 ## Repair Priority Order
 
@@ -863,6 +882,43 @@ Execute repairs in this order (respects dependency DAG):
 ## Per-Issue Repair Specifications
 [Link to each audit/07_repairs/section_X/*_repair.md file]
 
+## Repair Closure Matrix
+
+This matrix is the canonical record of issue closure. Each row tracks one original issue from `audit/06_reports/issue_log.md` from issue identification through post-repair verification. `/proofcheck --post-repair` reads this matrix to verify convergence.
+
+| Issue ID | Original severity | Unit | Repair class | Patch ID | Touched units | Closure status | Post-repair status | Downstream affected units |
+|---|---|---|---|---|---|---|---|---|
+| I-01 | S0 | Lemma C.3 | Add-Assumption | Patch 1 | Lemma C.3 + assumption block | DESIGNED | (set by re-audit) | Thm 2.1, Cor 2.2, Sec 5 |
+| I-02 | S1 | Thm 3.1 | Weaken-Claim | Patch 5 | Thm 3.1, intro | DESIGNED | (set by re-audit) | Cor 3.2 |
+| I-03 | S1 | Prop B.2 | Insert-Lemma | Patch 3 | Prop B.2 + new Lemma B.5 | DESIGNED | (set by re-audit) | Lemma B.4, Thm 4.1 |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+
+**Closure status** (set by `/proof-repair` when designing the repair):
+- `DESIGNED` — repair strategy specified, patch written, complete proof drafted, Codex Step 5C passed
+- `DEFERRED` — repair postponed (user decision); paper carries the unrepaired issue forward
+- `BLOCKAGE` — repair impossible; theorem downgraded to NOT CURRENTLY JUSTIFIED with a blockage report
+
+**Post-repair status** (set by `/proofcheck --post-repair` on the next pass; blank until re-audit runs):
+- `CLOSED-VERIFIED` — re-audit confirms the unit now passes verification under the revised claim
+- `CLOSED-WEAKENED` — the original claim was unprovable; the patch weakened it, and the weakening is documented in PATCHES.md and propagated to every downstream unit listed in the matrix
+- `CLOSED-BLOCKAGE` — the unit could not be repaired; the patched paper downgrades it; all downstream consumers are also downgraded or removed
+- `STILL-OPEN` — the patch did not actually close the issue (re-audit failure)
+- `WAIVED` — explicitly waived by the user with documented rationale (allowed for S2/S3, almost never for S0/S1)
+
+### Closure Matrix completeness rule
+
+Every issue in `06_reports/issue_log.md` must have a row. Issues without a row are treated as `STILL-OPEN` by the re-audit. If `/proof-repair` chooses to ignore an issue (rare, only for S3), the row still exists with closure status `DEFERRED` and a rationale.
+
+## Weaken-Claim Change Log
+
+This section is **MANDATORY** when any repair is class `Weaken-Claim`. It is the input that `/proofcheck --post-repair` reads to distinguish intentional semantic changes from defects. A Weaken-Claim repair without a row in this log is a re-audit defect.
+
+| Patch ID | Original claim (verbatim) | Revised claim (verbatim) | Reason for weakening | Downstream impact (units that consumed the original strength) |
+|---|---|---|---|---|
+| Patch 5 | "$\hat\theta_n - \theta^* = O_P(n^{-1/2})$ for all $\theta^* \in \Theta$" | "$\hat\theta_n - \theta^* = O_P(n^{-1/2} \log n)$ for all $\theta^* \in \Theta$" | Original proof used a chaining argument that did not yield the parametric rate; the $\log n$ factor is the tight rate under the stated assumptions. See repair file `07_repairs/section_3/thm_3_1_repair.md`. | Cor 3.2 (rate restated as $O_P(n^{-1/2} \log n)$); Sec 5 abstract / introduction (rate now stated with the log factor); rate comparison table updated. |
+
+The `Downstream impact` column is the propagation contract. Every unit listed there must have a corresponding patch in PATCHES.md that updates the consumer.
+
 ## New References Summary
 | # | Key | Full citation | Venue | Tier | Credibility | Supports repair of | Verified? |
 |---|-----|--------------|-------|------|-------------|-------------------|-----------|
@@ -875,15 +931,30 @@ Execute repairs in this order (respects dependency DAG):
 
 ## Consistency Verification
 - [ ] Assumption matrix: no contradictions
-- [ ] Rate propagation: main theorem rate preserved
+- [ ] Rate propagation: main theorem rate preserved (or, if not, documented in Weaken-Claim Change Log)
 - [ ] New references: mutually compatible
 - [ ] New references: all T1/T2 venue verified (no predatory journals)
 - [ ] T3 preprint references: cited theorems independently verified
-- [ ] Downstream units: all re-verified after repair
+- [ ] Downstream units: all re-verified after repair (via post-repair audit)
+- [ ] Repair Closure Matrix is complete (every original issue has a row)
+- [ ] Weaken-Claim Change Log is complete (every Weaken-Claim repair has a row + propagation patches)
 
 ## Residual Issues (cannot repair without major rework)
 | Issue | Why unrepairable | Impact |
-```
+
+## Hard-Gate Completion Rule
+
+REPAIR_PLAN.md is marked `complete` only when ALL of the following are true:
+
+1. Every original issue has a row in the Repair Closure Matrix with a terminal `Closure status` (`DESIGNED`, `DEFERRED`, or `BLOCKAGE`); no row is blank or in-progress.
+2. Every Weaken-Claim repair has a row in the Weaken-Claim Change Log, including the downstream impact propagation list.
+3. Outstanding sketches = 0 in the Sketch Expansion Tracker.
+4. Every P0/P1 repair has passed Codex Step 5C (status `PASS` or `Confirmed after revision`).
+5. The Consistency Verification checklist is fully checked.
+6. **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. This is a HARD GATE — the plan cannot be marked complete without it.
+7. **If the original audit contained only S2 and S3 issues**: `/proofcheck --post-repair` is strongly recommended but not a hard gate. The plan can be marked complete without it, but the executive summary must explicitly state `Convergence status: NOT YET RE-AUDITED (S2/S3-only — re-audit recommended but not required)`.
+
+If any condition fails, the plan status is `IN-PROGRESS` and the skill reports which conditions remain unmet.
 
 ### 7B: Generate BibTeX Entries
 
@@ -985,6 +1056,83 @@ If user only wants to repair a SINGLE unit (not full audit):
 4. Search literature
 5. Output single repair file
 
+## From-Reaudit Mode (`--from-reaudit`)
+
+Invoked as `/proof-repair --from-reaudit papers/<paper-name>/`. This is a focused mode that handles residual issues found by `/proofcheck --post-repair` after a previous repair cycle. It is **manually triggered only**; the pipeline does not auto-loop.
+
+### Pre-conditions
+
+- `audit/08_post_repair/CONVERGENCE_VERDICT.md` exists and reports `NOT CONVERGED — RE-REPAIR REQUIRED` (not `HUMAN INTERVENTION REQUIRED` — that one requires the user to first decide whether to revert, restate, or change venue before any re-repair makes sense).
+- The user has read `audit/08_post_repair/RE-AUDIT_REPORT.md` and confirmed the residual issues are within scope for another mechanical repair pass.
+
+### Inputs
+
+1. `audit/08_post_repair/RE-AUDIT_REPORT.md` — the delta-audit report
+2. `audit/08_post_repair/new_issues.md` — NEW-S0/S1 issues introduced by previous patches
+3. `audit/08_post_repair/per_issue_closure.md` — STILL-OPEN issues from the original audit
+4. `audit/08_post_repair/diff_ledger.md` — unjustified diff rows
+5. The previous REPAIR_PLAN.md, PATCHES.md, and patched paper
+
+### What this mode does
+
+This mode runs a narrowed version of the main `/proof-repair` workflow on the residual issue set only.
+
+#### Step F1: Collect residuals
+
+Build a focused issue list combining:
+
+- Every `STILL-OPEN` issue from `per_issue_closure.md` (original issues the previous patch did not close)
+- Every `NEW-S0` and `NEW-S1` issue from `new_issues.md` (issues the previous patch introduced)
+- Every unjustified diff row from `diff_ledger.md` (silent semantic changes not propagated)
+
+S2 and S3 residuals are listed but do not force the cycle to continue; the user decides whether to address them now or accept the open list.
+
+#### Step F2: Classify residuals by cause
+
+Each residual is one of:
+
+- `INCOMPLETE-FIX`: the patch attempted the right strategy but missed steps or edge cases. Re-apply the same repair class with the missed details addressed.
+- `WRONG-CLASSIFICATION`: the original repair class was wrong (e.g., Strengthen-Proof was tried where Add-Assumption was needed). Reclassify and re-design.
+- `UNDOCUMENTED-WEAKENING`: a Weaken-Claim repair was applied without a PATCHES.md change-log row, or without propagation to downstream units. Generate the missing change-log table and propagate.
+- `PROPAGATION-GAP`: a repair was correctly designed and locally verified, but downstream units that consumed the original claim were not updated. Add downstream-propagation patches without touching the already-correct local repair.
+- `NEW-DEFECT`: the previous patch introduced a fresh defect in a unit that was previously verified. Treat as a new repair from scratch.
+
+#### Step F3: Repair the residuals only
+
+For each residual, run Steps 3-5 of the main workflow (Generate Candidates, Literature Search, Write Complete Proof) on the residual itself. **Do not re-litigate already-CLOSED-VERIFIED issues.** The previous REPAIR_PLAN.md remains the canonical record for those.
+
+If a residual repair touches a unit already repaired in the previous cycle, the new patch is layered on top — the closure matrix gains a second row for the same unit, marked as `Repair cycle 2`. The previous cycle's row is preserved with its terminal status.
+
+#### Step F4: Update REPAIR_PLAN.md and PATCHES.md
+
+The existing REPAIR_PLAN.md is **appended to**, not rewritten:
+
+- New section: `## Repair Cycle 2 — From Re-Audit Verdict on [date]`
+- New Closure Matrix rows for the residual issues
+- Updated cycle-2 patches in PATCHES.md, clearly labeled `Cycle 2 — Patch N`
+- Updated Codex Stress-Test results for cycle-2 repairs
+
+The summary section is updated to reflect both cycles.
+
+#### Step F5: Re-invoke `/proofcheck --post-repair`
+
+`--from-reaudit` does not declare convergence itself. After it finishes, the user invokes `/proofcheck --post-repair` again. This is the only path to a `CONVERGED` verdict.
+
+### Hard rule against auto-looping
+
+The pipeline never automatically loops `proof-repair --from-reaudit → proofcheck --post-repair → proof-repair --from-reaudit → ...`. Each invocation requires the user to confirm:
+
+- Are the residual issues mechanically fixable, or do they signal a deeper problem (wrong theorem, wrong assumption set, wrong technique entirely)?
+- Has the cycle count exceeded 2? If so, the user should consider whether the paper's framework needs to be revisited via `/theory-design` or `/theory-sharpen` rather than continuing to patch.
+
+If a residual cannot be closed after two `--from-reaudit` cycles, escalate: the affected theorem is downgraded to NOT CURRENTLY JUSTIFIED in the patched paper, the abstract and introduction are updated to remove the claim, and the user decides whether the paper still has a publishable contribution without it.
+
+### Common failure modes
+
+- **Cascading rate degradation**: a Weaken-Claim repair in Lemma 5 cascades to corollaries 6, 7, 8, each requiring its own propagation patch. By cycle 2, the paper's headline rate may no longer be defensible. Flag this in `RE-AUDIT_REPORT.md` and let the user decide whether to weaken the headline rate or revert to the original (stronger but unproven) statement.
+- **Assumption infection**: an Add-Assumption repair adds a moment condition to Lemma 3; cycle-2 reveals this condition contradicts a sparsity assumption used in Theorem 1. The repair set is inconsistent. Escalate to human intervention rather than producing another cycle.
+- **Sketch-expansion loops**: a SKETCH-ONLY unit expanded in cycle 1 reveals new sketches in its expansion (because the cited technique itself was a sketch in the cited paper). Treat as `BLOCKAGE` and stop expanding; do not chain sketch-expansion across cycles.
+
 ---
 
 ## Output Summary
@@ -1012,9 +1160,17 @@ Files created:
 └── audit/07_repairs/ — per-unit repair specifications
 
 Next steps:
-  1. Review REPAIR_PLAN.md — accept/reject each repair
+  1. Review REPAIR_PLAN.md — accept/reject each repair, verify the
+     Repair Closure Matrix and Weaken-Claim Change Log are complete
   2. For complex repairs, run: /proof-writer [specific repaired claim]
      to get publication-ready proof text
   3. Apply patches: /proof-repair --apply to auto-patch paper.tex
-  4. Re-verify: /proofcheck papers/my-paper/ to confirm repairs hold
+  4. Convergence test (REQUIRED if any S0/S1 issue existed):
+     /proofcheck --post-repair papers/my-paper/
+     → produces audit/08_post_repair/CONVERGENCE_VERDICT.md
+     → REPAIR_PLAN.md cannot be marked complete until verdict is CONVERGED
+  5. If re-audit reports NOT CONVERGED — RE-REPAIR REQUIRED:
+     /proof-repair --from-reaudit papers/my-paper/
+     then re-run step 4. Max 2 cycles; after that, downgrade affected
+     theorems to NOT CURRENTLY JUSTIFIED.
 ```

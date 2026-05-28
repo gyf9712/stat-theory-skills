@@ -740,21 +740,218 @@ After each checking session, update `PROGRESS.md`:
 This skill is part of a 3-skill pipeline:
 
 ```
-/proofcheck → /proof-repair → /proof-writer
-  Find issues    Fix + literature    Write complete proofs
+/proofcheck → /proof-repair → /proofcheck --post-repair → /proof-writer
+  Find issues    Fix + literature    Convergence test         Write complete proofs
 ```
 
 - **Blockage reports** in local checks feed directly into `/proof-repair` Step 1 (Issue Triage)
 - **Candidate literature** hints in blockage reports give `/proof-repair` a head start on search
 - **Provability triage** (PROVABLE AFTER WEAKENING) tells `/proof-repair` to use Weaken-Claim class
 - After `/proof-repair` designs a fix, `/proof-writer` writes the complete corrected proof
+- After patches are applied, `/proofcheck --post-repair` performs the convergence test (see Post-Repair Re-Audit Mode below)
 
 To run the full pipeline:
 ```
-/proofcheck papers/my-paper/paper.tex    # Step 1: find all issues
-/proof-repair papers/my-paper/           # Step 2: design repairs + find literature
-/proof-writer [specific claim to rewrite] # Step 3: write corrected proof text
+/proofcheck papers/my-paper/paper.tex          # Step 1: find all issues (full 6-pass audit)
+/proof-repair papers/my-paper/                 # Step 2: design repairs + find literature
+/proofcheck --post-repair papers/my-paper/     # Step 2.5: convergence test (delta audit)
+/proof-writer [specific claim to rewrite]      # Step 3: write corrected proof text
 ```
+
+## Post-Repair Re-Audit Mode (`--post-repair`)
+
+Invoked as `/proofcheck --post-repair papers/<paper-name>/`. This is a **focused delta audit**, not a full 6-pass re-run. The goal is to verify that `/proof-repair`'s output actually converged: every originally flagged issue is closed, no new fatal/major issue was introduced by the patches, and the global consistency of assumptions and dependencies still holds.
+
+### When to invoke
+
+- Always after `/proof-repair` finishes a plan that touches any S0 or S1 issue. This is a **HARD GATE**: `/proof-repair` cannot mark `REPAIR_PLAN.md` complete until this mode has run and reports `CONVERGED`.
+- Strongly recommended (not gated) after `/proof-repair` on S2/S3-only plans, because patches can still introduce silent regressions even when they target minor issues.
+- After applying any human-authored patch to a paper that already has an `audit/` directory, to verify the manual edit did not break a downstream proof.
+
+### Inputs
+
+The mode reads, in order:
+
+1. The original audit at `papers/<paper-name>/audit/` — especially `06_reports/FINAL_REPORT.md`, `06_reports/issue_log.md`, `02_ledgers/{notation,assumption,constants}_ledger.md`, and `03_dependencies/dependency_graph.md`.
+2. `papers/<paper-name>/REPAIR_PLAN.md` — the master repair roadmap, including the **Repair Closure Matrix** (see `proof-repair` Step 7A).
+3. `papers/<paper-name>/PATCHES.md` — the ordered list of LaTeX modifications, including any **Weaken-Claim change-log table** for repairs that intentionally narrow a claim.
+4. The patched paper itself (`papers/<paper-name>/paper.tex`, plus `supplement.tex` if Mode B).
+5. `audit/07_repairs/codex_stress_test.md` (if it exists from `/proof-repair` Step 5C) — the per-repair adversarial verdicts, to avoid re-litigating the same questions.
+
+### What it does NOT do
+
+This mode is a delta audit. It explicitly skips:
+
+- The Pass 0 indexing of theorems and lemmas (already done; just reload).
+- Step-by-step verification of proofs in units that the repair did not touch.
+- Re-running the full hidden-assumption sweep across the whole paper.
+- Re-running the proof-strategy classification across all units.
+- Sketch detection on untouched units (already classified in the original audit).
+
+If the user wants any of these, they should run full `/proofcheck` instead — but that should be rare for a normal repair cycle.
+
+### What it DOES
+
+#### Step P1: Treat PATCHES.md as the semantic change log
+
+For each entry in PATCHES.md, record what intentionally changed:
+
+- Which unit was edited (lemma, theorem, assumption, definition)
+- Whether the change is a **STRUCTURAL EDIT** (proof rewritten, new lemma inserted, missing step filled) or a **SEMANTIC EDIT** (claim weakened, assumption added, rate revised, quantifier tightened)
+- For any SEMANTIC EDIT, read the **Weaken-Claim change-log table** (`ORIGINAL CLAIM → REVISED CLAIM → REASON FOR WEAKENING → DOWNSTREAM IMPACT`) in PATCHES.md. If the table is missing for a SEMANTIC EDIT, that itself is a fatal re-audit issue (`RE-AUDIT-NEW-S0`: an undocumented or unpropagated semantic change is a defect even if the algebra is correct).
+
+The audit is performed **against the REVISED claim**, not the ORIGINAL claim. A claim weakening is not a defect when documented; an undocumented or unpropagated weakening is.
+
+#### Step P2: Per-issue closure verification
+
+For every issue in the original `06_reports/issue_log.md`, look up the matching row in the Repair Closure Matrix in REPAIR_PLAN.md. Each row must have one of these terminal statuses:
+
+- `CLOSED-VERIFIED`: the patch addresses the issue; re-audit confirms the unit now passes verification under the revised claim. The original S-level is gone.
+- `CLOSED-WEAKENED`: the original claim was found unprovable; the patch weakened it; the weakening is documented in PATCHES.md and propagated to downstream units that consumed the original claim.
+- `CLOSED-BLOCKAGE`: the unit could not be repaired; a blockage report exists; the unit is downgraded to NOT CURRENTLY JUSTIFIED in the patched paper, with all downstream consequences propagated (corollaries downgraded, the abstract and introduction no longer cite the unprovable claim).
+- `STILL-OPEN`: the patch did not actually close the issue. This is a re-audit failure. The issue carries its original S-level into the re-audit report.
+- `WAIVED`: the user explicitly waived the issue with documented rationale (rare, allowed for S2/S3, almost never for S0/S1).
+
+For each `CLOSED-VERIFIED` row, perform a **targeted re-verification** of the touched unit:
+
+- Re-read the unit's local check file from `04_local_checks/section_*/`
+- Apply the verification methodology (Pass 1 + Pass 2 + Step Completeness Audit) only to this unit and its direct dependencies that were also touched
+- Compare the verification verdict before and after the patch
+- Record the result in the re-audit report
+
+For each `CLOSED-WEAKENED` row, verify the **propagation**:
+
+- Identify all downstream units that consumed the original claim (use the dependency graph)
+- Check that each downstream unit was either (a) also patched to use the revised claim, (b) downgraded if it required the stronger original claim, or (c) verified to still work under the weaker claim
+- Any downstream unit silently using the original strength is a `NEW-S0` propagation defect.
+
+#### Step P3: New-issue scan on touched units
+
+For every unit edited by a patch (per PATCHES.md), run a **focused new-issue scan**. This is narrower than the full Pass 5 adversarial pass; it asks only: did the patch introduce a new issue that did not exist in the original audit?
+
+Checks performed:
+
+- New hidden assumption in the patched proof (proof now relies on a condition not in the assumption block)
+- New quantifier mismatch (pointwise vs uniform, ∀∃ order, etc.) introduced by the patch
+- New constant or rate dependence in the patched proof (e.g., the patched bound has a worse rate than the unit's role in the dependency chain requires)
+- New circular dependency created by inserting a new lemma
+- New notation drift between body and supplement caused by the patch
+- New cross-file reference broken by Mode B numbering changes
+
+Issues found in this step are labeled `NEW-S0`, `NEW-S1`, `NEW-S2`, `NEW-S3`. They are distinct from `STILL-OPEN` issues, which are original-audit issues the patch failed to close.
+
+#### Step P4: Global consistency re-run (assumption ledger + dependency graph only)
+
+Re-build the assumption ledger and the dependency graph from the patched paper. Compare against the originals:
+
+- New assumptions introduced anywhere → must be consistent with the existing assumption set (no contradictions) and must be acknowledged in the relevant statement (no silent injection)
+- Removed assumptions → must be justified (e.g., the patch tightened a lemma so the assumption is no longer used)
+- New dependency edges → must not create circularity
+- Notation ledger drift → must be reconciled across body and supplement
+
+This step is the integration test. It catches the silent breakage that `Step 5C` adversarial per-repair tests cannot see, because per-repair tests do not have a global view of the post-patched paper.
+
+#### Step P5: Assumption / Rate Diff Ledger
+
+Generate `audit/08_post_repair/diff_ledger.md`. This is a compact, machine-readable diff across the entire dimensional structure of the paper:
+
+```markdown
+# Assumption / Rate Diff Ledger
+
+Generated by /proofcheck --post-repair on [date]. Compares the patched paper
+against the pre-patch audit baseline.
+
+## Assumption diff
+| Assumption | Pre-patch scope | Post-patch scope | Change | Justified? |
+|---|---|---|---|---|
+| A1 (i.i.d.) | Global | Global | unchanged | n/a |
+| A2 (strong convexity) | Global | Sec 3 only | NARROWED | yes (Patch 4 splits cases) |
+| A_new1 (4th moment) | — | D.2 local | ADDED | yes (Patch 7, required by Lemma B.5 fix) |
+| A_old3 (Hessian invertibility) | Global | — | DROPPED | yes (Patch 2 supplies it from C.3) |
+
+## Rate / constant diff
+| Object | Pre-patch | Post-patch | Change | Downstream impact |
+|---|---|---|---|---|
+| Thm 2.1 rate | $O(n^{-1/2})$ | $O(n^{-1/2})$ | unchanged | n/a |
+| Cor 2.2 rate | $O(n^{-1/2})$ | $O(n^{-1/2} \log n)$ | DEGRADED by log | Sec 5 application paragraph now overstates; PATCH NEEDED |
+| Lemma C.3 constant | universal | $\propto p^{1/2}$ | DIMENSION-DEPENDENT | review whether Thm 2.1 still holds uniformly in $p$ |
+
+## Probability level diff
+| Statement | Pre-patch | Post-patch | Change |
+|---|---|---|---|
+| Thm 3.1 high-prob | $1 - 2e^{-c n}$ | $1 - 2 e^{-c \log n}$ | WEAKER probability level |
+
+## Norm / metric diff
+| Object | Pre-patch norm | Post-patch norm | Change |
+|---|---|---|---|
+
+## Sample-size regime diff
+| Statement | Pre-patch regime | Post-patch regime | Change |
+|---|---|---|---|
+
+## Dependency requirement diff
+| Edge | Pre-patch direction | Post-patch direction | Change |
+|---|---|---|---|
+
+## Summary
+Total diffs: N
+Justified: M
+Unjustified or unpropagated: K  ← K > 0 means re-audit is NOT CONVERGED
+```
+
+The diff ledger is the single most useful artifact for catching the failure mode Codex flagged: **most bad repairs are not algebraic errors; they are silent strengthening, silent rate degradation, or silent incompatibility across lemmas.** The ledger forces these into the open.
+
+A row is `Unjustified or unpropagated` when:
+
+- An assumption was added without a Weaken-Claim change-log row in PATCHES.md
+- A rate degraded without the downstream consumers being updated
+- A probability level weakened without the corollaries being adjusted
+- A norm changed without the related statements being reconciled
+
+Any unjustified row triggers `NEW-S0` or `NEW-S1` in the convergence decision.
+
+#### Step P6: Convergence decision
+
+The re-audit produces one of three terminal states.
+
+- `CONVERGED`: every original S0/S1 issue is `CLOSED-VERIFIED`, `CLOSED-WEAKENED`, or `CLOSED-BLOCKAGE`; no `STILL-OPEN` S0/S1; no `NEW-S0` or `NEW-S1`; the diff ledger has zero unjustified rows. The repair phase is complete; the user may advance to `/theory-sharpen` or submission.
+- `NOT CONVERGED — RE-REPAIR REQUIRED`: at least one of `STILL-OPEN-S0`, `STILL-OPEN-S1`, `NEW-S0`, `NEW-S1`, or an unjustified diff row remains. The user invokes `/proof-repair --from-reaudit` to address only the residual issues. Auto-triggering is forbidden; the user must explicitly confirm.
+- `NOT CONVERGED — HUMAN INTERVENTION REQUIRED`: the re-audit detected a change in theorem intent, paper-level claim, or dependency structure that exceeds what a re-repair cycle can handle. Examples: the patched paper's contribution is now meaningfully different from the abstract; a Weaken-Claim repair was not propagated to the introduction's stated rate; the new assumption changes the paper's empirical scope. The user must review and decide whether to revert, restate the paper's contribution, or change venue.
+
+The convergence decision is written to `audit/08_post_repair/CONVERGENCE_VERDICT.md`.
+
+### Outputs
+
+```
+papers/<paper-name>/audit/08_post_repair/
+  RE-AUDIT_REPORT.md           # Main delta-audit report
+  diff_ledger.md               # Assumption / rate / constant / probability / norm / regime diff
+  CONVERGENCE_VERDICT.md       # CONVERGED / NOT CONVERGED + reason
+  per_issue_closure.md         # Per-original-issue closure verification
+  new_issues.md                # NEW-S0/S1/S2/S3 detected by patches
+```
+
+### Interaction with Codex Step 5C
+
+The per-repair Codex adversarial stress-test in `/proof-repair` Step 5C and this post-repair re-audit are **complementary, not redundant**:
+
+- Step 5C asks: *"Can this individual repair be broken in isolation?"* — local adversarial test.
+- `--post-repair` asks: *"Did the patched paper as a whole converge?"* — integration test.
+
+Step 5C cannot detect:
+
+- A repair to Lemma 3 that no longer correctly feeds Theorem 1
+- A weakened rate in a lemma that breaks a corollary's rate
+- A new assumption in Lemma 5 that contradicts an existing assumption in Lemma 8
+- A silent change in the paper's headline claim that downstream sections do not reflect
+
+`--post-repair` is the only mechanism that catches these. Both must exist; neither subsumes the other.
+
+### When NOT to run
+
+- The user has only changed comments, typos, or notation cosmetics that the diff ledger would record as zero-impact. A full re-audit is overkill.
+- The original audit found zero S0/S1/S2 issues (paper was already verified) and no patches were applied. There is nothing to re-audit.
+- The user is actively rewriting the paper's framework and the original audit no longer reflects the current paper structure. Re-run full `/proofcheck` instead.
 
 ## Final Acceptance Criteria
 
@@ -768,3 +965,10 @@ A proof check is complete only when:
 - Constants/rates/probability/quantifiers checked for main chain
 - Circular dependencies ruled out or reported
 - Final report states checked AND unchecked scope honestly
+
+A repair cycle is complete only when, after `/proof-repair`:
+- `/proofcheck --post-repair` has been invoked (HARD GATE if any S0 or S1 issue existed in the original audit)
+- `CONVERGENCE_VERDICT.md` reports `CONVERGED`
+- Every original S0/S1 issue has a terminal closure status (`CLOSED-VERIFIED`, `CLOSED-WEAKENED`, or `CLOSED-BLOCKAGE`)
+- The diff ledger has no unjustified rows
+- No `NEW-S0` or `NEW-S1` issues introduced by patches remain open
