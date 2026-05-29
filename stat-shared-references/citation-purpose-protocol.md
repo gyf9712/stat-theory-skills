@@ -31,7 +31,7 @@ The same paper can be cited at multiple sites in the same project, each with a d
 | Purpose | What the citation does | Axis-match requirement | Verification floor |
 |---|---|---|---|
 | `load_bearing` | Cited result is used as a step in a proof; depended on for a rate; invoked to obtain a property the current proof relies on. | All axes `match` / `compatible`. `same_family` or `partial` allowed only with documented bridge in the citing artifact. Zero `mismatch`. | `independently_checked` at high-stakes sites; `human_signed` on the main dependency chain. |
-| `benchmark_claim` | Cited result defines the bar being matched, exceeded, weakened, generalized, or separated from. Powers "first-to", "improves on", "matches asymptotically", "separates from" language in the contribution paragraph. | The specific axis on which the comparison is made is explicit; other axes match / compatible / same_family. | `independently_checked`. |
+| `benchmark_claim` | Cited result defines the bar being matched, exceeded, weakened, generalized, or separated from. Powers "first-to", "improves on", "matches asymptotically", "separates from" language in the contribution paragraph. | `primary_comparison_axis` is the headline axis being compared (e.g., rate, sample-size regime, probability mode). All `auxiliary_comparison_axes` (rate + probability mode + tail regime + sample-size regime are commonly co-claimed) are also explicitly checked; each is recorded as match / compatible / same_family / partial with documented bridge, or the benchmark claim is downgraded. | `independently_checked`. |
 | `comparative` | Cited result is the contrast being claimed (e.g., "we extend X from sub-Gaussian to sub-exponential"). The axis difference IS the contribution. | Exactly one axis difference, explicitly documented as the comparison; other axes match / compatible / same_family. | `independently_checked`. |
 | `technique_inheritance` | Methodological device is borrowed: leave-one-out argument, peeling, generic chaining, primal-dual witness, slicing, doubling, blocking, coupling. The cited paper's specific theorem may not be invoked; the proof device is. | Axis match NOT required (technique citations cross domains by nature). Cache must identify the inherited object explicitly. | `independently_checked` for the technique identification; `source_checked` is acceptable when the proof device is textbook. |
 | `standard_tool` | Invoking a well-known tool by name: Talagrand inequality, Bernstein's inequality, Hanson-Wright, Davis-Kahan, Sudakov-Fernique, Slepian, Le Cam two-point, Fano, Assouad, Hoeffding, McDiarmid, Cauchy-Schwarz beyond schema-exempt, Doob, Burkholder-Davis-Gundy, etc. The cited paper is the canonical source of the tool, not a specific result reused. | Axis match NOT required (tools cross settings). Cache must record which form of the tool is invoked (constants, dimensions, dependence). | `source_checked`. The tool's name + canonical form must match the entry. |
@@ -62,8 +62,15 @@ elif purpose == load_bearing:
     require verification_state >= human_signed if on main dependency chain to headline theorem
 
 elif purpose == benchmark_claim:
-    require the specific comparison axis is recorded
-    require other axes match / compatible / same_family
+    require primary_comparison_axis is recorded (the headline axis the benchmark is on)
+    require auxiliary_comparison_axes list is recorded
+        (rate + probability mode + tail regime + sample-size regime
+         are commonly co-claimed; each must be explicit)
+    require each auxiliary axis verdict is recorded as
+        match / compatible / same_family / partial-with-bridge
+    if any auxiliary axis is mismatch:
+        the benchmark is downgraded to a partial comparative claim
+        and the prose must reflect this
     require verification_state >= independently_checked
 
 elif purpose == comparative:
@@ -106,6 +113,26 @@ The decision plus its rationale is recorded in the project's `cited_results.lock
 ## Default Behavior on Undeclared Purpose
 
 A citation without a declared purpose is treated as **BLOCKED for high-stakes sites** (positioning / repair / theorem invocation / claim audit / mock-review fatal-or-major). It is treated as `background_motivation` only at sites that are pure prose with no technical or comparative language attached.
+
+### Trigger keywords that force a purpose declaration
+
+Even at a prose site, the presence of any of the following keywords in the same sentence or its immediate surroundings forces a purpose declaration. The site cannot default to `background_motivation` when these are present; the citing skill must choose `load_bearing`, `benchmark_claim`, `comparative`, `lineage_positioning`, `technique_inheritance`, or `standard_tool` and document the choice.
+
+| Keyword family | Typical examples | Most likely purpose |
+|---|---|---|
+| Extension claims | "extend", "extending", "build on", "generalize", "broaden", "build upon" | `lineage_positioning` or `comparative` |
+| Improvement claims | "improve", "sharpen", "tighten", "strengthen", "refine", "match" | `benchmark_claim` |
+| Priority claims | "first to", "we are the first", "to our knowledge first", "earlier than" | `benchmark_claim` |
+| Weakening claims | "weaken", "relax", "drop the assumption that", "without assuming", "remove the restriction" | `comparative` |
+| Lineage / line-of-work | "in the line of", "in the tradition of", "following", "builds on the work of" | `lineage_positioning` |
+| Technique-borrow | "adapt the technique of", "apply the method of", "use the device of", "following the argument of" | `technique_inheritance` |
+| Standard-tool invocation | "by the X inequality", "by X's lemma", "applying X to", "via X's bound" | `standard_tool` |
+| Contrast / comparison | "in contrast to", "unlike", "as opposed to", "compared with" | `comparative` |
+| Match / equivalence | "matches the rate of", "achieves the same bound as", "equivalent to" | `benchmark_claim` |
+
+When two or more keyword families coexist in the same sentence (e.g., "extending the line of Bickel and Levina (2008), we sharpen their rate"), each maps to a separate citation site with its own purpose. The same paper appears twice in `cited_results.lock.md` with different purposes (lineage_positioning AND benchmark_claim).
+
+The defaulting rule is permissive only at sites with **none** of the above keywords. Any keyword presence forces explicit declaration.
 
 This is intentional and replaces an earlier permissive default (`lineage_positioning`) which would have let undeclared comparative or load-bearing citations slip through.
 

@@ -1,5 +1,61 @@
 # Changelog
 
+## v1.8.0 — Literature cache protocol + SKILL.md compactification + schema drift cleanup
+
+Four-commit iteration produced the durable literature cache, compactified the proof skills, and cleaned schema drift introduced by the extraction. Codex MCP review at xhigh across three rounds (round 1 threadId expired; rounds 2-3 captured in the rounds below).
+
+### Round 2 deliverables (commits 612f170 + 668cc64 + 3bd1e65)
+
+**Protocol split + lineage refinements (commit 612f170)**
+
+The previously-monolithic `literature-cache-protocol.md` (623 lines) was split into a 206-line router plus three companions, each loaded only by use cases that need it (see Minimum Load Map in the router). Total content increased from 623 to 1025 lines; per-invocation context load decreased because skills now load 500-800 lines (router + 1-2 companions) rather than the full body.
+
+- `literature-cache-protocol.md` (206 lines, router): Minimum Load Map, locations, reference syntax, per-result entry header, high-level read/write summaries, skill integration points.
+- `citation-purpose-protocol.md` (253 lines): 7 citation purposes (load_bearing / benchmark_claim / comparative / technique_inheritance / standard_tool / lineage_positioning / background_motivation); methodological role split into `role_in_literature` (13 historical values: anchor / canonical_first / refinement / generalization / weakening / strengthening / comparative_baseline / textbook_reference / technique_source / problem_origin / negative_example / standard_tool / empirical_or_model_motivation) and `role_relative_to_current_paper` (10 relational values); verification gate matrix is now 2D (decision site × citation purpose); default purpose changed from `lineage_positioning` to BLOCKED at high-stakes sites or `background_motivation` only at pure-prose sites; `cited_results.lock.md` schema gains 7 new columns.
+- `applicability-axes.md` (305 lines): 8 axes with value vocabularies; namespaced assumption families per domain (15 domains: highdim, empirical_process, concentration, random_matrix, m_estimation, semiparametric, bayesian_asymptotics, nonparametric, causal_inference, survival, time_series, multiple_testing, online_learning, robust_statistics, minimax_lower_bounds); 5 compatibility verdicts (match / compatible / same_family / partial / mismatch); per-axis compatibility check algorithm.
+- `cache-verification-states.md` (261 lines): 4 verification states (unverified_extract / source_checked / independently_checked / human_signed); transition rules; verification floor table per decision site; verification request template (no silent upgrade); source integrity (URL + version + retrieval date + SHA-256 source_hash + per-quote text_hash + locator); F1 (staleness) / F2 (verification gap) / F3 (hallucination detection) workflows; inbox/queue write protocol; project-side pin manifest; reverse index generation; sharding policy; protocol versioning.
+
+**SKILL.md compactification (commit 668cc64 stat-theory + 28a3004 stat-writing)**
+
+Per Codex's Q3 verdicts on prompt length (sweet zone 500-700 lines; attention tax at 900-1200; long prompts cause priority distortion, not forgetting): extract repeated orchestration and schemas to shared refs; SKILL.md = WHAT/WHEN/orchestration; shared refs = HOW/detail.
+
+- `skills/proof-repair/SKILL.md`: 1374 → 1121 (-253, -18%). Repair Priority Ladder, mandatory output blocks (Weaken-Claim Change Log, Assumption-Extension Change Log, Repair Ladder Defense), Step 5C per-repair Codex stress-test full template, Step 7A REPAIR_PLAN.md schemas all extracted.
+- `skills/proofcheck/SKILL.md`: 1049 → 1030 (-19, -2%). Severity system, verification statuses, provability triage extracted. Most of the rest is genuinely skill-specific 6-pass workflow.
+- `stat-writing-skills/stat-polishing/SKILL.md`: 855 → 783 (-72, -8%). Duplicated style-discipline content collapsed to pointers.
+- **NEW** `stat-shared-references/proof-closure-machinery.md` (279 lines): canonical schemas for severity S0-S3, verification statuses, provability triage, 11 repair classes, Repair Priority Ladder (Phase A/B/C, L1-L6), Repair Closure Matrix schema, Weaken-Claim Change Log schema (5 columns including Patch ID), Assumption-Extension Change Log schema (7 columns including Natural weaker variant), Repair Ladder Defense block, Repair Ladder Summary table, Hard-Gate Completion Rule (9 conditions including HARD GATE post-repair re-audit for S0/S1).
+- `CODEX_PROTOCOL.md` extended (+100 lines): Per-Repair Stress-Test Call Template + `codex_stress_test.md` artifact schema with threadId column + iterative FIXABLE/FAIL push-back protocol.
+
+**Cache integration (commit 3bd1e65 stat-theory + ea3594d stat-writing)**
+
+Each literature-touching skill gained minimal cache-consult orchestration (10-25 lines per skill).
+
+- `proof-repair` Step 4: new 4A cache-consult, 4F.cache write-back. Subsections renumbered 4A→4B → 4G.
+- `theory-design` Step 0.5: new 0.5.cache before parallel-agent literature search.
+- `theory-sharpen` Step 5: new 5.cache before benchmark agents.
+- `proof-writer` Cited Results Audit: `paper:<bibkey>#<result_id>` references; verification floor integration.
+- `stat-positioning-and-claims` Step 3: cache-consult before 5-source search; write-back; lock manifest update.
+- `stat-paper-plan` PRIOR_WORK_MATRIX Step 5.5: `Read In Full` and `Citation Verified` bind to cache references.
+- `stat-mock-review` Step 3: fatal/major concerns map to project lock + cache; floor `independently_checked`.
+
+### Round 3 cleanup (this commit)
+
+Codex round 3 (threadId `019e7112-283e-74b1-97e5-6344592cd820`) audited the three landed commits and flagged 4 REQUIRES FIX + 3 SUGGEST IMPROVEMENT + 2 CORRECTLY IMPLEMENTED. The hard pushback:
+
+> "The current system now depends on two missing enforcement points: `/lit-cache verify` and a formal citation-lock owner. Without those, the protocol can look stricter while operationally producing pending artifacts that no skill can promote or consistently audit."
+
+> "The main correctness risk is not token economy anymore. It is 'schema drift after extraction': small inline summaries in old skills are now contradicting the shared sources."
+
+This commit (Commit 4) addresses the schema drift and the SUGGEST IMPROVEMENT items. Codex's two enforcement gaps (`/lit-cache verify` MVP + `cited_results.lock.md` ownership) land in a follow-up (Commit 5).
+
+- **V4 schema drift**: `proof-repair` Step 1 line 156 + Step 3 mandatory output: changed "4 columns" → "5 columns (Patch ID + 4 originals)" with explicit reference to the schema in `proof-closure-machinery.md`. `proofcheck` `--post-repair` Step P5 routing fixed: L4 (Add-Assumption) without an `Assumption-Extension Change Log` row was previously routed to "Weaken-Claim change-log row missing"; now correctly routes to its own change log. `proofcheck --post-repair` input list now references both Change Logs separately.
+- **V2 trigger keywords**: `citation-purpose-protocol.md` gained a trigger-keyword table. Presence of any keyword family (extension / improvement / priority / weakening / lineage / technique-borrow / standard-tool / contrast / match) in a sentence forces explicit purpose declaration; the site cannot default to `background_motivation`. Two coexisting keyword families generate separate citation sites with separate purposes.
+- **V3 benchmark axes**: `benchmark_claim` purpose split into `primary_comparison_axis` + `auxiliary_comparison_axes`. All auxiliaries are explicitly checked; any mismatch downgrades the benchmark to a partial comparative claim with corresponding prose adjustment.
+- **V9 family tightening**: `applicability-axes.md` `highdim.tail_condition:moment_based` split into `exponential_concentration` (sub_gaussian + sub_exponential) and `moment_bounded` (polynomial_p_moment + bounded_variance). Cross-family substitution is `partial` with documented bridge, not `same_family`. Empirical-process and random-matrix tail families similarly split into low / high moment variants.
+
+Codex round 3 verdicts CORRECTLY IMPLEMENTED carried forward unchanged: V1 (per-repair fresh thread inline summary sufficient), V5 (cache additions within tolerance).
+
+Codex round 3 SUGGEST IMPROVEMENT V5 carried forward as deferred guidance: do not add further cross-cutting protocols before extracting more Step 1 / Step 4 / post-repair machinery.
+
 ## v1.7.0 — Token economy and anti-anchoring (reasoning ladder + artifact manifest + per-repair fresh thread)
 
 User surveyed [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (a Rust CLI proxy that compresses Bash output by 60-90% with deterministic rules) and asked which strategies could save tokens in this pipeline without harming the math. A second Codex MCP review (threadId `019e6ed3-0b5d-7e72-b424-5428423a2276`, `model_reasoning_effort: xhigh`) evaluated seven candidate optimizations, of which three were ADOPTED outright, three ADOPTED with scope refinements, and one (OPT7 "shared thread for 8 sequential stress-tests") was MODIFIED into a fresh-thread-per-repair anti-anchoring protocol after Codex honestly self-assessed:

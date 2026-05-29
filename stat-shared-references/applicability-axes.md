@@ -189,17 +189,28 @@ The same axis name carries different families across domains. Selected examples 
 
 #### `tail_condition`
 
-| Domain | Family ID | Members |
-|---|---|---|
-| `highdim` | `highdim.tail_condition:moment_based` | sub_gaussian, sub_exponential, polynomial_p_moment, bounded_variance |
-| `highdim` | `highdim.tail_condition:bounded` | bounded, compactly_supported |
-| `highdim` | `highdim.tail_condition:heavy_tail` | heavy_tail, regularly_varying |
-| `empirical_process` | `empirical_process.tail_condition:envelope_p_moment` | envelope-function with $p$-th moment for specified $p$ |
-| `empirical_process` | `empirical_process.tail_condition:envelope_bounded` | uniformly bounded envelope |
-| `random_matrix` | `random_matrix.tail_condition:concentration_quad` | sub-Gaussian quadratic forms, Hanson-Wright applicable |
-| `random_matrix` | `random_matrix.tail_condition:moments_4plus` | uniformly bounded 4-th and higher moments |
-| `robust_statistics` | `robust_statistics.tail_condition:contamination` | $\epsilon$-contamination model; Huber contamination |
-| `robust_statistics` | `robust_statistics.tail_condition:p_moment_only` | only $p$-th moment ($p \in (1, 2]$) is finite |
+Per Codex round 3 V9 verdict: families must be conservatively defined. Sub-Gaussian and bounded-variance often require materially different proof devices (exponential concentration vs Chebyshev / moment-based concentration); they cannot be in the same family without bridge work. The lists below split historically-co-cited groups into tighter family clusters.
+
+| Domain | Family ID | Members | Within-family substitution |
+|---|---|---|---|
+| `highdim` | `highdim.tail_condition:exponential_concentration` | sub_gaussian, sub_exponential | Substitution often goes via Bernstein-type bounds with adjusted constants; treat as `same_family` with the citing skill noting the constant adjustment. |
+| `highdim` | `highdim.tail_condition:moment_bounded` | polynomial_p_moment, bounded_variance | Within-family substitution usually requires a moment-bound-specific concentration step. Treat as `same_family` only when the citing proof uses moment-based concentration; otherwise downgrade to `partial` with explicit bridge. |
+| `highdim` | `highdim.tail_condition:bounded` | bounded, compactly_supported | Tight substitution via Hoeffding-type bounds. |
+| `highdim` | `highdim.tail_condition:heavy_tail` | heavy_tail, regularly_varying, alpha_stable | Substitution requires explicit heavy-tail technique. |
+| `empirical_process` | `empirical_process.tail_condition:envelope_p_moment_low` | envelope-function with $p$-th moment for $p \in (1, 2]$ | |
+| `empirical_process` | `empirical_process.tail_condition:envelope_p_moment_high` | envelope-function with $p$-th moment for $p \ge 4$ | |
+| `empirical_process` | `empirical_process.tail_condition:envelope_bounded` | uniformly bounded envelope | |
+| `empirical_process` | `empirical_process.tail_condition:envelope_subgaussian` | sub-Gaussian envelope | |
+| `random_matrix` | `random_matrix.tail_condition:concentration_quad` | sub-Gaussian quadratic forms, Hanson-Wright applicable | |
+| `random_matrix` | `random_matrix.tail_condition:moments_4` | uniformly bounded 4-th moment | |
+| `random_matrix` | `random_matrix.tail_condition:moments_higher` | uniformly bounded moments above 4 | |
+| `robust_statistics` | `robust_statistics.tail_condition:contamination` | $\epsilon$-contamination model; Huber contamination | |
+| `robust_statistics` | `robust_statistics.tail_condition:p_moment_low` | $p$-th moment ($p \in (1, 2]$) finite | |
+| `robust_statistics` | `robust_statistics.tail_condition:p_moment_high` | $p$-th moment ($p \ge 4$) finite | |
+
+Cross-family substitution (e.g., `exponential_concentration` member → `moment_bounded` member) is **not** `same_family`. It is `partial` and requires a documented bridge in the citing artifact. The bridge typically takes one of: median-of-means (moment_bounded → exponential_concentration shape), truncation + Bernstein, or Catoni-style robust mean.
+
+Codex's specific warning that motivated this refinement: "sub_gaussian, polynomial_p_moment, and bounded_variance look 'same_family' when many proofs need strict implications or explicit bridge lemmas." Treat the split families above as the conservative defaults; loosen only when the citing proof's specific technique tolerates the cross-family member.
 
 #### `data_structure`
 

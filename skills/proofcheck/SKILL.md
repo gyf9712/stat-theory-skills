@@ -773,9 +773,10 @@ The mode reads, in order:
 
 1. The original audit at `papers/<paper-name>/audit/` — especially `06_reports/FINAL_REPORT.md`, `06_reports/issue_log.md`, `02_ledgers/{notation,assumption,constants}_ledger.md`, and `03_dependencies/dependency_graph.md`.
 2. `papers/<paper-name>/REPAIR_PLAN.md` — the master repair roadmap, including the **Repair Closure Matrix** (see `proof-repair` Step 7A).
-3. `papers/<paper-name>/PATCHES.md` — the ordered list of LaTeX modifications, including any **Weaken-Claim change-log table** for repairs that intentionally narrow a claim.
+3. `papers/<paper-name>/PATCHES.md` — the ordered list of LaTeX modifications, including the **Weaken-Claim Change Log** for L5 repairs and the **Assumption-Extension Change Log** for L4 repairs (per the schemas in `stat-shared-references/proof-closure-machinery.md`).
 4. The patched paper itself (`papers/<paper-name>/paper.tex`, plus `supplement.tex` if Mode B).
 5. `audit/07_repairs/codex_stress_test.md` (if it exists from `/proof-repair` Step 5C) — the per-repair adversarial verdicts, to avoid re-litigating the same questions.
+6. The per-issue repair files in `audit/07_repairs/section_*/*_repair.md` — these hold the `Repair Ladder Defense` blocks and the per-issue Assumption-Extension Change Log entries (L4 only).
 
 ### What it does NOT do
 
@@ -952,12 +953,13 @@ The diff ledger is the single most useful artifact for catching the failure mode
 
 A row is `Unjustified or unpropagated` when:
 
-- An assumption was added without a Weaken-Claim change-log row in PATCHES.md
-- A rate degraded without the downstream consumers being updated
-- A probability level weakened without the corollaries being adjusted
-- A norm changed without the related statements being reconciled
+- An assumption was added without an **Assumption-Extension Change Log** row in the per-issue repair file (L4 routing per `stat-shared-references/proof-closure-machinery.md`).
+- A claim was weakened without a **Weaken-Claim Change Log** row in `REPAIR_PLAN.md` and the per-issue repair file (L5 routing per `proof-closure-machinery.md`).
+- A rate degraded without the downstream consumers being updated.
+- A probability level weakened without the corollaries being adjusted.
+- A norm changed without the related statements being reconciled.
 
-Any unjustified row triggers `NEW-S0` or `NEW-S1` in the convergence decision.
+Any unjustified row triggers `NEW-S0` or `NEW-S1` in the convergence decision. L4 (Add-Assumption) and L5 (Weaken-Claim) route to different change logs; an L4 patch documented only in the Weaken-Claim log is still `Unjustified or unpropagated`.
 
 #### Step P6: Convergence decision
 
