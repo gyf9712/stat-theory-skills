@@ -20,20 +20,21 @@ This file is a router. The full protocol lives in three companion files; load on
 
 Each skill / use case loads only the companion files it actually needs. The router (this file) is always loaded as a small entry point.
 
-| Use case | Load this router | + `citation-purpose-protocol.md` | + `applicability-axes.md` | + `cache-verification-states.md` |
-|---|:---:|:---:|:---:|:---:|
-| Cache lookup (hit / miss check; read INDEX) | ✔ | | | |
-| New entry creation (skill writes proposal to inbox) | ✔ | | ✔ (declare applicability) | ✔ (write integrity fields) |
-| High-stakes citation (positioning / repair / theorem step / claim audit) | ✔ | ✔ | ✔ (run axis check) | ✔ (check verification floor) |
-| Lineage / positioning prose-only citation | ✔ | ✔ (purposes + roles) | | ✔ (state floor only) |
-| Comparative / benchmark claim | ✔ | ✔ | ✔ | ✔ |
-| Technique inheritance / standard tool citation | ✔ | ✔ (purposes + identification) | | ✔ (state floor) |
-| Background motivation citation | ✔ | ✔ (default purpose handling) | | ✔ (state floor) |
-| Cache verify (run `/lit-cache verify` to promote inbox entry) | ✔ | | ✔ (verify applicability contract) | ✔ (full verification workflow) |
-| Cache audit (run `/lit-cache audit` for `independently_checked` upgrade) | ✔ | ✔ (consistency check) | ✔ (consistency check) | ✔ (full upgrade workflow) |
-| Staleness / version conflict handling (F1) | ✔ | | | ✔ |
-| Hallucination detection (F3) | ✔ | | | ✔ |
-| `cited_results.lock.md` schema | ✔ | ✔ | | ✔ |
+| Use case | Load this router | + `citation-purpose-protocol.md` | + `applicability-axes.md` | + `cache-verification-states.md` | + `lit-cache-verify-protocol.md` | + `cited-results-lock-protocol.md` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Cache lookup (hit / miss check; read INDEX) | ✔ | | | | | |
+| New entry creation (skill writes proposal to inbox) | ✔ | | ✔ (declare applicability) | ✔ (write integrity fields) | | ✔ (lock manifest update) |
+| High-stakes citation (positioning / repair / theorem step / claim audit) | ✔ | ✔ | ✔ (run axis check) | ✔ (check verification floor) | | ✔ (lock manifest update) |
+| Lineage / positioning prose-only citation | ✔ | ✔ (purposes + roles) | | ✔ (state floor only) | | ✔ |
+| Comparative / benchmark claim | ✔ | ✔ | ✔ | ✔ | | ✔ |
+| Technique inheritance / standard tool citation | ✔ | ✔ (purposes + identification) | | ✔ (state floor) | | ✔ |
+| Background motivation citation | ✔ | ✔ (default purpose handling) | | ✔ (state floor) | | ✔ |
+| Cache verify (promote inbox entry to `source_checked`) | ✔ | | ✔ (verify applicability contract) | ✔ (full verification workflow) | ✔ (the MVP workflow) | |
+| Cache audit (`independently_checked` upgrade via Codex MCP) | ✔ | ✔ (consistency check) | ✔ (consistency check) | ✔ (full upgrade workflow) | (deferred follow-up) | |
+| Lock manifest initialization (project start) | ✔ | ✔ (schema) | | ✔ (state floor) | | ✔ (ownership protocol) |
+| Lock manifest consistency check (e.g. `--post-repair` Step P3.7) | ✔ | | | ✔ | | ✔ |
+| Staleness / version conflict handling (F1) | ✔ | | | ✔ | | |
+| Hallucination detection (F3) | ✔ | | | ✔ | | |
 
 The router carries the small amount of cross-cutting structure (locations, syntax, schema header). The companion files carry the per-use case detail.
 

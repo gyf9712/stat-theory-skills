@@ -56,6 +56,82 @@ Codex round 3 verdicts CORRECTLY IMPLEMENTED carried forward unchanged: V1 (per-
 
 Codex round 3 SUGGEST IMPROVEMENT V5 carried forward as deferred guidance: do not add further cross-cutting protocols before extracting more Step 1 / Step 4 / post-repair machinery.
 
+### v1.8.0 continuation: enforcement infrastructure (Codex round 3 V7 + V8)
+
+This commit (Commit 5) adds the two missing enforcement points Codex round 3 hard-pushed: `/lit-cache verify` workflow and `cited_results.lock.md` ownership.
+
+**V7 `/lit-cache verify` MVP** (`stat-shared-references/lit-cache-verify-protocol.md`, NEW 156 lines)
+
+The protocol previously referenced `/lit-cache verify` and `/lit-cache audit` without an implementation, so entries stayed at `unverified_extract` and the strict verification gates blocked all downstream use. The MVP is a workflow specification (not a separate skill binary) that the user runs through the assistant.
+
+Scope of the MVP: only the `unverified_extract → source_checked` transition. The `source_checked → independently_checked` upgrade (which requires a Codex MCP call) and the human-signed transition are deferred to follow-up.
+
+Workflow (7 steps):
+
+1. List inbox entries at `~/.claude/literature_cache/inbox/`.
+2. For each, fetch the source URL via WebFetch.
+3. Compute the fetched source's SHA-256 and compare to `source_hash`.
+4. For each quote block, locate the text at the recorded locator, normalize Unicode NFC + strip whitespace, compute SHA-256, compare to `text_hash`.
+5. Verify the applicability contract (axis presence + family registry membership + lineage primary_line existence or rationale).
+6. Promote (move to `papers/<bibkey>.md`, set state to `source_checked`, append verification_log entry, update INDEX.md) OR hold (leave in inbox with documented failure reason).
+7. Print summary listing promoted / held entries.
+
+The MVP catches the most common hallucination class (the writing skill claimed verbatim it did not actually read); deeper independent-reading checks are deferred to `/lit-cache audit`. Honest limits are documented: cannot detect self-consistent hallucinations where the writing skill invented a paper, invented quotes, and invented hashes of its invention; PDF quote-locator extraction is fragile for non-standard layouts.
+
+Invocation forms: `/lit-cache verify` (all entries), `/lit-cache verify <bibkey>` (single), `--dry-run`, `--since <date>`.
+
+**V8 `cited_results.lock.md` ownership** (`stat-shared-references/cited-results-lock-protocol.md`, NEW 132 lines)
+
+Formalizes who creates and who updates the project-side citation pin manifest. The lock manifest was referenced by every literature-touching skill but had no designated owner; this protocol fixes that without adding a new skill binary.
+
+Ownership map:
+
+| Stage | Owner | Responsibility |
+|---|---|---|
+| Initialization | `stat-paper-plan` Step 5.7 (NEW) | Create file with manifest header + initial rows from `PRIOR_WORK_MATRIX.md` |
+| Drafting | `stat-paper-write` Step 2.5 | For each `CLAIM_SUPPORT_MAP` claim resolving to a cited paper, add a row |
+| Polishing | `stat-polishing` Steps 11 + 16 | Codex dialogue and citation hygiene additions update rows |
+| Mock review | `stat-mock-review` Step 3 | Read-only verification |
+| Proof repair | `proof-repair` Steps 4 + 5C | New repair citations update rows |
+| Proof writing | `proof-writer` Cited Results Audit | Match audit rows to lock-manifest rows |
+| Re-audit | `/proofcheck --post-repair` Step P3.7 (NEW) | Read-only consistency validation |
+| Final | author (manual) | Promote load-bearing rows to `human_signed`, sign the file |
+
+Update discipline: read-before-write, append-only (no editing of historical rows), match cache state at write time, record bridge explicitly, one row per citation site.
+
+Conflict resolution: first-writer-wins for citation sites; subsequent writers add new rows for upgrades; same paper at different purposes coexists as multiple rows.
+
+**stat-paper-plan Step 5.7 (NEW)** initializes the lock manifest after Steps 5.5 + 5.6 (`PRIOR_WORK_MATRIX` + `TECHNICAL_RISK_REGISTER`). Initial rows are populated from `PRIOR_WORK_MATRIX.md` `Read In Full` entries that resolve to cache hits; rows without cache entries are deferred to the downstream skill that first triggers the literature search.
+
+**proofcheck `--post-repair` Step P3.7 (NEW)** performs read-only consistency validation:
+
+- Every row's Reference resolves to an existing cache entry.
+- Every Entry hash at decision matches current cache hash (or row flagged STALE).
+- Every load-bearing row at `independently_checked` or higher (or flagged GAP).
+- Every `partial` / `same_family` row's bridge artifact exists.
+- Every `\cite{<bibkey>}` in the patched paper has at least one lock-manifest row.
+
+Findings to `audit/08_post_repair/lock_manifest_validation.md`. STALE and GAP are warnings; verification floor gap on load-bearing rows blocks `CONVERGED`.
+
+**Router Minimum Load Map updated** to include the two new protocols. New use cases:
+
+- Cache verify → loads `lit-cache-verify-protocol.md`
+- Lock manifest initialization → loads `cited-results-lock-protocol.md`
+- Lock manifest consistency check (Step P3.7) → loads `cited-results-lock-protocol.md`
+
+**Skill-level updates** for the lock manifest discipline:
+
+- `proof-repair` Step 4F.cache: explicit "read before write + append, do not edit" rule for lock manifest updates.
+- `proof-writer` Cited Results Audit: every audit row matches a lock-manifest row at the matching verification level.
+- `stat-positioning-and-claims` Step 3: positioning audit citations follow append-only discipline.
+- `stat-mock-review` Step 3: read-only; missing lock entries flagged as Rescue Plan items.
+
+Convergence criterion in `proofcheck --post-repair` updated to require lock manifest validation pass (no STALE or GAP on load-bearing rows).
+
+Why no separate `/lock-citations` skill: per Codex round 3 V5, do not add further cross-cutting protocols before extracting more machinery from proof-repair. The in-skill update discipline is sufficient. If responsibility grows (automated reverse indexes, batch validation), a separate skill becomes worth creating.
+
+This commit completes the v1.8.0 release. The four-commit sequence (612f170 protocol split + 668cc64 compactification + 3bd1e65 cache integration + f0e2fbd cleanup + this commit) implements Codex rounds 2 and 3 in full, with the round 3 hard pushback on enforcement now addressed.
+
 ## v1.7.0 — Token economy and anti-anchoring (reasoning ladder + artifact manifest + per-repair fresh thread)
 
 User surveyed [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (a Rust CLI proxy that compresses Bash output by 60-90% with deterministic rules) and asked which strategies could save tokens in this pipeline without harming the math. A second Codex MCP review (threadId `019e6ed3-0b5d-7e72-b424-5428423a2276`, `model_reasoning_effort: xhigh`) evaluated seven candidate optimizations, of which three were ADOPTED outright, three ADOPTED with scope refinements, and one (OPT7 "shared thread for 8 sequential stress-tests") was MODIFIED into a fresh-thread-per-repair anti-anchoring protocol after Codex honestly self-assessed:

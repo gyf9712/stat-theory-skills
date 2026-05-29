@@ -598,7 +598,7 @@ For each recommended paper, do a verification proportional to its tier:
 
 **This prevents citation misuse** — the same error class we check for in /proofcheck.
 
-### 4F.cache: Write back to cache (mandatory for new sources)
+### 4F.cache: Write back to cache + update lock manifest (mandatory for new sources)
 
 For every reference that was a cache miss in Step 4A and has now been fetched and verified, write a proposal to the cache inbox at `~/.claude/literature_cache/inbox/<bibkey>.draft.md` per `cache-verification-states.md`. The proposal must include:
 
@@ -606,11 +606,10 @@ For every reference that was a cache miss in Step 4A and has now been fetched an
 - Source URL, source version, retrieval date, source hash, verbatim quote blocks with locators and text hashes
 - Applicability contract on the 8 axes per `applicability-axes.md`
 - Theoretical lineage block (`primary_line`, `role_in_literature`) per `citation-purpose-protocol.md`
-- The citation purpose at this repair's site (typically `load_bearing`, `technique_inheritance`, or `standard_tool`)
 
-The repair itself can proceed using the just-fetched content (the writing skill is allowed to use its own `unverified_extract` immediately because it just read the source). Downstream skills consuming this evidence will require `/lit-cache verify` promotion before using it at `source_checked` or higher. The user is notified that an inbox entry awaits verification.
+The repair itself can proceed using the just-fetched content (the writing skill is allowed to use its own `unverified_extract` immediately because it just read the source). Downstream skills consuming this evidence will require `/lit-cache verify` promotion (workflow in `lit-cache-verify-protocol.md`) before using it at `source_checked` or higher. The user is notified that an inbox entry awaits verification.
 
-Update the project's `papers/<project-name>/cited_results.lock.md` with the citation site, reference (`paper:<bibkey>#<result_id>`), citation purpose, role in literature, role relative to current paper, source version at decision, entry hash at decision, verification level at decision, axis or lineage bridge recorded, and decision date. The schema is in `citation-purpose-protocol.md`.
+**Lock manifest update** (per `cited-results-lock-protocol.md`): append a row to `papers/<project>/cited_results.lock.md` for the new citation site. The repair's citation purpose is typically `load_bearing` (for `Citation-Fix` and `Strengthen-Proof` repairs that invoke the result as a step), `technique_inheritance` (for `Replace-Technique` repairs borrowing a proof device), or `standard_tool` (when the repair invokes a named tool like Talagrand or Bernstein). Follow the "read before write" + "append, do not edit" discipline: do not overwrite existing rows; if the same paper is already in the manifest under a different purpose or site, add a new row.
 
 ### 4G: Fallback When No High-Quality Reference Found
 

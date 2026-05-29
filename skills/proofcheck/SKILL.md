@@ -890,6 +890,20 @@ This ladder-discipline check verifies:
 
 It does **not** require the re-audit to prove that no better Phase A repair existed. Disputing the choice of ladder level itself is out of scope; the re-audit's job is to verify the discipline, not to second-guess the design.
 
+#### Step P3.7: Citation lock manifest consistency check (read-only)
+
+Read `papers/<paper-name>/cited_results.lock.md` per `stat-shared-references/cited-results-lock-protocol.md`. The re-audit performs a read-only consistency check:
+
+- Every row's `Reference` resolves to an existing cache entry (`paper:<bibkey>#<result_id>` is in `~/.claude/literature_cache/papers/<bibkey>.md`).
+- Every row's `Entry hash at decision` matches the cache entry's current hash, OR the row is flagged STALE in the validation report.
+- Every load-bearing row (purpose in `{load_bearing, benchmark_claim, comparative}`) is at `independently_checked` or higher; if not, the row is flagged GAP.
+- Every `Axis or lineage bridge recorded` column for `partial` or `same_family` rows points to an existing artifact (Lemma A.4, PATCHES.md Patch-7, etc.).
+- Every patched-paper citation (recorded by the body's `\cite{<bibkey>}` calls intersected with the Closure Matrix's referenced units) has at least one row in the lock manifest.
+
+Findings are written to `papers/<paper-name>/audit/08_post_repair/lock_manifest_validation.md`. STALE and GAP flags are warnings; the verification floor gap on load-bearing rows is a blocker (the convergence decision in Step P6 cannot advance to `CONVERGED` while any load-bearing row is below `independently_checked`).
+
+The check is read-only; the re-audit does not edit `cited_results.lock.md`. Discrepancies are reported back to the user, who decides whether to re-run the originating skill (stat-paper-write, proof-repair, etc.) to upgrade or re-bind the row.
+
 #### Step P4: Global consistency re-run (assumption ledger + dependency graph only)
 
 Re-build the assumption ledger and the dependency graph from the patched paper. Compare against the originals:
@@ -965,7 +979,7 @@ Any unjustified row triggers `NEW-S0` or `NEW-S1` in the convergence decision. L
 
 The re-audit produces one of three terminal states.
 
-- `CONVERGED`: every original S0/S1 issue is `CLOSED-VERIFIED`, `CLOSED-WEAKENED`, or `CLOSED-BLOCKAGE`; no `STILL-OPEN` S0/S1; no `NEW-S0` or `NEW-S1`; the diff ledger has zero unjustified rows. The repair phase is complete; the user may advance to `/theory-sharpen` or submission.
+- `CONVERGED`: every original S0/S1 issue is `CLOSED-VERIFIED`, `CLOSED-WEAKENED`, or `CLOSED-BLOCKAGE`; no `STILL-OPEN` S0/S1; no `NEW-S0` or `NEW-S1`; the diff ledger has zero unjustified rows; the lock manifest validation (Step P3.7) reports no load-bearing row below `independently_checked` and no STALE entry on a load-bearing row. The repair phase is complete; the user may advance to `/theory-sharpen` or submission.
 - `NOT CONVERGED — RE-REPAIR REQUIRED`: at least one of `STILL-OPEN-S0`, `STILL-OPEN-S1`, `NEW-S0`, `NEW-S1`, or an unjustified diff row remains. The user invokes `/proof-repair --from-reaudit` to address only the residual issues. Auto-triggering is forbidden; the user must explicitly confirm.
 - `NOT CONVERGED — HUMAN INTERVENTION REQUIRED`: the re-audit detected a change in theorem intent, paper-level claim, or dependency structure that exceeds what a re-repair cycle can handle. Examples: the patched paper's contribution is now meaningfully different from the abstract; a Weaken-Claim repair was not propagated to the introduction's stated rate; the new assumption changes the paper's empirical scope. The user must review and decide whether to revert, restate the paper's contribution, or change venue.
 
