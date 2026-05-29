@@ -105,6 +105,18 @@ literature context is almost certainly either:
 Build the literature anchor BEFORE any phase decision. Every subsequent phase
 must reference back to this anchor when making a choice.
 
+### 0.5.cache: Cache-consult first (mandatory)
+
+Before invoking any web search, consult the durable literature cache at `~/.claude/literature_cache/`. The protocol lives in `stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map). For theory-design Step 0.5 the typical loads are:
+
+- `literature-cache-protocol.md` (router) — always.
+- `citation-purpose-protocol.md` — for `lineage_positioning` and `benchmark_claim` role identification of the anchor papers.
+- `applicability-axes.md` — when matching cached papers to the topic signature's axis declarations (data structure, regime, framework, etc.).
+
+Procedure: read the INDEX (and any relevant domain shards under `~/.claude/literature_cache/domains/`) to identify which papers in the topic's theoretical line are already cached at `source_checked` or higher. Result-scoped loads only. The cache hits become the starting set; the four parallel-agent searches in 0.5B target only the cache misses.
+
+Cache hits at `independently_checked` or higher are admissible as lineage anchors and benchmarks without a fresh fetch. Cache hits at `source_checked` are admissible for background and prose-only positioning; promotion to `independently_checked` is required if the paper enters the positioning argument as a benchmark.
+
 ### 0.5A: Topic signature for search
 
 Build a structured topic signature for the search queries:

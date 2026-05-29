@@ -415,10 +415,25 @@ Record the chosen strategy in the repair specification — this guides `/proof-w
 
 For EACH candidate repair that needs literature support, run a targeted multi-source search.
 
-**Guiding principle**: A proof repair is only as credible as its references. Prioritize
-results from top-tier venues; treat unreviewed preprints as supplementary evidence only.
+**Guiding principle**: A proof repair is only as credible as its references. Prioritize results from top-tier venues; treat unreviewed preprints as supplementary evidence only.
 
-### 4A: Venue Credibility Tiers
+### 4A: Cache-consult first (mandatory)
+
+Before invoking any web tool, consult the durable literature cache at `~/.claude/literature_cache/`. The protocol lives in `stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map). For this step, the typical loads are:
+
+- `literature-cache-protocol.md` (router) — always.
+- `applicability-axes.md` — if the candidate is `load_bearing` / `benchmark_claim` / `comparative` and an axis check is needed.
+- `cache-verification-states.md` — when fetching new entries; when the entry is below `source_checked`; when source version may be stale.
+
+Procedure:
+
+1. Read the cache INDEX (`~/.claude/literature_cache/INDEX.md`) to identify cache hits matching the repair's literature need (technique, anchor paper, schema, comparator).
+2. For each cache hit, do a result-scoped load (Read with `offset`/`limit`) of the matching per-result entry. Do not dump full paper containers.
+3. For each cache miss, proceed to the web search workflow below, then write the proposal back to `~/.claude/literature_cache/inbox/<bibkey>.draft.md` per the inbox protocol in `cache-verification-states.md`.
+
+Credibility tier classification (next subsection) applies to BOTH cache hits and fresh web results.
+
+### 4B: Venue Credibility Tiers
 
 All search results MUST be classified by venue tier before recommendation.
 
@@ -477,7 +492,7 @@ All search results MUST be classified by venue tier before recommendation.
 **When two references support the same repair, always prefer the higher-tier one.**
 **When a preprint exists alongside its published version, always cite the published version.**
 
-### 4B: Formulate Search Queries
+### 4C: Formulate Search Queries
 
 Convert each repair need into 2-3 precise search queries, targeting different source types:
 
@@ -493,7 +508,7 @@ Query 3 (recent technique): "M-estimator regularity condition relaxation"
   → target: recent NeurIPS/ICML/COLT + stat.TH arXiv
 ```
 
-### 4C: Multi-Source Search (parallel)
+### 4D: Multi-Source Search (parallel)
 
 Launch parallel searches using Agent tool, each with venue-awareness:
 
@@ -543,7 +558,7 @@ Also search: [query] + "textbook" OR "monograph" for authoritative book referenc
 Return: title, authors, year, venue/publisher, tier, the standard reference for this result
 ```
 
-### 4D: Evaluate & Rank Search Results
+### 4E: Evaluate & Rank Search Results
 
 For each paper found, build a **Credibility-Weighted Evaluation Table**:
 
@@ -558,7 +573,7 @@ For each paper found, build a **Credibility-Weighted Evaluation Table**:
 one T1 reference per repair if possible. If only T3 available, flag explicitly in
 repair plan as "lower confidence — needs independent verification."
 
-### 4E: Verify Cited Results (with venue-appropriate rigor)
+### 4F: Verify Cited Results (with venue-appropriate rigor)
 
 For each recommended paper, do a verification proportional to its tier:
 
@@ -583,7 +598,21 @@ For each recommended paper, do a verification proportional to its tier:
 
 **This prevents citation misuse** — the same error class we check for in /proofcheck.
 
-### 4F: Fallback When No High-Quality Reference Found
+### 4F.cache: Write back to cache (mandatory for new sources)
+
+For every reference that was a cache miss in Step 4A and has now been fetched and verified, write a proposal to the cache inbox at `~/.claude/literature_cache/inbox/<bibkey>.draft.md` per `cache-verification-states.md`. The proposal must include:
+
+- Manifest header with `verification_status: unverified_extract`
+- Source URL, source version, retrieval date, source hash, verbatim quote blocks with locators and text hashes
+- Applicability contract on the 8 axes per `applicability-axes.md`
+- Theoretical lineage block (`primary_line`, `role_in_literature`) per `citation-purpose-protocol.md`
+- The citation purpose at this repair's site (typically `load_bearing`, `technique_inheritance`, or `standard_tool`)
+
+The repair itself can proceed using the just-fetched content (the writing skill is allowed to use its own `unverified_extract` immediately because it just read the source). Downstream skills consuming this evidence will require `/lit-cache verify` promotion before using it at `source_checked` or higher. The user is notified that an inbox entry awaits verification.
+
+Update the project's `papers/<project-name>/cited_results.lock.md` with the citation site, reference (`paper:<bibkey>#<result_id>`), citation purpose, role in literature, role relative to current paper, source version at decision, entry hash at decision, verification level at decision, axis or lineage bridge recorded, and decision date. The schema is in `citation-purpose-protocol.md`.
+
+### 4G: Fallback When No High-Quality Reference Found
 
 If no T1/T2 reference supports a repair:
 

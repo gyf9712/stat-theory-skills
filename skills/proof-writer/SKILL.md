@@ -331,9 +331,11 @@ PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
 
 Use one block per imported result that is either proof-dispositive, or cited by specific theorem / lemma / proposition / corollary / equation number.
 
-Do not create rows for background or positioning citations. Do not use this section to hide primitive techniques such as Cauchy-Schwarz or Fubini; those belong in the local proof verification, not here. For graduate-core citation-exempt schemas (see `../stat-shared-references/proof-strategy.md`), a single schema-applicability note suffices instead of a full row.
+Do not create rows for background or positioning citations (those are handled by the project's `cited_results.lock.md` lock manifest, schema in `../stat-shared-references/citation-purpose-protocol.md`). Do not use this section to hide primitive techniques such as Cauchy-Schwarz or Fubini; those belong in the local proof verification, not here. For graduate-core citation-exempt schemas (see `../stat-shared-references/proof-strategy.md`), a single schema-applicability note suffices instead of a full row.
 
-Rows with `never-checked` are inadmissible. Rows with `previously-checked-no-current-access` may remain only as open risks for `P1` or `P2` items. If such a row is `P0` proof-dispositive, it blocks `PROVABLE AS STATED` unless the step is reproved locally or `/proof-repair` retrieves the source.
+Each row's locator and source-of-record fields should resolve to a literature cache entry. Cache reference format: `paper:<bibkey>#<result_id>`. The cache protocol lives in `../stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map); proof-writer's Cited Results Audit typically consumes `cache-verification-states.md` (to enforce `Direct inspection status: checked-now-source-of-record` matches the cache's verification state) and `citation-purpose-protocol.md` (for the `Role class` field, which maps to citation purpose).
+
+Rows with `never-checked` are inadmissible. Rows with `previously-checked-no-current-access` may remain only as open risks for `P1` or `P2` items. If such a row is `P0` proof-dispositive, it blocks `PROVABLE AS STATED` unless the step is reproved locally or `/proof-repair` retrieves the source. Cache entries below `source_checked` cannot satisfy `Direct inspection status: checked-now-source-of-record`; the audit emits a verification request per `cache-verification-states.md`.
 
 ### CR1. [Short label]
 

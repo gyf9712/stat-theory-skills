@@ -739,6 +739,16 @@ If theoretical conditions are impractical, suggest:
 
 Compare the paper's results against the current state of the art.
 
+### 5.cache: Cache-consult first (mandatory)
+
+Before any web search, consult the durable literature cache. Protocol in `stat-shared-references/literature-cache-protocol.md`. For Step 5 (benchmarking) the typical loads are:
+
+- `literature-cache-protocol.md` (router).
+- `citation-purpose-protocol.md` — benchmarking citations are typically `benchmark_claim` (rate / constant comparison) or `lineage_positioning` (placing the work in a methodological line). `independently_checked` floor for both.
+- `applicability-axes.md` — to verify the cached competitor's axes match the paper's setting.
+
+Read the INDEX and the domain shards relevant to the paper's `primary_line` (in the `theoretical_lineage` declared earlier). Cache hits at `independently_checked` cover direct competitors and assumption frontier without a fresh fetch; misses go to the three search agents below.
+
 ### 5A: Venue-Tiered Literature Search
 
 Apply the venue credibility tiers from `/proof-repair`:
