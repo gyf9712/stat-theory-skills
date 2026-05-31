@@ -277,3 +277,4 @@ If any condition fails, the plan status is `IN-PROGRESS` and the skill reports w
 - `citation-purpose-protocol.md` — cited results in repair files use the citation-purpose schema
 - `literature-cache-protocol.md` — every new reference in repair_references.bib resolves to a cache entry
 - `proof-strategy.md` — proof-writer's Verification Target / Bottleneck / Trap Catalogue feeds the repair candidates and the Repair Ladder Defense Phase A Exhaustion Record
+- `equivalence-ledger-protocol.md` — the sibling change log for `stat-polishing --formal-statement-pass`. A formalization that silently strengthens or weakens a statement is the same failure class as a Weaken-Claim or Add-Assumption edit, and routes through the same `/proofcheck --post-repair` verification when the statement is on the main dependency chain.

@@ -1,5 +1,48 @@
 # Changelog
 
+## v1.9.0 — Equivalence ledger for the formal-statement-pass (cross-repo with stat-writing-skills)
+
+The user proposed a dedicated capability to rewrite the mathematical FORM of body statements (assumptions, definitions, theorem/lemma statements, displayed conditions) into more formal, more conventional, equivalence-preserving forms aligned with the target venue's published register. They named the central tension themselves: more formal notation raises the reading barrier but also makes a paper *appear* deeper, and apparent depth is appearance, not substance.
+
+Codex MCP review (threadId `019e7bc0-56ef-7710-8424-e61b6d58399b`, two rounds at xhigh) settled the design.
+
+Round 1 gate verdict (Q1): **do not build a standalone skill.** A standalone skill creates a second owner for theorem/assumption prose, exactly where ownership must be tight (the same lesson as the `cited_results.lock.md` ownership work in v1.8.0). Build it as a `--formal-statement-pass` MODE inside `stat-polishing` (which already owns theorem statements).
+
+Round 1 critical verdict (Q2): **equivalence preservation is a correctness-critical operation.** "Rewrite into an equivalent more formal form" is exactly the operation that silently changes meaning ("well-conditioned design" → uniform eigenvalue lower bound; "sub-Gaussian errors" → a pinned constant). It is the same failure class as proof-repair's semantic edits and gets the same grade of guardrail.
+
+This repo hosts the protocol because it owns the silent-semantic-change ontology (axis vocabulary, change logs, diff ledger). `stat-writing-skills` references it cross-repo.
+
+### NEW: stat-shared-references/equivalence-ledger-protocol.md
+
+Governs the `--formal-statement-pass` mode. Contents:
+
+- **Standing refusal condition**: never formalize to increase apparent depth; apparent depth is only ever a side effect of a genuine precision-or-register gain. Math-form analog of "mathematical precision over adjectival praise" → "precision over notational sophistication."
+- **Two kinds of formalism**: precision-increasing (apply) vs decoration / theoretical theater (refuse or flag).
+- **Discriminator** (Codex Q3, sharpened because the loose version is LLM-gameable): the formalized version must answer at least one referee-checkable question the original could not — with respect to what limit? uniform over which class? in which norm? what probability mode? what conditioning? If no new ambiguity is resolved and no clutter is removed, it is decoration. These ambiguity axes are the same load-bearing dimensions as `applicability-axes.md` and the `--post-repair` diff ledger.
+- **Statement-formalism vs notation-formalism** (Codex Q4): both layers have legitimate and dangerous modes; notation formalism is legitimate only when the object already lives in that structure and is used downstream (use-test); statement formalism overclaims when it adds a quantifier / regime / bound not in the original (equivalence ledger).
+- **Anti-theater checks** (Codex Q6, operational not slogan): the **use-test** (every introduced symbol/space/operator/topology/process must be used downstream; grep-able) and the **simpler-equivalent challenge** (if a simpler conventional statement is equally falsifiable, choose it).
+- **Two-tier gate** (Codex L1): cosmetic / packaging rewrites go through stat-polishing's existing `REVISION_PLAN.md` cluster gate; semantic rewrites (touching quantifier / probability mode / uniformity / constants / regime / conditioning / norm-topology / dependence / parameter space) get a **per-atomic-claim gate** — one atomic claim, one approval, never clustered (a six-part assumption produces up to six approval items, because a single silently-strengthened assumption can sink the paper).
+- **Equivalence ledger** (`papers/<project>/EQUIVALENCE_LEDGER.md`): 8 columns reusing the system's axis vocabulary — original text, proposed text, touched axis, equivalence justification, possible silent strengthening/weakening, downstream consumers, approval status, proofcheck status.
+- **Proofcheck depth split** (Codex L2): semantic rewrite off the main chain → targeted dependency check; semantic rewrite on the path to a headline theorem / rate theorem / main-chain lemma → full `/proofcheck --post-repair` on the affected sub-DAG; unclear dependency → treat as load-bearing. Full proofcheck for ALL semantic rewrites was rejected as overkill that would incentivize under-reporting.
+- **Venue-calibrated formalism level** (Codex Q5, no thresholds): two exemplar questions ("would this object look normal in two recent venue papers?", "does the formalism reduce or increase the modal reader's burden?") plus a per-venue register table (AoS/Bernoulli/EJS high; Biometrika/JASA compact; application venues readable).
+- **Cross-reference drift audit** (Codex Q7, the first-30-day bite): rewriting a labeled object silently breaks later references ("the boundedness condition", "Assumption 3(ii)"); audit and update via `stat-notation-audit.md`.
+- **Economy self-check**: the mode runs stat-polishing's Step 6 Math Expression Economy flags on its own output; formalizations that trip a flag without a precision gain are withdrawn.
+
+### proofcheck wiring
+
+- `--post-repair` "When to invoke" gains the formal-statement-pass entry: an `EQUIVALENCE_LEDGER.md` row with proofcheck status "required (on main chain)" triggers the re-audit, scoped by the row's touched-axis and downstream-consumers columns.
+- `--post-repair` inputs list gains item 7: `EQUIVALENCE_LEDGER.md`. Rows with a non-empty touched axis are treated as semantic edits; a formalization that silently strengthened an assumption is a `NEW-S0`, exactly as an undocumented Weaken-Claim or Add-Assumption edit is.
+- `proof-closure-machinery.md` cross-references the equivalence ledger as the sibling change log for formalization.
+
+### Codex dialogue (round 2 lock)
+
+- **L1** confirmed with a sharpening: use a per-**atomic-claim** gate, not merely per-statement; a six-part assumption has up to six independent semantic risks.
+- **L2** confirmed: targeted dependency check default, full `/proofcheck --post-repair` only for main-chain rewrites; unclear status treated as load-bearing.
+- **L3** confirmed: reuse the system's axis vocabulary for the equivalence-ledger columns, distinct artifact instance — one ontology of silent semantic change across cache, proof-repair, and formal-pass.
+- Final: safe to build as a narrow `stat-polishing` mode; the remaining structural risk is scope creep into "make it look theoretical", which is the explicit standing refusal condition.
+
+Companion: `gyf9712/stat-writing-skills` adds the `--formal-statement-pass` mode section to `stat-polishing/SKILL.md`, the formalization patterns + venue register + cross-ref drift to `stat-theory-writing.md`, and a roadmap entry.
+
 ## v1.8.0 — Literature cache protocol + SKILL.md compactification + schema drift cleanup
 
 Four-commit iteration produced the durable literature cache, compactified the proof skills, and cleaned schema drift introduced by the extraction. Codex MCP review at xhigh across three rounds (round 1 threadId expired; rounds 2-3 captured in the rounds below).
