@@ -276,7 +276,7 @@ Before finishing the target proof file, verify:
 - the anchor disclosure honestly reflects what was borrowed
 - the implicit machinery disclosure (if any) is filled in honestly
 
-Then apply each of the seven diagnostic tests from the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
+Then apply the diagnostic tests from the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
 
 1. **Localization-before-expansion**: find the first Taylor / linearization step; verify a high-probability localization statement precedes it.
 2. **Wrong norm / wrong mode**: underline the norm and convergence mode in the claim; verify the last bound before the conclusion uses the same norm and mode.
@@ -285,7 +285,8 @@ Then apply each of the seven diagnostic tests from the *Trap Catalogue* in `../s
 5. **Quantifier inflation**: every "uniformly", "for all", "sup", "simultaneously" must be supported by an upgrade argument if the input result is pointwise.
 6. **Citation identity / version drift**: for each "by Theorem / Lemma / Proposition / Corollary / Eq. X", verify a matching row exists in `## Cited Results Audit` with full source identity, locator, source-of-record, direct-inspection status, page or equation pointer, and version / errata note. If inspection status is `checked-now-alternate-source`, the version crosswalk must be filled.
 7. **Imported-result applicability drift**: for each row in `## Cited Results Audit`, verify every source assumption is mapped to a local item; the local step closed is named; the conclusion fit is `exact`, `stronger than needed`, or `weaker than needed with explicit bridge`. Any unmapped assumption, missing local step, `weaker than needed` without bridge, `ambiguous-mismatch`, or proof-dispositive row marked `previously-checked-no-current-access` or `never-checked` is a flag.
-8. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
+8. **Negligibility closure**: for every term that disappears as $o(\cdot)$, $o_p(\cdot)$, "negligible", "lower-order", "absorbed", or "dominated", identify the actual disappearing term and the scale it must be compared against locally; verify the proof provides an explicit local bound, an explicit pointer to an earlier proved bound or audited citation, or a forward bridge calculation converting the available bound into the claimed negligibility at that scale. Deterministic order arithmetic may pass trivially, but stochastic mode conversion requires a one-line bridge, and any uniformity, conditioning, dependence, Taylor-remainder, or parameter-dependent-constant claim requires an explicit derivation. See *Trap Catalogue* item #9 and the *Negligibility-Closure Trivial-Pass Tier* in `../stat-shared-references/proof-strategy.md`.
+9. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
 
 Record the result of each test in the `Open Risks` section. Any FAIL must be fixed or the status downgraded.
 
@@ -405,6 +406,7 @@ Therefore the claim follows. ∎
   - Quantifier inflation: [pass / fail / NA]
   - Citation identity / version drift: [pass / fail / NA]
   - Imported-result applicability drift: [pass / fail / NA]
+  - Negligibility closure: [pass / fail / NA]
   - Boundary / singularity: [pass / fail / NA]
 ```
 

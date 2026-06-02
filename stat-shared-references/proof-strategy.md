@@ -230,7 +230,7 @@ For paywalled papers the author has not read: not admissible as a proof-disposit
 
 ## Trap Catalogue with Diagnostic Tests
 
-Seven common middle-regime traps. Each has a one-line diagnostic test the polisher can apply mechanically.
+Common middle-regime traps. Each has a one-line diagnostic test the polisher can apply mechanically.
 
 **1. Localization-before-expansion trap.** A Taylor expansion or linearization is used before localization is proved.
 
@@ -263,6 +263,35 @@ Seven common middle-regime traps. Each has a one-line diagnostic test the polish
 **8. Boundary / singularity trap.** The proof uses inverses, divisions, argmax differentiability, support recovery, or Hessian inversion at a point where the model is singular or on the boundary.
 
 > Diagnostic: search for inverses, divisions, argmax differentiability, support recovery, or Hessian inversion. If the proof never explicitly excludes zero denominators, singular matrices, boundary parameters, or ties, flag.
+
+**9. Negligibility-closure trap.** A term is dropped, absorbed into another term or into the constant, or relabeled as negligible, lower-order, or dominated without proving that it is small at the comparison scale actually needed by the argument.
+
+> Diagnostic: ctrl-F for `o_p`, `o(`, `neglig`, `lower-order`, `higher-order`, `remainder`, `dominated`, `absorbed`, `vanish`, `cross term`, or `Taylor remainder`. For each hit, identify the actual disappearing term and the scale it must be compared against locally (for example $1$, $n^{-1/2}$, the leading variance term, or the last displayed main bound before the conclusion). Then check that the proof gives one of: (i) an explicit local bound on that term, (ii) an explicit pointer to an earlier proved bound or audited citation, or (iii) a forward bridge calculation converting the available bound into the claimed negligibility at that scale. If a term disappears without such a bridge, if a dominance claim is made without an explicit ratio or order comparison to the leading term, if only the wrong scale is shown (for example $o_p(1)$ where $o_p(n^{-1/2})$ is needed), if a pointwise or on-event bound is sold as uniform or unconditional, or if a constant is absorbed despite possible dependence on $n$, $p$, or tuning parameters, flag. Search hits such as `by similar arguments` or `we omit the details` should additionally trigger the anti-sketch discipline when they are being used to skip the disappearance-step justification.
+
+## Negligibility-Closure Trivial-Pass Tier
+
+Trap #9 does not require every disappearance step to carry a separate lemma. The breakeven is three-tiered.
+
+**Tier 1: deterministic order arithmetic — trivial pass.** If displayed deterministic orders already imply the claim by basic comparison arithmetic, no separate citation or lemma is required.
+
+Examples:
+- If $R_n = C n^{-1}$ with fixed $C$, then $R_n = o(1)$.
+- If $a_n = O(n^{-1})$ and the proof needs $a_n = o(n^{-1/2})$, this passes because $n^{-1} = o(n^{-1/2})$.
+- If $a_n = O(\delta_n^2)$ and the leading term is order $\delta_n$ with $\delta_n \to 0$, then $a_n = o(\delta_n)$.
+
+**Tier 2: stochastic mode conversion or stochastic order conversion — one-line bridge required.** If the proof changes convergence mode or stochastic order notation, it should write the bridge explicitly, even when the bridge is standard.
+
+Examples:
+- If $\mathbb{E}|R_n| \to 0$, then $R_n = o_p(1)$ by Markov's inequality.
+- If $\mathbb{E}R_n^2 = o(n^{-1})$, then $R_n = o_p(n^{-1/2})$ by Chebyshev's inequality.
+- If $R_n = O_p(a_n)$ and $a_n / b_n \to 0$, then $R_n = o_p(b_n)$ by Slutsky applied to $R_n / b_n = (R_n / a_n)(a_n / b_n)$.
+
+**Tier 3: uniformity / conditioning / dependence / Taylor / parameter-dependent constants — explicit derivation required.** When the disappearance claim depends on uniform control, conditioning, dependence structure, cross-term cancellation, Taylor truncation, or constants that may vary with $n$, $p$, or tuning parameters, the proof must show the derivation or cite an audited result that does.
+
+Examples:
+- To claim $\sup_{\theta \in \mathcal{N}_n}\|R_n(\theta)\| = o_p(1)$, the proof must bound the supremum directly or invoke a verified stochastic equicontinuity result; a pointwise bound at fixed $\theta$ does not pass.
+- To claim a cross term such as $n^{-1}\sum_{i=1}^n X_i \varepsilon_i r_i = o_p(n^{-1/2})$, the proof must verify the dependence or orthogonality structure used to make the variance small; mean-zero marginals alone do not pass.
+- To truncate a Taylor expansion after the linear term, the proof must bound the remainder on the localized event and show that the constant in the remainder bound is itself controlled uniformly in $n$ and in any varying dimension or tuning parameter.
 
 ## High-Dimensional Regularization Patterns
 

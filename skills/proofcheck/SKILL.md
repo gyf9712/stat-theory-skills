@@ -473,7 +473,18 @@ Cross-cutting checks after all local checks:
 4. **Theorems assemble** — each main theorem's transitive dependencies all proved
 5. **Quantifier consistency** — check "for all ∃" vs "∃ for all", uniform vs pointwise, parameter-dependent vs universal constants
 6. **Probability/event consistency** — events defined? Intersections handled? Failure probability accumulated correctly?
-7. **Constants/rates consistency** — are O(·) terms hiding forbidden dependencies? Rates preserve all n, d, δ, ε?
+7. **Constants/rates consistency** — are `O(·)` terms hiding forbidden dependencies? Rates preserve all `n`, `d`, `δ`, `ε`?
+8. **Asymptotic-order consistency / negligibility closure** — every disappearing term must have a recorded comparison scale and a recorded bridge. For each proof unit, build a local dropped-term ledger with columns `Term dropped | Needed scale | Support source | Bridge | Verdict`, where `Support source` is one of `local bound`, `earlier proved lemma`, or `audited citation`, and `Bridge` is the explicit calculation or one-line mode conversion that turns that support into the claimed `o(·)` / `o_p(·)` / negligible / dominated conclusion. Deterministic order arithmetic may pass trivially, but any uniformity, conditioning, dependence, Taylor-remainder, or parameter-dependent-constant claim requires an explicit derivation. If a unit drops a term without a filled bridge entry, proves only the wrong scale, or upgrades pointwise or on-event control to uniform or unconditional negligibility without justification, flag.
+
+For the asymptotic-order check, each local check file should expose the bridge in a compact table:
+
+```markdown
+### Dropped-Term / Negligibility Ledger
+| Term dropped | Needed scale | Support source | Bridge | Verdict |
+|--------------|--------------|----------------|--------|---------|
+```
+
+A missing row, wrong comparison scale, unsupported dominance claim, or unjustified pointwise-to-uniform / on-event-to-unconditional upgrade is a Global Consistency flag. See the *Trap Catalogue* item #9 and the *Negligibility-Closure Trivial-Pass Tier* in `../stat-shared-references/proof-strategy.md` for the discriminator between Tier-1 (deterministic order arithmetic, free pass), Tier-2 (stochastic mode conversion, one-line bridge), and Tier-3 (uniformity / conditioning / dependence / Taylor / parameter-dependent constants, explicit derivation required).
 
 ### Step 6: Pass 4 — Adversarial Review
 
