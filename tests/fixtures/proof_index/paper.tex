@@ -1,0 +1,51 @@
+% Synthetic theory paper for proof_index.py. Has a clean dependency chain
+% plus one deliberately undefined ref.
+\documentclass{article}
+\usepackage{amsmath, amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
+
+\begin{document}
+
+\begin{assumption}\label{ass:subgauss}
+The noise is sub-Gaussian with parameter sigma.
+\end{assumption}
+
+\begin{lemma}\label{lem:concentration}
+Under Assumption~\ref{ass:subgauss}, the empirical mean concentrates.
+\end{lemma}
+\begin{proof}
+By Assumption~\ref{ass:subgauss} and a Chernoff bound. See also \ref{ass:subgauss}.
+\end{proof}
+
+\begin{lemma}\label{lem:bias}
+The bias term is bounded by a smoothing argument.
+\end{lemma}
+\begin{proof}
+Direct calculation. No dependencies.
+\end{proof}
+
+\begin{theorem}\label{thm:rate}
+The estimator achieves the minimax rate.
+\end{theorem}
+\begin{proof}
+Combine Lemma~\ref{lem:concentration} and Lemma~\ref{lem:bias}.
+We also use Assumption~\ref{ass:subgauss}.
+\end{proof}
+
+\begin{proposition}\label{prop:extra}
+A corollary-style extension.
+\end{proposition}
+\begin{proof}
+Follows from Theorem~\ref{thm:rate}. Also cites a nonexistent label
+\ref{thm:does_not_exist} which must be flagged.
+\end{proof}
+
+% An unlabeled lemma (should WARN).
+\begin{lemma}
+An auxiliary bound stated without a label.
+\end{lemma}
+
+\end{document}

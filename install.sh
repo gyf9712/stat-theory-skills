@@ -54,6 +54,16 @@ if [[ -d "${SHARED_SRC}" ]]; then
     cp "${f}" "${target}"
     echo "  [OK]   ${fname}"
   done
+
+  # Install the scripts/ subdirectory (proof_index.py etc.) wholesale.
+  if [[ -d "${SHARED_SRC}/scripts" ]]; then
+    mkdir -p "${SHARED_DST}/scripts"
+    for s in "${SHARED_SRC}/scripts"/*.py; do
+      [[ -e "${s}" ]] || continue
+      cp "${s}" "${SHARED_DST}/scripts/"
+      echo "  [OK]   scripts/$(basename "${s}")"
+    done
+  fi
 fi
 
 echo ""

@@ -123,29 +123,33 @@ Produce:
 - **Critical Proof Chains** (3-5 chains): base lemmas → main theorems
 - **Key Definitions Table**: notation appearing across multiple sections
 
-#### 1B. Index the Appendix (→ CHECK_PLAN.md Part B)
+#### 1B + 1C. Index the architecture (script)
 
-Run grep on LaTeX source:
+Run the mechanical indexer instead of hand-running grep and a manual topological sort:
+
 ```bash
-grep -n '\\begin{theorem}\|\\begin{lemma}\|\\begin{proposition}\|\\begin{corollary}\|\\begin{definition}\|\\begin{assumption}' "$PAPER_PATH"
+python ../stat-shared-references/scripts/proof_index.py \
+  --main paper.tex \
+  --supplement supplement.tex \
+  --supplement-mode separate-self-contained \
+  --json-out audit/proof_index.json \
+  --md-out audit/01_index/PROOF_INDEX.md
 ```
 
-Build:
-- Appendix structure table: Section | Lines | Content
-- Proof unit inventory: ID | Type | Label | Line | Statement summary | Status (all "Unchecked")
+The script is authoritative for the mechanical parts of Step 1B/1C and Pass 0 Task 2B:
 
-#### 1C. Build Dependency Graph (→ EXECUTION_ORDER.md)
+- **Proof unit inventory**: every theorem-like environment (theorem, lemma, proposition, corollary, definition, assumption, condition, remark, claim, fact) with type, label, line, and statement summary.
+- **Dependency graph**: for each unit's proof block, the indexed labels it `\ref`s.
+- **Topological layers**: a valid check order (Layer 0 = no internal deps; Layer k = deps in layers < k), with cycle detection (a `dependency_cycle` FAIL means the proof order is not well-founded).
+- **Cross-reference integrity**: `\ref` targets with no `\label` (FAIL), and cross-file leaks under `separate-self-contained` (FAIL — the canonical two-file submission bug).
+- **Reference mode**: single-file vs two-file detection.
 
-For each proof unit, extract all `\ref{}` in its proof block. Each target is a dependency.
+Exit code `1` means at least one structural FAIL (undefined ref or dependency cycle); fix those before deep-checking. Provenance (`script_version`, `rules_version`, `rules_digest`) is in the report header.
 
-**Topological Sort**: Layer 0 = no internal deps. Layer k = all deps in layers < k.
-**Parallelism**: Units in same layer can run in parallel (‖).
-**Critical Path**: Units cited by ≥3 later units, or on transitive chain to main theorem.
-
-Write `EXECUTION_ORDER.md` with:
-- Dependency Map (ASCII DAG)
-- Phase Plan table: ID | Unit | Section | Lines | Depends On
-- Parallelism Summary: Phase | Parallel units | Gate conditions
+What the script does NOT produce, and you still supply by judgment:
+- The **core proof strategy narrative** (1A): the fundamental challenge, the key innovation. Read the introduction and proof-strategy section for this.
+- **Critical proof chains**: which base lemmas feed which main theorems, and which units are load-bearing. The topological layers are the raw material; deciding the critical path is judgment.
+- Per-unit **assumption strength** and **regime** (Task 2A judgment columns below).
 
 ### Step 2: Pass 0 — Indexing (Map the Terrain)
 
@@ -158,56 +162,14 @@ Three parallel tasks:
 
 For each: label, exact location, mathematical objects, assumptions (explicit + inherited), claimed conclusion, probability/asymptotic regime, constants (universal vs problem-dependent), where used.
 
-**Task 2B: Cross-Reference Audit** → `audit/01_index/cross_reference_audit.md`
+**Task 2B: Cross-Reference Audit** — covered by the script in Step 1B/1C.
 
-Audit logic depends on Reference Mode (detected in Step 0):
+The undefined-ref and cross-file-leak checks are mechanical and are produced by `proof_index.py` (findings `undefined_ref` and `cross_file_ref_leak`). Read `audit/01_index/PROOF_INDEX.md` for them. The script auto-detects single-file vs two-file mode.
 
-**Mode A (single-file)**: standard audit
-- Match all `\ref{}` / `\eqref{}` against `\label{}` within the same file
-- Report: broken refs, orphan labels, duplicate labels
+Two convention checks remain judgment and are not mechanized (the script flags the leak; you assess the phrasing fix):
 
-```bash
-grep -no '\\label{[^}]*}' "$PAPER_PATH" | sort > /tmp/labels.txt
-grep -no '\\ref{[^}]*}\|\\eqref{[^}]*}' "$PAPER_PATH" | sort > /tmp/refs.txt
-```
-
-**Mode B (two-file main+supplement)**: per-file audit + cross-file convention check
-1. **Within-file audit** (run for each file separately):
-   - `\ref{}` in main.tex must resolve to `\label{}` in main.tex only
-   - `\ref{}` in supplement.tex must resolve to `\label{}` in supplement.tex only
-2. **Cross-file `\ref{}` is a bug**:
-   - If main.tex has `\ref{LABEL}` whose `\label{LABEL}` lives in supplement.tex → REPORT as broken ref (S1)
-   - The author should have used a hard-coded number ("Lemma S.3 of the supplement")
-3. **Hard-coded number convention check**:
-   - Scan main.tex for "of the supplement", "of the supplementary material", "in the supplement"
-   - Each should be paired with a hard-coded number (e.g., "Lemma S.3 of the supplement")
-   - Scan supplement.tex for "of the main text", "in the main text"
-   - Each should be paired with a hard-coded number (e.g., "Assumption 2 of the main text")
-4. **Supplement numbering consistency**:
-   - Supplement lemmas/equations should use S-prefix display numbers
-   - Verify the supplement's `\begin{theorem}` / equation counters are properly redefined
-     (e.g., `\renewcommand{\thelemma}{S.\arabic{lemma}}` or use of `\appendix` reset)
-
-```bash
-# Per-file labels and refs
-for f in main.tex supplement.tex; do
-  grep -no '\\label{[^}]*}' "$f" > /tmp/labels_$f.txt
-  grep -no '\\ref{[^}]*}\|\\eqref{[^}]*}\|\\cref{[^}]*}' "$f" > /tmp/refs_$f.txt
-done
-
-# Detect cross-file leaks
-comm -12 <(sed 's/.*\\ref{\([^}]*\)}.*/\1/' /tmp/refs_main.tex.txt | sort -u) \
-         <(sed 's/.*\\label{\([^}]*\)}.*/\1/' /tmp/labels_supplement.tex.txt | sort -u)
-# Any output here means main.tex \ref{}'s a label that lives in supplement.tex → BUG
-```
-
-Record findings (Mode B):
-```markdown
-## Cross-File Reference Issues (Mode B)
-| Issue | File | Line | Problem | Severity |
-| Bad cross-file \ref | main.tex | 142 | \ref{lem:S3} but label is in supplement.tex; should be "Lemma S.3 of the supplement" | S1 |
-| Missing "of the supplement" | main.tex | 89 | "by Lemma S.7" but doesn't say which file | S2 |
-```
+- **Hard-coded number convention**: in two-file mode, each "of the supplement" / "of the main text" mention should be paired with a hard-coded number (e.g., "Lemma S.3 of the supplement"), since `\ref` cannot cross files. The script flags the broken `\ref`; you confirm the textual replacement reads correctly.
+- **Supplement numbering consistency**: the supplement's theorem/equation counters should use S-prefix display numbers (e.g., `\renewcommand{\thelemma}{S.\arabic{lemma}}`). Verify this by inspection.
 
 **Task 2C: Notation Ledger** → `audit/02_ledgers/notation_ledger.md`
 
