@@ -44,6 +44,18 @@ Applied to a proof unit at any point in the audit / repair / re-audit cycle.
 - `Incorrect` — error found
 - `Not checked` — not yet examined
 
+**Citation source dimension (proof-writer Obligation Ledger).** `proof-writer` has no
+web tools, so each load-bearing `CLOSED-CITED` obligation carries an orthogonal
+`source-status` of `checked-now`, `local-excerpt`, or `unverified-source`. This is a
+*verification* dimension, not a *provability* one: a package may be `PROVABLE AS STATED`
+while still resting on an `unverified-source` citation. The rule is that any
+`unverified-source` on a load-bearing obligation caps the package at
+`Conditionally verified` (it is correct *if the cited statement is as recalled*) — it
+may not be labeled `Verified`. `proofcheck` upgrades the source dimension to
+`checked-now` when it inspects the source; `proof-repair` retrieves the source when it
+is missing. The `proof_gap_scan.py` linter flags a `Verified` package that still carries
+an `unverified-source` obligation as a structural overclaim.
+
 ## Provability Triage
 
 Before deep-checking any unit, triage its provability. This prevents wasting effort on units where the claim is fundamentally flawed.

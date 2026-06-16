@@ -2,299 +2,204 @@
 name: proof-writer
 description: Writes rigorous mathematical proofs for ML/AI theory. Use when asked to prove a theorem, lemma, proposition, or corollary, fill in missing proof steps, formalize a proof sketch, 补全证明, 写证明, 证明某个命题, or determine whether a claimed proof can actually be completed under the stated assumptions.
 argument-hint: [theorem-statement-and-assumptions]
-allowed-tools: Read, Write, Edit, Grep, Glob
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 ---
 
 # Proof Write: Rigorous Theorem / Lemma Drafting
 
-> 🔬 **Model Recommendation**: Run this skill on **Claude Opus** for best results.
-> Writing rigorous mathematical proofs requires deep reasoning. If your session is
-> not on Opus, run `/model opus` before invoking.
+> 🔬 Run this skill on **Claude Opus**. Writing rigorous proofs needs deep reasoning;
+> run `/model opus` first if your session is not on Opus.
 
 Write a mathematically honest proof package, not a polished fake proof.
+
+**The unit of completion is the closed obligation, not prose.** A proof is finished
+when every nontrivial obligation it raises is discharged into a typed closure
+object, not when it reads smoothly. This single idea drives the whole skill: it is
+what stops the model from quitting early (an open obligation is visible and costly)
+and from faking (you cannot prose your way into a typed closure).
 
 ## Constants
 
 - DEFAULT_PROOF_DOC = `PROOF_PACKAGE.md` in project root
 - STATUS = `PROVABLE AS STATED | PROVABLE AFTER WEAKENING / EXTRA ASSUMPTION | NOT CURRENTLY JUSTIFIED`
+- VERIFICATION = `Verified | Conditionally verified | Gap found` (defined in `../stat-shared-references/proof-closure-machinery.md`, single source of truth)
+- SCRIPT = `../stat-shared-references/scripts/proof_gap_scan.py`
 
 ## Context: $ARGUMENTS
 
 ## Goal
 
-Produce exactly one of:
-1. a complete proof of the original claim
-2. a corrected claim plus a proof of the corrected claim
-3. a blockage report explaining why the claim is not currently justified
+Produce exactly one of three terminal outputs:
+1. a complete proof of the original claim, every obligation closed;
+2. a corrected (usually weaker) claim plus a complete proof of it;
+3. a blockage record stating precisely why the claim is not currently justified.
 
-## Inputs
-
-Extract and normalize:
-- exact theorem / lemma / proposition / corollary statement
-- explicit assumptions
-- notation and definitions
-- any user-provided proof sketch, partial proof, or intended strategy
-- nearby lemmas or claims in local notes, appendix files, or theorem drafts if the request points to them
-- desired output style if specified: concise, appendix-ready, or full-detail
-
-If notation or assumptions are ambiguous, state the exact interpretation you are using before proving anything.
+There is no fourth option. A sketch, a partial expansion, or a proof with a residual
+"open risk" footnote is not a terminal output.
 
 ## Workflow
 
-### Step 1: Gather Proof Context
-Determine the target proof file with this priority:
-1. a file path explicitly specified by the user
-2. a proof draft already referenced in local notes or theorem files
-3. `PROOF_PACKAGE.md` in project root as the default target
+### Step 1: Gather context
+Determine the target proof file by priority: (1) a path the user specified, (2) a
+proof draft referenced in local notes or theorem files, (3) `PROOF_PACKAGE.md`.
+Read the target if it exists, plus theorem notes and any files the user names.
+Extract the exact claim, assumptions, notation, any user sketch, and nearby lemmas
+the draft depends on. If notation or assumptions are ambiguous, state the exact
+interpretation you will use before proving anything.
 
-Read the relevant local context:
-- the chosen target proof file, if it already exists
-- theorem notes, appendix drafts, or files explicitly mentioned by the user
+### Step 2: Normalize the claim
+Restate the exact claim, all assumptions separated from conclusions, and every
+symbol. Identify hidden assumptions, undefined notation, scope ambiguities, and
+whether the available sketch proves the full claim or only a weaker variant.
+Preserve the user's original statement. If a stronger internal formulation only
+makes the proof easier, keep it as a labeled proof device, not a silent replacement.
 
-Extract:
-- exact claim
-- assumptions
-- notation
-- proof sketch or partial proof
-- nearby lemmas that the draft may depend on
+### Step 3: Feasibility triage
+Classify into exactly one STATUS. Check: does the conclusion follow from the listed
+assumptions? Is any cited theorem used outside its conditions? Is the claim stronger
+than the available argument supports? Is there an obvious counterexample or
+quantifier failure? If not provable as stated, do not fabricate a proof and do not
+silently strengthen assumptions to force one.
 
-### Step 2: Normalize the Claim
-Restate:
-- the exact claim being proved
-- all assumptions, separately from conclusions
-- all symbols used in the claim
+### Step 4: Locate the verification target and bottleneck
+This is the senior-statistician move: work backward to the right verification target
+before any forward algebra. Read `../stat-shared-references/proof-strategy.md` —
+the *Claim Families → Verification Targets* table, *Anchor Selection and Comparison*,
+and the *Trap Catalogue*.
 
-Identify:
-- hidden assumptions
-- undefined notation
-- scope ambiguities
-- whether the available sketch proves the full claim or only a weaker variant
+Decide and record three things under `## Verification Target and Bottleneck`:
+- **Verification target** — the precise intermediate statement whose verification
+  closes the claim under your chosen reduction. It must be theorem-specific: "use
+  Fano" is a slogan; "construct a comparison family meeting Fano's separation and
+  information conditions at scale $\delta_n$" is a target. Worked examples per claim
+  family are in the *Claim Families → Verification Targets* table of the reference.
+- **Bottleneck** — the first unresolved leaf, expressed as a statement: the specific
+  inequality, localization claim, entropy bound, invertibility step, or citation
+  prerequisite that currently lacks a verification.
+- **Resolution path** — prove a new lemma, verify a cited theorem's prerequisites,
+  weaken the claim, or downgrade if no path exists.
 
-Preserve the user's original theorem statement unless a change is explicitly required.
-If you use a stronger normalization or cleaner internal formulation only to make the proof easier, keep that as an internal proof device rather than silently replacing the original claim.
+Declare the proof's relation to the literature per *Anchor Selection and Comparison*:
+template adaptation (name 1-3 anchors, what is borrowed, what is new),
+standard-result invocation (name the theorem, list prerequisites to verify), or
+self-contained (defend via the *Implicit Machinery Disclosure* block; most claims of
+self-containment are false). proof-writer has no web tools; anchor identification
+draws on training and local notes. If the closest anchor is unclear, say so rather
+than fabricate a citation.
 
-### Step 3: Feasibility Triage
-Before writing a proof, classify the claim into exactly one status:
-- `PROVABLE AS STATED`
-- `PROVABLE AFTER WEAKENING / EXTRA ASSUMPTION`
-- `NOT CURRENTLY JUSTIFIED`
+### Step 5: Build the dependency map and raise obligations
+Backward pass: from the claim, ask what would imply each subgoal until the leaves are
+explicit assumptions, verified citation prerequisites, or isolated new lemmas.
+Forward pass: from the leaves, verify the assumptions actually support each leaf — a
+backward decomposition can produce plausible subgoals that do not hold.
 
-Check explicitly:
-- does the conclusion actually follow from the listed assumptions?
-- is any cited theorem being used outside its conditions?
-- is the claim stronger than what the available argument supports?
-- is there an obvious counterexample, boundary case, or quantifier failure?
+Every nontrivial leaf or step becomes a numbered **obligation** `O1..Ok` in the
+Obligation Ledger (see below). "Nontrivial" excludes primitive moves (Cauchy-Schwarz,
+Fubini, a triangle inequality); it includes every inequality, localization, mode
+conversion, invertibility, uniformity upgrade, or imported result that the proof
+actually leans on. Give each obligation a canonical ID; give each isolated lemma `L1..`
+and each bridge `B1..` an ID too. The linter needs these IDs to check the package.
 
-If the claim is not provable as stated, do NOT fabricate a proof.
-Do NOT silently strengthen assumptions or narrow the theorem's scope just to make the proof work.
+### Step 6: Construct the proof, closing every obligation
+Write the proof to the target file (read and update it first if it exists; do not
+duplicate prior content; do not write into paper `.tex` files unless asked). Number
+the major steps and justify every nontrivial implication. Each obligation must
+terminate in exactly one typed state — `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED`
+— with the fields the Obligation Ledger requires. An obligation left untyped is an
+incomplete proof.
 
-### Step 3.5: Locate the Verification Target and Bottleneck
+### Step 7: Verify and lint
+Apply the diagnostic tests from the *Trap Catalogue* in `proof-strategy.md` and
+record each result in `## Verification Checks`:
+localization-before-expansion, wrong norm/mode, good-event bookkeeping, rate leakage,
+quantifier inflation, citation identity, imported-result applicability, negligibility
+closure (see also the *Negligibility-Closure Trivial-Pass Tier*), boundary/singularity.
+Then run the linter:
 
-Before building the dependency map, locate the proof's strategic center. This is the senior-statistician move that distinguishes battlefield selection from blind algebra. Strong PhD students push forward from assumptions; senior statisticians work backward to the right verification target first.
+```bash
+python "$(dirname "$0")/../stat-shared-references/scripts/proof_gap_scan.py" --proof PROOF_PACKAGE.md
+```
 
-Read `../stat-shared-references/proof-strategy.md`, especially the *Claim Families → Verification Targets* table, the *Anchor Selection and Comparison* section, and the *Trap Catalogue with Diagnostic Tests*.
+Resolve every `STRUCTURAL-INCOMPLETE` finding (these are mechanical and block a
+`PROVABLE AS STATED` status). Review every `CANDIDATE` finding (advisory hedge-phrase
+hits) and either discharge or justify it. The linter checks closure, not correctness;
+a clean lint does not certify the mathematics, only that the package is closed.
 
-Decide three things and write them into the proof package as a section titled `## Verification Target and Bottleneck`.
+## Termination Rule (the one invariant)
 
-**(a) Verification target.** The precise intermediate statement whose verification would close the claim under your chosen reduction.
+This skill never emits a sketch, a partial expansion, or a "proof" that defers a step.
+A **proof sketch** is a short narrative offered in lieu of verification; this skill
+refuses it. A **proof outline** is a research-planning device — fine during design,
+redirect to `/theory-design`, never output here as a proof.
 
-Examples:
-- For LASSO ℓ_2 error: "Cone condition $\|\Delta_{S^c}\|_1 \leq 3\|\Delta_S\|_1$ plus quadratic basic inequality $\|X\Delta\|_2^2/n \lesssim \lambda \sqrt{s}\|\Delta_S\|_2$; then RE closes the rate."
-- For M-estimator asymptotic normality: "Asymptotic linear representation $\sqrt{n}(\hat\theta - \theta_0) = -A^{-1} (1/\sqrt{n})\sum \psi(Z_i, \theta_0) + o_p(1)$; then CLT plus Slutsky."
-- For a Sobolev-ball minimax lower bound via Fano: "Comparison family of size $M$ in $W^{s,2}(L)$ with pairwise loss separation $\delta_n$ and pairwise KL $\leq \beta$, satisfying Fano's hypothesis $\log M \geq 2n\beta + \log 2$."
+Three banned outputs, no exceptions:
+- a section labeled or used as "Proof Sketch" / "Outline of Proof" as the actual proof;
+- a partial expansion that closes some obligations and leaves others narrated;
+- a proof of a strictly weaker claim without relabeling the claim.
 
-The target must be theorem-specific. "Use Fano" is a slogan; "construct a comparison family satisfying Fano's separation and information conditions at scale $\delta_n$" is a target.
+The phrases "clearly", "obviously", "it can be shown", "by standard arguments",
+"similarly", "the rest is routine", "we omit the details" are gap-hiding tells. When
+invoking another paper's result, write the adaptation explicitly. Define every symbol
+before use; check quantifier order; handle or explicitly exclude boundary cases; use
+`$...$` and `$$...$$`, never plain-text math.
 
-**(b) Bottleneck.** The first unresolved leaf: the specific inequality, localization claim, entropy bound, invertibility step, or prerequisite of a cited theorem that currently lacks a verification. Express as a statement, not as prose.
+When the only completable thing is a sketch, the output is a **Blockage Record** with
+status `NOT CURRENTLY JUSTIFIED`, not a sketch. When asked to "just expand a bit",
+refuse the middle ground: full closure of every obligation, or a Blockage Record.
 
-**(c) Resolution path.** How you intend to break the bottleneck: prove a new lemma, verify prerequisites of a cited theorem, weaken the claim, or downgrade status if no path exists.
+**Length is a symptom, not a target.** A substantive theorem (a rate, a limiting
+distribution, a coverage claim) whose proof is ≤ 10 lines is almost always a sketch,
+unless it genuinely reduces to one named result plus prerequisite verification.
 
-If the proof has two co-equal hard centers, declare one primary verification target for the main claim and secondary targets for each genuinely independent hard lemma.
+## The Obligation Ledger (core mechanism)
 
-**Declare the proof's relation to the literature** per *Anchor Selection and Comparison* in the shared reference:
+Every nontrivial obligation terminates in exactly one typed state. This is what makes
+finishing cheaper than quitting without making fabrication cheap: closure is a typed
+object the linter can check, and `BLOCKED` carries a full attack record.
 
-- **Template adaptation**: identify 1-3 closest anchors, their proof spine, what is borrowed, what is genuinely new.
-- **Standard-result invocation**: name the theorem and list the prerequisites you will verify.
-- **Self-contained**: this requires explicit defense via the *Implicit Machinery Disclosure* block. Most claims of self-containment are false; if you cannot honestly fill the disclosure, the proof is not self-contained and an anchor walk is required.
+- **`CLOSED-LOCAL`** — discharged by an explicit local derivation. Field: the step or
+  equation transition that closes it.
+- **`CLOSED-CITED`** — discharged by a load-bearing imported result. Requires an inline
+  **applicability block** (only load-bearing imports get one; background and anchor
+  citations do not):
+  - `clause used` — the exact clause of the cited result actually consumed;
+  - `assumption map` — each source assumption mapped to a local item (`A_k` / `Lm` /
+    verified prerequisite / local derivation);
+  - `conclusion fit` — `exact` | `stronger than needed` | `weaker-with-bridge`;
+  - `bridge ref` — the `Bk` ID of the bridge derivation, required iff fit is
+    `weaker-with-bridge`;
+  - `source-status` — `checked-now` (source inspected this session) | `local-excerpt`
+    (verified against a local excerpt) | `unverified-source` (recalled, not inspected).
+    proof-writer has no web tools, so `unverified-source` is honest and common.
+- **`BLOCKED`** — could not be closed. Requires an attack record:
+  - the exact statement of the obligation;
+  - the best bridge attempted;
+  - the concrete reason it failed;
+  - one alternative reduction considered (and why it also failed or was not pursued).
+  Then isolate the obligation as a named conjectural lemma.
 
-`proof-writer` does not have its own web tools. Anchor identification draws on the model's training, the user's narrative, and any local notes referenced in Step 1. If the closest anchor is unclear, say so explicitly rather than fabricating a citation. If the proof is genuinely new and self-contained, defend that.
+**Provability vs verification.** `PROVABLE AS STATED` requires every obligation
+`CLOSED-LOCAL` or `CLOSED-CITED` and a clean structural lint. But if any load-bearing
+`CLOSED-CITED` obligation carries `source-status: unverified-source`, the package
+VERIFICATION is `Conditionally verified`, not silently complete — it is correct *if*
+the cited statement is as recalled. proofcheck upgrades source verification;
+proof-repair retrieves sources. Any `BLOCKED` obligation forbids `PROVABLE AS STATED`:
+the status is `PROVABLE AFTER WEAKENING` (if the weaker claim closes) or
+`NOT CURRENTLY JUSTIFIED`.
 
-### Step 4: Build a Dependency Map (backward-first, forward-verified)
-
-With the verification target in hand, build the dependency map.
-
-**Backward pass.** Start from the claim. For each unresolved subgoal, ask: what would imply this? Continue backward until the leaves are one of:
-- an explicit assumption (A1), (A2), ...
-- a verified prerequisite of a cited theorem
-- an isolated new lemma that you will prove separately
-
-**Forward pass.** From the leaves, verify by forward reasoning that the assumptions actually support each leaf claim. A backward decomposition can produce subgoals that look plausible but do not actually hold; the forward pass catches this.
-
-If the forward pass fails on a leaf, either:
-- change strategy (try a different verification target or anchor)
-- isolate that leaf as a lemma and find a different proof for it
-- downgrade the status of the main claim
-
-The dependency map is then a structured inventory:
-- main claim
-- the verification target (from Step 3.5)
-- required intermediate lemmas
-- named theorems or inequalities to cite
-- which assumptions each nontrivial step depends on
-- boundary cases that must be handled separately
-
-Choose a proof strategy from the menu only after the verification target and bottleneck are clear:
-- direct
-- contradiction
-- induction
-- construction
-- reduction to a known result
-- coupling / probabilistic argument
-- optimization inequality chaining
-
-A strategy chosen before locating the verification target is a label, not a proof method. If one step is substantial, isolate it as a lemma instead of burying it in one sentence.
-
-### Step 5: Write the Proof Document
-Write to the chosen target proof file.
-
-If the target proof file already exists:
-- read it first
-- update the relevant claim section
-- do not blindly duplicate prior content
-
-If the user does not specify a target, default to `PROOF_PACKAGE.md` in project root.
-
-Do NOT write directly into paper sections or appendix `.tex` files unless the user explicitly asks for that target.
-
-The proof package must include:
-- exact claim
-- explicit assumptions
-- proof status
-- announced strategy
-- dependency map
-- numbered major steps
-- justification for every nontrivial implication
-
-## ANTI-SKETCH DISCIPLINE (mandatory — refuses sketch output)
-
-This skill must NEVER produce a proof sketch labeled or used as a proof. A
-"sketch" is a research-planning device, not a verification.
-
-**Distinction**:
-- **Proof outline / proof plan**: high-level strategy used during research design
-  (this is fine and useful; see /theory-design for that purpose)
-- **Proof sketch**: a short summary placed in lieu of a proof, intended to
-  convince a reader (this is what this skill refuses)
-- **Complete proof**: rigorous step-by-step derivation that any qualified reader
-  could verify — what this skill always produces
-
-**Sketch indicators to REFUSE**:
-- Title or section labeled "Proof Sketch", "Sketch of Proof", "Outline of Proof"
-  when output is meant as the actual proof
-- Verbal-only narrative without equation derivations for a quantitative claim
-- "By similar arguments to [paper Z]" without showing the adaptation
-- "The rest follows from standard techniques" without specifying which technique
-  and how it applies
-- "We omit the details" / "Details are routine"
-- A single paragraph + citation as a "proof" for a substantive theorem
-
-**Behavior when asked for a sketch**:
-If the user explicitly asks for a sketch:
-1. Refuse to produce one disguised as a proof
-2. Offer alternatives:
-   (a) Complete proof (this skill's purpose)
-   (b) Explicit "Research outline — NOT a proof" document (labeled clearly,
-       no implication of verification) — but redirect to /theory-design
-   (c) Proof of a strictly weaker but completely verifiable claim, plus a
-       clearly-labeled research outline for the stronger conjecture
-
-Behavior when asked for "a proof" but the only completable thing is a sketch:
-Downgrade status to `NOT CURRENTLY JUSTIFIED` and write a blockage report.
-Do NOT silently produce a sketch in place of a proof.
-
-Mathematical rigor requirements:
-- never use "clearly", "obviously", "it can be shown", "by standard arguments", or "similarly" to hide a gap
-- never use "the rest is similar" / "we omit the details" / "details are routine"
-- when invoking a result from another paper, write the adaptation explicitly —
-  do not just point at the paper
-- define every constant and symbol before use
-- check quantifier order carefully
-- handle degenerate and boundary cases explicitly, or state why they are excluded
-- if invoking a standard fact, state its name and why its assumptions are satisfied here
-- use `$...$` for inline math and `$$...$$` for display equations
-- never write math in plain text
-
-**Length test** (a heuristic, not a hard rule):
-For a substantive theorem (e.g., a rate of convergence, asymptotic distribution,
-or coverage claim), a complete proof is typically ≥ 1 page of dense derivation
-unless the proof genuinely reduces to a single named result + verification of
-its prerequisites. If your proof is ≤ 10 lines for a theorem that's a paragraph
-to state, suspect it's actually a sketch.
-
-## HARD COMPLETION RULE (when invoked to expand a sketch)
-
-When proof-writer is invoked by /proof-repair (Expand-Sketch-to-Proof workflow)
-or by the user directly to expand an existing sketch, the output MUST be one
-of exactly two terminal states:
-
-1. **COMPLETE PROOF**: every step rigorously derived, no remaining sketch
-   indicators, length appropriate to claim complexity. Output a proof package
-   with status `PROVABLE AS STATED` or `PROVABLE AFTER WEAKENING`.
-
-2. **BLOCKAGE REPORT**: explicit `NOT CURRENTLY JUSTIFIED` status with:
-   - The specific step that cannot be expanded and why
-   - What additional assumption, lemma, or technique would be needed
-   - Whether a weaker claim is provable (if so, prove that weaker claim
-     completely)
-
-The skill is **forbidden** from producing:
-- A second sketch (even one labeled differently)
-- A "partial expansion" that fills some steps but leaves others sketched
-- A proof of a strictly weaker claim without clearly relabeling the claim
-- An expansion that introduces silent assumptions to make the proof work
-
-If the user invokes proof-writer with the intent of "just expand this a bit",
-refuse and explain: either FULL expansion (with all hidden assumptions surfaced)
-or BLOCKAGE REPORT. There is no middle ground.
-
-This rule prevents the failure mode where a sketch is "expanded" into another
-sketch with slightly more words, which is the most common silent failure when
-asking LLMs to expand proofs.
-- if the proof uses an equivalent normalization that is stronger in appearance than the user's original theorem statement, label it explicitly as a proof device and keep the original claim separate
-
-### Step 6: Final Verification
-Before finishing the target proof file, verify:
-- the theorem statement exactly matches what was actually shown
-- every assumption used is stated
-- every nontrivial implication is justified
-- every inequality direction is correct
-- every cited result is applicable under the stated assumptions
-- edge cases are handled or explicitly excluded
-- no hidden dependence on an unproved lemma remains
-- the verification target stated in Step 3.5 is actually reached by the proof
-- the anchor disclosure honestly reflects what was borrowed
-- the implicit machinery disclosure (if any) is filled in honestly
-
-Then apply the diagnostic tests from the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
-
-1. **Localization-before-expansion**: find the first Taylor / linearization step; verify a high-probability localization statement precedes it.
-2. **Wrong norm / wrong mode**: underline the norm and convergence mode in the claim; verify the last bound before the conclusion uses the same norm and mode.
-3. **Good-event bookkeeping**: every "on the event $E_n$" or "with high probability" must be paired with a bound on $\mathbb{P}(E_n^c)$.
-4. **Rate leakage**: list every rate factor introduced; verify the final rate accounts for each one or shows an explicit cancellation.
-5. **Quantifier inflation**: every "uniformly", "for all", "sup", "simultaneously" must be supported by an upgrade argument if the input result is pointwise.
-6. **Citation identity / version drift**: for each "by Theorem / Lemma / Proposition / Corollary / Eq. X", verify a matching row exists in `## Cited Results Audit` with full source identity, locator, source-of-record, direct-inspection status, page or equation pointer, and version / errata note. If inspection status is `checked-now-alternate-source`, the version crosswalk must be filled.
-7. **Imported-result applicability drift**: for each row in `## Cited Results Audit`, verify every source assumption is mapped to a local item; the local step closed is named; the conclusion fit is `exact`, `stronger than needed`, or `weaker than needed with explicit bridge`. Any unmapped assumption, missing local step, `weaker than needed` without bridge, `ambiguous-mismatch`, or proof-dispositive row marked `previously-checked-no-current-access` or `never-checked` is a flag.
-8. **Negligibility closure**: for every term that disappears as $o(\cdot)$, $o_p(\cdot)$, "negligible", "lower-order", "absorbed", or "dominated", identify the actual disappearing term and the scale it must be compared against locally; verify the proof provides an explicit local bound, an explicit pointer to an earlier proved bound or audited citation, or a forward bridge calculation converting the available bound into the claimed negligibility at that scale. Deterministic order arithmetic may pass trivially, but stochastic mode conversion requires a one-line bridge, and any uniformity, conditioning, dependence, Taylor-remainder, or parameter-dependent-constant claim requires an explicit derivation. See *Trap Catalogue* item #9 and the *Negligibility-Closure Trivial-Pass Tier* in `../stat-shared-references/proof-strategy.md`.
-9. **Boundary / singularity**: every inverse, division, argmax differentiability, support recovery, or Hessian inversion is paired with an explicit exclusion of the singular case.
-
-Record the result of each test in the `Open Risks` section. Any FAIL must be fixed or the status downgraded.
-
-If a key step still cannot be justified, downgrade the status and write a blockage report instead of forcing a proof.
+Full provenance (version crosswalk, errata, lock-manifest, cache verification-states,
+retrieval handoff) is **not** proof-writer's job — it lives in
+`../stat-shared-references/cited-results-lock-protocol.md` and is operated by
+proof-repair and proofcheck. proof-writer keeps only the inline applicability block,
+because "cited outside its conditions" is a correctness failure that must be caught
+where the proof is written.
 
 ## Required File Structure
 
-Write the target proof file using this structure:
+Proof comes before any audit. The package ends with `Verification Checks` (if
+provable) or `Blockage Record` (if not) — there is no `Open Risks` catch-all, because
+a residual risk is a `BLOCKED` obligation, not a footnote.
 
 ```md
 # Proof Package
@@ -304,144 +209,78 @@ Write the target proof file using this structure:
 
 ## Status
 PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
+Verification: Verified / Conditionally verified / Gap found
 
 ## Assumptions
-- ...
+- (A1) ...
 
 ## Notation
 - ...
 
 ## Verification Target and Bottleneck
-- Verification target: If [precise intermediate statement] holds, then the claim follows by [named final argument].
-- Bottleneck: The first unresolved leaf is [specific inequality, localization claim, entropy bound, invertibility step, or citation prerequisite].
-- Resolution path: [prove a new lemma / verify prerequisites of a cited theorem / weaken the claim].
+- Verification target: if [precise intermediate statement] holds, the claim follows by [named argument].
+- Bottleneck: the first unresolved leaf is [specific statement].
+- Resolution path: [new lemma / verify cited prerequisites / weaken claim].
 
 ## Anchors and Borrowing
 - Relation to literature: [template adaptation / standard-result invocation / self-contained]
-- Anchor 1: [reference], [theorem number]. Verification target: [...]. Borrowed: [...]. New: [...].
-- Anchor 2 (if any): ...
-- If self-contained: see Implicit Machinery Disclosure below.
-
-## Implicit Machinery Disclosure (if proof labeled self-contained)
-- Mature machinery used implicitly: [list]
-- Background needed by a strong PhD student to verify the proof unaided: [list]
-- Pieces re-proved here rather than imported: [list]
-- Paper-self-contained or locally self-contained: [one of these labels]
-
-## Cited Results Audit
-
-Use one block per imported result that is either proof-dispositive, or cited by specific theorem / lemma / proposition / corollary / equation number.
-
-Do not create rows for background or positioning citations (those are handled by the project's `cited_results.lock.md` lock manifest, schema in `../stat-shared-references/citation-purpose-protocol.md`). Do not use this section to hide primitive techniques such as Cauchy-Schwarz or Fubini; those belong in the local proof verification, not here. For graduate-core citation-exempt schemas (see `../stat-shared-references/proof-strategy.md`), a single schema-applicability note suffices instead of a full row.
-
-Each row's locator and source-of-record fields should resolve to a literature cache entry. Cache reference format: `paper:<bibkey>#<result_id>`. The cache protocol lives in `../stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map); proof-writer's Cited Results Audit typically consumes `cache-verification-states.md` (to enforce `Direct inspection status: checked-now-source-of-record` matches the cache's verification state) and `citation-purpose-protocol.md` (for the `Role class` field, which maps to citation purpose).
-
-**Lock manifest update** (per `../stat-shared-references/cited-results-lock-protocol.md`): for every row added to `## Cited Results Audit`, ensure a matching row exists in the project's `papers/<project>/cited_results.lock.md`. Citation purpose is typically `load_bearing` for proof-dispositive citations (`P0`), `standard_tool` for schema-exempt invocations recorded explicitly, and `lineage_positioning` for anchor citations. If the cache entry's verification state is below `independently_checked` and the audit row is `P0`, the lock manifest row records the current state but the audit emits a verification request per `cache-verification-states.md`.
-
-Rows with `never-checked` are inadmissible. Rows with `previously-checked-no-current-access` may remain only as open risks for `P1` or `P2` items. If such a row is `P0` proof-dispositive, it blocks `PROVABLE AS STATED` unless the step is reproved locally or `/proof-repair` retrieves the source. Cache entries below `source_checked` cannot satisfy `Direct inspection status: checked-now-source-of-record`; the audit emits a verification request per `cache-verification-states.md`.
-
-### CR1. [Short label]
-
-- Role class: [proof-dispositive / schema-level / anchor-specific]
-- Audit priority: [P0 essential / P1 supportive / P2 optional]
-- Local proof location: [Step number, equation transition, lemma use, or sentence closed by this citation]
-- Full source identity: [authors, year, title, venue / book]
-- Cited locator in proof: [Theorem / Lemma / Proposition / Corollary / Equation number exactly as written]
-- Source of record: [journal version / book edition / arXiv vN / erratum-corrected source]
-- Version / numbering crosswalk: [required if numbering differs across versions, or if alternate source inspected]
-- Errata status: [checked / none known / unknown]
-- Direct inspection status: [checked-now-source-of-record / checked-now-alternate-source / previously-checked-no-current-access / never-checked]
-- Inspection note: [what was inspected, or when / where it was last checked]
-- Page / equation pointer: [page(s), theorem page, equation number]
-- Exact used clause: [the exact clause actually consumed; quote only the needed clause]
-- Source assumptions:
-  - (S1) ...
-  - (S2) ...
-- Local verification map:
-  - (S1) ← [A_k / Lemma m / verified prerequisite / local derivation]
-  - (S2) ← [...]
-- Local step closed by the citation: [exact step this result is supposed to justify]
-- Conclusion needed locally: [exact statement needed at that step]
-- Conclusion fit: [exact / stronger than needed / weaker than needed with explicit bridge / ambiguous-mismatch]
-- Bridge argument if not exact: [required when `Conclusion fit` is `weaker than needed with explicit bridge`]
-- Audit verdict: [PASS / OPEN RISK / FAIL]
-- Failure or risk reason: [one sentence]
-
-### Literature-Retrieval Handoff
-
-List only rows that are not cleanly verified. `proof-writer` itself does not have web tools and cannot retrieve sources; this table is the prioritized handoff to `/proof-repair` or to the author.
-
-| Priority | Audit row | Why retrieval is needed | If retrieval fails | Effect on proof status |
-|---|---|---|---|---|
-| P0 | CR_ | Proof-dispositive citation not directly inspected | Reprove locally or downgrade claim | Cannot remain `PROVABLE AS STATED` |
-| P1 | CR_ | Supporting citation checked only via memory / alternate source | Replace with accessible source or keep as explicit open risk | Proof may survive with disclosed risk |
-| P2 | CR_ | Nonessential citation precision issue | Drop or replace citation | No effect on core proof |
+- Anchor 1: [reference], [theorem no.]. Borrowed: [...]. New: [...].
+- If self-contained: fill the Implicit Machinery Disclosure (schema in proof-strategy.md).
 
 ## Proof Strategy
-[chosen approach and why; should follow from the verification target above]
+[chosen approach; follows from the verification target above]
 
 ## Dependency Map
-1. Main claim depends on the verification target above.
-2. Verification target depends on ...
-3. Lemma A depends on ...
-4. Step k uses ...
-[Built backward from the claim, then forward-verified that leaves are supported.]
+1. Main claim depends on the verification target.
+2. Verification target depends on O1, O2, ...
+[Built backward from the claim, then forward-verified.]
+
+## Obligation Ledger
+- O1 [short label] — CLOSED-LOCAL. Closed at: Step 3, eq. (4).
+- O2 [short label] — CLOSED-CITED.
+  - clause used: ...
+  - assumption map: (S1)←(A2); (S2)←L1
+  - conclusion fit: weaker-with-bridge
+  - bridge ref: B1
+  - source-status: unverified-source
+- O3 [short label] — BLOCKED.
+  - statement: ...
+  - bridge attempted: ...
+  - failure reason: ...
+  - alternative considered: ...
+  - isolated as: Conjecture C1.
 
 ## Proof
 Step 1. ...
 Step 2. ...
-...
+[Bridge B1: ...]
 Therefore the claim follows. ∎
 
 ## Corrections or Missing Assumptions
-- [only if needed]
+- [only if the claim was weakened or an assumption added]
 
-## Open Risks
-- [remaining fragile points, if any]
-- Cross-check against the *Trap Catalogue* in `../stat-shared-references/proof-strategy.md`:
-  - Localization-before-expansion: [pass / fail / not applicable]
-  - Wrong norm / wrong mode: [pass / fail / NA]
-  - Good-event bookkeeping: [pass / fail / NA]
-  - Rate leakage: [pass / fail / NA]
-  - Quantifier inflation: [pass / fail / NA]
-  - Citation identity / version drift: [pass / fail / NA]
-  - Imported-result applicability drift: [pass / fail / NA]
-  - Negligibility closure: [pass / fail / NA]
-  - Boundary / singularity: [pass / fail / NA]
+## Verification Checks   (provable outputs only)
+- One pass / NA line per Trap Catalogue item (the nine listed in Step 7). Any fail is
+  fixed or the status is downgraded; a fail may not survive here.
+
+## Blockage Record   (non-provable outputs only — replaces everything below Proof)
+- Blocked obligation(s): O_k
+- Exact blocker: missing lemma / invalid implication / hidden assumption / counterexample direction
+- What would be needed to finish: [extra assumption, lemma, or derivation]
+- Weaker claim that IS provable (if any), with its own complete proof above.
 ```
-
-## Output Modes
-
-### If the claim is provable as stated
-Write the full file structure above with a complete proof.
-
-### If the original claim is too strong
-Write:
-- why the original statement is not justified
-- the corrected claim
-- the minimal extra assumption if one exists
-- a proof of the corrected claim
-
-### If the proof cannot be completed honestly
-Write:
-- `Status: NOT CURRENTLY JUSTIFIED`
-- the exact blocker: missing lemma, invalid implication, hidden assumption, or counterexample direction
-- what extra assumption, lemma, or derivation would be needed to finish the proof
-- a corrected weaker statement if one is available
 
 ## Chat Response
 
-After writing the target proof file, respond briefly with:
-- status
-- whether the original claim survived unchanged
-- what file was updated
+After writing the file, respond briefly with: status and verification level, whether
+the original claim survived unchanged, the count of obligations and how many are
+`BLOCKED`, the linter result, and the file updated.
 
 ## Key Rules
 
-- Never fabricate a missing proof step.
+- Never fabricate a missing step; never close an obligation with prose.
 - Prefer weakening the claim over overclaiming.
-- Separate assumptions, derived facts, heuristics, and conjectures.
-- Preserve the user's original theorem statement unless you explicitly mark a corrected claim or an internal normalization.
-- If the statement is false as written, say so explicitly and give a counterexample or repaired statement.
-- If uncertainty remains, mark it explicitly in `Open Risks`; do not hide it inside polished prose.
-- Correctness matters more than brevity.
+- An untyped or `BLOCKED` obligation under `PROVABLE AS STATED` is a contradiction the linter will catch.
+- Preserve the user's original statement unless you explicitly mark a corrected claim or internal device.
+- If the statement is false as written, say so with a counterexample or a repaired statement.
+- Correctness matters more than brevity; closure matters more than smoothness.

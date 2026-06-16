@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.10.0 — proof-writer rewrite: obligation ledger + structural linter
+
+`proof-writer` still tended to return incomplete proofs (giving up into a blockage report, or returning a package that looked done but had un-discharged gaps mid-derivation). Codex MCP dialogue (threadId `019ed197-0450-78e0-b8e7-7d5207e8fa4f`, gpt-5.4 at xhigh, two rounds; full log in `CODEX_PROOF_WRITER_REVIEW.md` Round 4) settled the redesign, and the "skills are too long, the middle gets forgotten" concern was treated as a hard constraint.
+
+**Diagnosis (converged).** The file was built almost entirely as a *prohibition system*. That prevents confident fake proofs but manufactures the opposite failure: every hard exit was offered co-equal with completion and there was no attempt budget, so quitting was the cheap compliant move; the ~120-line citation audit sat before the Proof, spending attention on provenance before the math; and nothing enumerated the gaps. Codex sharpened it: the deeper bug was that proof-writer impersonated four skills at once (constructor + verifier + repair triager + citation-compliance engine), and `## Open Risks` was semantically poisonous — it let a "complete" proof legally carry unresolved uncertainty.
+
+### CHANGED: skills/proof-writer/SKILL.md (447 → 286 lines)
+
+- **NEW core mechanism — the Obligation Ledger.** Every nontrivial obligation `O1..Ok` terminates in exactly one typed state: `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED`. The unit of completion is the closed obligation, not prose. This inverts the cost of quitting (a `BLOCKED` obligation is visible and costs a full attack record: exact statement, best bridge attempted, concrete failure reason, one alternative reduction considered) without rewarding fabrication (Codex's correction to my draft attempt-budget: reward only typed closure objects; you cannot prose your way into a typed closure).
+- **`CLOSED-CITED` applicability stays inline; provenance leaves.** Closing a load-bearing citation requires a compact block — clause used, assumption→local map, conclusion fit `{exact / stronger / weaker-with-bridge}`, bridge ref, source-status — because "cited outside its conditions" is a correctness failure (trap #7), not bureaucracy. The full provenance schema (version crosswalk, errata, lock-manifest, cache verification-states, retrieval handoff) is removed from proof-writer and owned by proof-repair/proofcheck.
+- **Two-dimensional honesty.** `source-status` of `checked-now / local-excerpt / unverified-source` is orthogonal to provability. An `unverified-source` on a load-bearing obligation caps the package at `Conditionally verified`; it may not be `Verified`.
+- **`Open Risks` killed.** Provable output ends with `Verification Checks`; non-provable ends with `Blockage Record`. A residual risk is a `BLOCKED` obligation, never a footnote.
+- **Length.** ANTI-SKETCH + HARD COMPLETION essays merged into one short termination rule; Step 3.5 worked examples removed in favor of `proof-strategy.md` (which already held richer versions in its Claim-Families table); the giant inline file template replaced by a short section order with Proof before any audit.
+
+### NEW: stat-shared-references/scripts/proof_gap_scan.py + proof_gap_scan_rules.py
+
+A two-tier *structural completeness* linter (the theory-repo analog of `latex_audit.py` / `proof_index.py`). It checks that a `PROOF_PACKAGE.md` is CLOSED, never that the math is CORRECT.
+
+- **STRUCTURAL-INCOMPLETE (hard-fail, nonzero exit)** — the mechanically decidable contradictions: `BLOCKED` obligation under `PROVABLE AS STATED`, missing closure field, `weaker-with-bridge` fit with no defined bridge, obligation never terminated, Dependency-Map reference to an undefined obligation, `unverified-source` citation under a `Verified` package, empty Verification Checks under a provable status.
+- **CANDIDATE (advisory, no exit effect)** — heuristic hedge-phrase hits in the proof body.
+- Provenance stamp (`script_version`, `rules_version`, `rules_digest`); exit codes 0/1/2; stdlib only. A clean lint certifies closure, not correctness — the false-authority guard is explicit.
+
+### NEW: tests/test_proof_gap_scan.py + fixtures
+
+14 stdlib unittests over a clean-provable fixture and an all-defects fixture; all pass. The clean-fixture tests caught two real linter bugs during development (a `"Verified"`-substring-of-`"Conditionally verified"` ordering bug, and a `"Proof"` / `"Proof Strategy"` section prefix collision); both fixed before commit.
+
+### CHANGED: stat-shared-references/proof-closure-machinery.md
+
+Added the citation source-status → `Conditionally verified` mapping note under Verification Statuses, so the new orthogonal dimension lands in the existing status layer rather than a parallel one.
+
 ## v1.9.0 — Equivalence ledger for the formal-statement-pass (cross-repo with stat-writing-skills)
 
 The user proposed a dedicated capability to rewrite the mathematical FORM of body statements (assumptions, definitions, theorem/lemma statements, displayed conditions) into more formal, more conventional, equivalence-preserving forms aligned with the target venue's published register. They named the central tension themselves: more formal notation raises the reading barrier but also makes a paper *appear* deeper, and apparent depth is appearance, not substance.

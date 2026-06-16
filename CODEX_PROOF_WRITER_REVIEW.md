@@ -279,3 +279,47 @@ The thread remains at `019e7024-bea4-7171-aa11-4c352baebebe`.
 - `skills/proofcheck/SKILL.md`: new Step P3.5 "Ladder-discipline check (semantic-edit audit)" between P3 and P4 in `--post-repair` mode. Audits L4 escalation (Repair Ladder Defense block, Phase A Exhaustion Record, Assumption-Extension Change Log, propagation) and L5 escalation (Repair Ladder Defense block, Phase A Exhaustion Record, Weaken-Claim Change Log, propagation). Phase A repairs require only the Repair Ladder Defense block. Scope is documentation and propagation, not re-design.
 
 The thread remains at `019e7024-bea4-7171-aa11-4c352baebebe`.
+
+---
+
+## Round 4 dialogue (2026-06-09): why proof-writer still returns incomplete proofs
+
+**threadId:** `019ed197-0450-78e0-b8e7-7d5207e8fa4f` (fresh thread)
+**Model:** gpt-5.4 at `model_reasoning_effort: xhigh`
+**Topic:** the skill still tends to return incomplete proofs (it gives up into a blockage report, or returns a package that looks done but has un-discharged gaps). Also: the file had grown to 447 lines, and length itself causes priority distortion.
+
+### My opening diagnosis
+
+The file was built almost entirely as a *prohibition system* (a long list of don'ts). Good at preventing confident fake proofs, but it manufactures the opposite failure via three mechanisms: (1) every hard exit is offered co-equal with completion ("fixed OR downgraded"; "COMPLETE PROOF OR BLOCKAGE REPORT") with no attempt budget, so quitting is the cheap compliant move; (2) the ~120-line Cited Results Audit sits BEFORE the Proof in the template, so attention is spent on citation provenance before the math; (3) no per-step completion ledger, so a gap survives because nothing enumerates it.
+
+### Where Codex sharpened the diagnosis
+
+- The deeper bug is **structural**: proof-writer was impersonating four skills at once — constructor, verifier, repair triager, and citation-compliance engine. The clean decomposition is `proof-writer = construct → close obligations → lint`; `proofcheck` = full audit; `proof-repair` = provenance-heavy repair + retrieval.
+- **`Open Risks` is semantically poisonous** for a "complete proof" skill. The file simultaneously said fails must be fixed or downgraded AND that residual uncertainty may live in `Open Risks`. That mixed state is exactly how a proof "looks done" while still being open. Kill it.
+
+### What converged
+
+1. **Obligation Ledger** (the core lever, replacing my "step ledger + attempt budget"). Only the *nontrivial* obligations `O1..Ok`, each terminating in exactly one typed state: `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED`. `BLOCKED` requires an attack record (exact statement, best bridge attempted, concrete failure reason, one alternative reduction considered), then isolation as a named conjectural lemma. Codex's key correction to my proposal: a "2 named techniques" attempt budget is theaterable; the right reconciliation of finish-incentive vs never-fake is **reward only typed closure objects, never prose completion**. You cannot prose your way into a typed closure, and the linter checks the typing.
+2. **`Open Risks` killed.** Provable output ends with `Verification Checks`; non-provable ends with `Blockage Record`. A residual risk is a `BLOCKED` obligation, not a footnote.
+3. **Two-dimensional honesty for citations.** Provability ≠ verification. A `CLOSED-CITED` obligation whose source was not inspected carries `source-status: unverified-source`, which caps the package at `Conditionally verified` (the existing status in `proof-closure-machinery.md`) — it may not be `Verified`. proof-writer closes local math + applicability; proofcheck upgrades source verification; proof-repair retrieves.
+4. **`proof_gap_scan.py` two-tier linter.** Hard-FAIL (nonzero exit) only on the mechanically decidable set; advisory `CANDIDATE` for hedge phrases; a clean lint certifies closure, not correctness.
+5. **Length.** Merge ANTI-SKETCH + HARD COMPLETION into one short termination rule; move Step 3.5 examples to `proof-strategy.md` (which already held richer versions in its Claim-Families table); replace the giant inline template with a short section order, Proof before any audit. Target 220-280; landed at 286 (from 447).
+
+### Where I pushed back on Codex (Round 4)
+
+**Pushback 1 — applicability is correctness, not bureaucracy.** Codex would have cut the Cited Results Audit to a 5-line table and pushed everything downstream. I argued trap #7 (imported-result applicability drift) makes the proof *wrong* and must live where the proof is written. **Codex accepted**: a `CLOSED-CITED` obligation is closed only by a compact inline applicability block (clause used, assumption map, conclusion fit, bridge ref when weaker-with-bridge, source-status) — only load-bearing imports get one. Pure provenance (version crosswalk, errata, lock-manifest, cache verification-states, retrieval handoff) leaves to proof-repair/proofcheck.
+
+**Pushback 2 — the linter can hard-FAIL on structural incompleteness.** I argued *structural* incompleteness is mechanically decidable (BLOCKED under provable status, missing closure fields, undefined referenced IDs, weaker-with-bridge with no bridge, an obligation never terminated, blank verification checks) and may legitimately affect the exit code, distinct from judging whether the math is correct. **Codex agreed**, with a narrowing: keep the hard-fail set exactly that decidable list; hedge phrases stay `CANDIDATE` (too brittle to own exit status); and require canonical IDs so "referenced but never stated" is checkable.
+
+### Where Codex held the line (and I accepted)
+
+- Provability vs verification must stay two orthogonal dimensions. `unverified-source` cannot honestly coexist with a package labeled fully verified — it forces `Conditionally verified`. Refusing the second dimension would reintroduce the "looks done but isn't" failure for citations specifically.
+
+### Files changed in this round
+
+- `skills/proof-writer/SKILL.md`: rewritten 447 → 286 lines. New core mechanism `## The Obligation Ledger`; merged termination rule (replaces ANTI-SKETCH + HARD COMPLETION essays); inline applicability block as the `CLOSED-CITED` closure condition; `source-status` dimension; `Open Risks` replaced by `Verification Checks` / `Blockage Record`; section order fixed (Proof before audit); Step 3.5 examples removed in favor of the `proof-strategy.md` reference; `Bash` added to allowed-tools for the linter call; Step 7 now runs `proof_gap_scan.py`.
+- `stat-shared-references/scripts/proof_gap_scan.py` + `proof_gap_scan_rules.py`: the two-tier structural linter (STRUCTURAL-INCOMPLETE affects exit, CANDIDATE advisory). Provenance stamp; exit 0/1/2.
+- `tests/fixtures/proof_gap_scan/{clean_provable,incomplete}.md` + `tests/test_proof_gap_scan.py`: 14 stdlib unittests; all pass. The clean-fixture tests caught two real linter bugs during development (a `"Verified"`-is-a-substring-of-`"Conditionally verified"` ordering bug, and a `"Proof"` / `"Proof Strategy"` section prefix collision); both fixed.
+- `stat-shared-references/proof-closure-machinery.md`: added the citation source-status → `Conditionally verified` mapping note under Verification Statuses.
+
+The thread remains at `019ed197-0450-78e0-b8e7-7d5207e8fa4f`.
