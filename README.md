@@ -1,5 +1,7 @@
 # stat-theory-skills
 
+[![tests](https://github.com/gyf9712/stat-theory-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/gyf9712/stat-theory-skills/actions/workflows/tests.yml)
+
 A pipeline of 4 Claude Code skills for working with mathematical proofs in
 statistics, econometrics, and ML theory papers. Goes from **finding proof errors**
 all the way to **theoretical sharpening with literature support**.
