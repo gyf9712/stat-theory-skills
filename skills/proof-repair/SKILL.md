@@ -37,7 +37,7 @@ self-consistent repair plans with new literature references for every fixable is
 
 ---
 
-## Step 0: Locate Inputs
+## 0. Locate Inputs
 
 Parse `$ARGUMENTS` to find the paper workspace.
 
@@ -71,7 +71,7 @@ lightweight inline check on the specific unit they point to.
 - Units marked `NOT CURRENTLY JUSTIFIED` → pre-classify as Replace-Technique or blockage
 - `Candidate literature` hints from blockage reports → seed the literature search (Step 4)
 
-### Step 0B: Detect Reference Mode (MANDATORY before any LaTeX patch)
+### 0B. Detect Reference Mode (MANDATORY before any LaTeX patch)
 
 JASA / AoS / Biometrika / JRSS-B / Econometrica submissions typically separate
 **Main Text** and **Supplementary Material** into TWO compiled PDF files. LaTeX
@@ -134,7 +134,7 @@ All LaTeX patches in Step 7 (PATCHES.md) MUST respect this mode.
 
 ---
 
-## Step 1: Issue Triage & Repair Classification
+## 1. Issue Triage & Repair Classification
 
 Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 **Repair Triage Table**:
@@ -278,7 +278,7 @@ Workflow varies by the skip's classification:
 
 ---
 
-## Step 2: Dependency Impact Analysis
+## 2. Dependency Impact Analysis
 
 For each P0 and P1 issue, trace the **full downstream impact** using the dependency graph:
 
@@ -309,7 +309,7 @@ a base lemma assumption before fixing the theorem that uses it).
 
 ---
 
-## Step 3: Enforce the Repair Priority Ladder (HARD GATE)
+## 3. Enforce the Repair Priority Ladder (HARD GATE)
 
 Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. The full ladder definition (Phase A / B / C, L1-L6), the mapping from levels to repair classes, the sibling-not-ordered rules for L2/L3 and L4/L5, and the hard enforcement requirements all live in `stat-shared-references/proof-closure-machinery.md` under "Repair Priority Ladder".
 
@@ -324,7 +324,7 @@ Operational summary for this step:
 
 ---
 
-## Step 3B: Generate Candidate Repairs (per issue)
+## 3B. Generate Candidate Repairs (per issue)
 
 For each issue, generate 1-3 candidate repair strategies, each typed with a **ladder level** in addition to invasiveness:
 
@@ -411,7 +411,7 @@ Record the chosen strategy in the repair specification — this guides `/proof-w
 
 ---
 
-## Step 4: Literature Search for Repair Support
+## 4. Literature Search for Repair Support
 
 For EACH candidate repair that needs literature support, run a targeted multi-source search.
 
@@ -632,7 +632,7 @@ If no T1/T2 reference supports a repair:
 
 ---
 
-## Step 5: Assemble Repair Plan
+## 5. Assemble Repair Plan
 
 For each issue, select the best candidate and write a detailed repair specification.
 
@@ -726,7 +726,7 @@ Direct (strong convexity → PSD Hessian → positive minimum eigenvalue)
 
 ---
 
-## Step 5B: Write Complete Repaired Proofs (via /proof-writer methodology)
+## 5B. Write Complete Repaired Proofs (via /proof-writer methodology)
 
 For each repair that involves new proof content (Insert-Lemma, Strengthen-Proof,
 Replace-Technique), write a COMPLETE proof — not just a sketch.
@@ -755,8 +755,8 @@ Write each complete proof into the repair file under a new section:
 3. New reference [Smith 2023, Thm 3.2] provides: [what]
 
 **Proof**:
-Step 1. [justified step]
-Step 2. [justified step]
+1. [justified step]
+2. [justified step]
 ...
 Therefore [conclusion]. ∎
 
@@ -777,7 +777,7 @@ If the complete proof cannot be written honestly, downgrade the repair status:
 **This is the key quality gate**: a repair is only "complete" when the full proof is
 written and verified, not when the strategy is sketched.
 
-### Step 5C: Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
+### 5C. Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
 
 For every P0 and P1 repair with a complete proof, run the per-repair fresh-thread stress-test defined in `CODEX_PROTOCOL.md` under "Per-Repair Fresh Thread" and "Per-Repair Stress-Test Call Template".
 
@@ -793,7 +793,7 @@ The full per-repair call template, the verdict recording schema, the rationale (
 
 ---
 
-## Step 6: Cross-Repair Consistency Check
+## 6. Cross-Repair Consistency Check
 
 After all individual repairs are designed, verify they work together:
 
@@ -837,7 +837,7 @@ Check that newly cited papers are:
 
 ---
 
-## Step 7: Write Master Repair Plan + Bibliography
+## 7. Write Master Repair Plan + Bibliography
 
 ### 7A: REPAIR_PLAN.md
 
@@ -1050,7 +1050,7 @@ Invoked as `/proof-repair --from-reaudit papers/<paper-name>/`. This is a focuse
 
 This mode runs a narrowed version of the main `/proof-repair` workflow on the residual issue set only.
 
-#### Step F1: Collect residuals
+#### F1. Collect residuals
 
 Build a focused issue list combining:
 
@@ -1060,7 +1060,7 @@ Build a focused issue list combining:
 
 S2 and S3 residuals are listed but do not force the cycle to continue; the user decides whether to address them now or accept the open list.
 
-#### Step F2: Classify residuals by cause
+#### F2. Classify residuals by cause
 
 Each residual is one of:
 
@@ -1070,13 +1070,13 @@ Each residual is one of:
 - `PROPAGATION-GAP`: a repair was correctly designed and locally verified, but downstream units that consumed the original claim were not updated. Add downstream-propagation patches without touching the already-correct local repair.
 - `NEW-DEFECT`: the previous patch introduced a fresh defect in a unit that was previously verified. Treat as a new repair from scratch.
 
-#### Step F3: Repair the residuals only
+#### F3. Repair the residuals only
 
 For each residual, run Steps 3-5 of the main workflow (Generate Candidates, Literature Search, Write Complete Proof) on the residual itself. **Do not re-litigate already-CLOSED-VERIFIED issues.** The previous REPAIR_PLAN.md remains the canonical record for those.
 
 If a residual repair touches a unit already repaired in the previous cycle, the new patch is layered on top — the closure matrix gains a second row for the same unit, marked as `Repair cycle 2`. The previous cycle's row is preserved with its terminal status.
 
-#### Step F4: Update REPAIR_PLAN.md and PATCHES.md
+#### F4. Update REPAIR_PLAN.md and PATCHES.md
 
 The existing REPAIR_PLAN.md is **appended to**, not rewritten:
 
@@ -1087,7 +1087,7 @@ The existing REPAIR_PLAN.md is **appended to**, not rewritten:
 
 The summary section is updated to reflect both cycles.
 
-#### Step F5: Re-invoke `/proofcheck --post-repair`
+#### F5. Re-invoke `/proofcheck --post-repair`
 
 `--from-reaudit` does not declare convergence itself. After it finishes, the user invokes `/proofcheck --post-repair` again. This is the only path to a `CONVERGED` verdict.
 

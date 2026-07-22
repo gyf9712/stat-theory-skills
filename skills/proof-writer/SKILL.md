@@ -40,7 +40,7 @@ There is no fourth option. A sketch, a partial expansion, or a proof with a resi
 
 ## Workflow
 
-### Step 1: Gather context
+### 1. Gather context
 Determine the target proof file by priority: (1) a path the user specified, (2) a
 proof draft referenced in local notes or theorem files, (3) `PROOF_PACKAGE.md`.
 Read the target if it exists, plus theorem notes and any files the user names.
@@ -48,21 +48,21 @@ Extract the exact claim, assumptions, notation, any user sketch, and nearby lemm
 the draft depends on. If notation or assumptions are ambiguous, state the exact
 interpretation you will use before proving anything.
 
-### Step 2: Normalize the claim
+### 2. Normalize the claim
 Restate the exact claim, all assumptions separated from conclusions, and every
 symbol. Identify hidden assumptions, undefined notation, scope ambiguities, and
 whether the available sketch proves the full claim or only a weaker variant.
 Preserve the user's original statement. If a stronger internal formulation only
 makes the proof easier, keep it as a labeled proof device, not a silent replacement.
 
-### Step 3: Feasibility triage
+### 3. Feasibility triage
 Classify into exactly one STATUS. Check: does the conclusion follow from the listed
 assumptions? Is any cited theorem used outside its conditions? Is the claim stronger
 than the available argument supports? Is there an obvious counterexample or
 quantifier failure? If not provable as stated, do not fabricate a proof and do not
 silently strengthen assumptions to force one.
 
-### Step 4: Locate the verification target and bottleneck
+### 4. Locate the verification target and bottleneck
 This is the senior-statistician move: work backward to the right verification target
 before any forward algebra. Read `../stat-shared-references/proof-strategy.md` —
 the *Claim Families → Verification Targets* table, *Anchor Selection and Comparison*,
@@ -88,7 +88,7 @@ self-containment are false). proof-writer has no web tools; anchor identificatio
 draws on training and local notes. If the closest anchor is unclear, say so rather
 than fabricate a citation.
 
-### Step 5: Build the dependency map and raise obligations
+### 5. Build the dependency map and raise obligations
 Backward pass: from the claim, ask what would imply each subgoal until the leaves are
 explicit assumptions, verified citation prerequisites, or isolated new lemmas.
 Forward pass: from the leaves, verify the assumptions actually support each leaf — a
@@ -101,7 +101,7 @@ conversion, invertibility, uniformity upgrade, or imported result that the proof
 actually leans on. Give each obligation a canonical ID; give each isolated lemma `L1..`
 and each bridge `B1..` an ID too. The linter needs these IDs to check the package.
 
-### Step 6: Construct the proof, closing every obligation
+### 6. Construct the proof, closing every obligation
 Write the proof to the target file (read and update it first if it exists; do not
 duplicate prior content; do not write into paper `.tex` files unless asked). Number
 the major steps and justify every nontrivial implication. Each obligation must
@@ -109,7 +109,7 @@ terminate in exactly one typed state — `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLO
 — with the fields the Obligation Ledger requires. An obligation left untyped is an
 incomplete proof.
 
-### Step 7: Verify and lint
+### 7. Verify and lint
 Apply the diagnostic tests from the *Trap Catalogue* in `proof-strategy.md` and
 record each result in `## Verification Checks`:
 localization-before-expansion, wrong norm/mode, good-event bookkeeping, rate leakage,
@@ -118,7 +118,7 @@ closure (see also the *Negligibility-Closure Trivial-Pass Tier*), boundary/singu
 Then run the linter:
 
 ```bash
-python "$(dirname "$0")/../stat-shared-references/scripts/proof_gap_scan.py" --proof PROOF_PACKAGE.md
+python ~/.claude/skills/stat-shared-references/scripts/proof_gap_scan.py --proof PROOF_PACKAGE.md
 ```
 
 Resolve every `STRUCTURAL-INCOMPLETE` finding (these are mechanical and block a
@@ -236,7 +236,7 @@ Verification: Verified / Conditionally verified / Gap found
 [Built backward from the claim, then forward-verified.]
 
 ## Obligation Ledger
-- O1 [short label] — CLOSED-LOCAL. Closed at: Step 3, eq. (4).
+- O1 [short label] — CLOSED-LOCAL. Closed at: step 3, eq. (4).
 - O2 [short label] — CLOSED-CITED.
   - clause used: ...
   - assumption map: (S1)←(A2); (S2)←L1
@@ -251,8 +251,8 @@ Verification: Verified / Conditionally verified / Gap found
   - isolated as: Conjecture C1.
 
 ## Proof
-Step 1. ...
-Step 2. ...
+1. ...
+2. ...
 [Bridge B1: ...]
 Therefore the claim follows. ∎
 
@@ -260,8 +260,7 @@ Therefore the claim follows. ∎
 - [only if the claim was weakened or an assumption added]
 
 ## Verification Checks   (provable outputs only)
-- One pass / NA line per Trap Catalogue item (the nine listed in Step 7). Any fail is
-  fixed or the status is downgraded; a fail may not survive here.
+- One pass / NA line per Trap Catalogue item (the nine listed under Verify and lint above). Any fail is fixed, or the status is downgraded. A fail may not survive here.
 
 ## Blockage Record   (non-provable outputs only — replaces everything below Proof)
 - Blocked obligation(s): O_k

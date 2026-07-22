@@ -65,7 +65,7 @@ different failure modes:
 
 ## Workflow
 
-### Step 0: Setup Workspace
+### 0. Setup Workspace
 
 Parse `$ARGUMENTS` to locate the paper's LaTeX source file.
 
@@ -105,7 +105,7 @@ Cross-file convention (if Mode B): hard-coded numbers (e.g., "Lemma S.3",
 
 This mode affects Pass 0's cross-reference audit (Step 2B) — see below.
 
-### Step 1: Bootstrap — Generate CHECK_PLAN.md + EXECUTION_ORDER.md
+### 1. Bootstrap — Generate CHECK_PLAN.md + EXECUTION_ORDER.md
 
 Read the paper and extract the proof architecture. Do NOT check any proofs yet — only map the terrain.
 
@@ -151,7 +151,7 @@ What the script does NOT produce, and you still supply by judgment:
 - **Critical proof chains**: which base lemmas feed which main theorems, and which units are load-bearing. The topological layers are the raw material; deciding the critical path is judgment.
 - Per-unit **assumption strength** and **regime** (Task 2A judgment columns below).
 
-### Step 2: Pass 0 — Indexing (Map the Terrain)
+### 2. Pass 0 — Indexing (Map the Terrain)
 
 Three parallel tasks:
 
@@ -182,7 +182,7 @@ Also build:
 - `audit/02_ledgers/assumption_ledger.md` — ID | Assumption | Location | Scope | Used by | Strength needed | Status
 - `audit/03_dependencies/dependency_graph.md` — dependency table + circularity analysis
 
-### Step 3: Pass 1 — Check Critical Path
+### 3. Pass 1 — Check Critical Path
 
 Check the chain leading to the main theorem FIRST. Prioritize lemmas used by many later results.
 
@@ -417,7 +417,7 @@ When reconstructing steps, the checker itself must follow rigor rules:
   (e.g., heavy machinery from a different subfield), flag as suspect — the
   author probably intended a simpler bridge that we're missing
 
-### Step 4: Pass 2 — Check Support Lemmas
+### 4. Pass 2 — Check Support Lemmas
 
 After critical path confirmed, check remaining lemmas in parallel within each phase. Same per-unit template as Pass 1.
 
@@ -425,7 +425,7 @@ Also maintain:
 - `audit/02_ledgers/constants_ledger.md` — track which constants are universal vs problem-dependent
 - Event ledger — track probability events, their definitions, and how they compose
 
-### Step 5: Pass 3 — Global Consistency
+### 5. Pass 3 — Global Consistency
 
 Cross-cutting checks after all local checks:
 
@@ -448,7 +448,7 @@ For the asymptotic-order check, each local check file should expose the bridge i
 
 A missing row, wrong comparison scale, unsupported dominance claim, or unjustified pointwise-to-uniform / on-event-to-unconditional upgrade is a Global Consistency flag. See the *Trap Catalogue* item #9 and the *Negligibility-Closure Trivial-Pass Tier* in `../stat-shared-references/proof-strategy.md` for the discriminator between Tier-1 (deterministic order arithmetic, free pass), Tier-2 (stochastic mode conversion, one-line bridge), and Tier-3 (uniformity / conditioning / dependence / Taylor / parameter-dependent constants, explicit derivation required).
 
-### Step 6: Pass 4 — Adversarial Review
+### 6. Pass 4 — Adversarial Review
 
 Deliberately try to break the proof:
 
@@ -541,7 +541,7 @@ mcp__codex__codex:
 
 Write reconciliation to `audit/05_adversarial/codex_cross_review.md`.
 
-### Step 7: Pass 5 — Final Report
+### 7. Pass 5 — Final Report
 
 Every generated artifact begins with the **Artifact Manifest Header** described in `CODEX_PROTOCOL.md`. The manifest lets downstream skills (`proof-repair`, `--post-repair`, `theory-sharpen`) load only what they need and detect staleness against the paper's current state.
 
@@ -767,7 +767,7 @@ If the user wants any of these, they should run full `/proofcheck` instead — b
 
 ### What it DOES
 
-#### Step P1: Treat PATCHES.md as the semantic change log
+#### P1. Treat PATCHES.md as the semantic change log
 
 For each entry in PATCHES.md, record what intentionally changed:
 
@@ -777,7 +777,7 @@ For each entry in PATCHES.md, record what intentionally changed:
 
 The audit is performed **against the REVISED claim**, not the ORIGINAL claim. A claim weakening is not a defect when documented; an undocumented or unpropagated weakening is.
 
-#### Step P2: Per-issue closure verification
+#### P2. Per-issue closure verification
 
 For every issue in the original `06_reports/issue_log.md`, look up the matching row in the Repair Closure Matrix in REPAIR_PLAN.md. Each row must have one of these terminal statuses:
 
@@ -800,7 +800,7 @@ For each `CLOSED-WEAKENED` row, verify the **propagation**:
 - Check that each downstream unit was either (a) also patched to use the revised claim, (b) downgraded if it required the stronger original claim, or (c) verified to still work under the weaker claim
 - Any downstream unit silently using the original strength is a `NEW-S0` propagation defect.
 
-#### Step P3: New-issue scan on touched units
+#### P3. New-issue scan on touched units
 
 For every unit edited by a patch (per PATCHES.md), run a **focused new-issue scan**. This is narrower than the full Pass 5 adversarial pass; it asks only: did the patch introduce a new issue that did not exist in the original audit?
 
@@ -815,7 +815,7 @@ Checks performed:
 
 Issues found in this step are labeled `NEW-S0`, `NEW-S1`, `NEW-S2`, `NEW-S3`. They are distinct from `STILL-OPEN` issues, which are original-audit issues the patch failed to close.
 
-#### Step P3.5: Ladder-discipline check (semantic-edit audit)
+#### P3.5. Ladder-discipline check (semantic-edit audit)
 
 This step audits the repair ladder discipline introduced in `/proof-repair` Step 3. It is a documentation-and-propagation check only. The re-audit does **not** try to re-solve whether a cleverer Phase A repair existed; that is not the job of the convergence test.
 
@@ -865,7 +865,7 @@ This ladder-discipline check verifies:
 
 It does **not** require the re-audit to prove that no better Phase A repair existed. Disputing the choice of ladder level itself is out of scope; the re-audit's job is to verify the discipline, not to second-guess the design.
 
-#### Step P3.7: Citation lock manifest consistency check (read-only)
+#### P3.7. Citation lock manifest consistency check (read-only)
 
 Read `papers/<paper-name>/cited_results.lock.md` per `stat-shared-references/cited-results-lock-protocol.md`. The re-audit performs a read-only consistency check:
 
@@ -879,7 +879,7 @@ Findings are written to `papers/<paper-name>/audit/08_post_repair/lock_manifest_
 
 The check is read-only; the re-audit does not edit `cited_results.lock.md`. Discrepancies are reported back to the user, who decides whether to re-run the originating skill (stat-paper-write, proof-repair, etc.) to upgrade or re-bind the row.
 
-#### Step P4: Global consistency re-run (assumption ledger + dependency graph only)
+#### P4. Global consistency re-run (assumption ledger + dependency graph only)
 
 Re-build the assumption ledger and the dependency graph from the patched paper. Compare against the originals:
 
@@ -890,7 +890,7 @@ Re-build the assumption ledger and the dependency graph from the patched paper. 
 
 This step is the integration test. It catches the silent breakage that `Step 5C` adversarial per-repair tests cannot see, because per-repair tests do not have a global view of the post-patched paper.
 
-#### Step P5: Assumption / Rate Diff Ledger
+#### P5. Assumption / Rate Diff Ledger
 
 Generate `audit/08_post_repair/diff_ledger.md`. This is a compact, machine-readable diff across the entire dimensional structure of the paper:
 
@@ -950,7 +950,7 @@ A row is `Unjustified or unpropagated` when:
 
 Any unjustified row triggers `NEW-S0` or `NEW-S1` in the convergence decision. L4 (Add-Assumption) and L5 (Weaken-Claim) route to different change logs; an L4 patch documented only in the Weaken-Claim log is still `Unjustified or unpropagated`.
 
-#### Step P6: Convergence decision
+#### P6. Convergence decision
 
 The re-audit produces one of three terminal states.
 
