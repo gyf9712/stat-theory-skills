@@ -467,7 +467,9 @@ Deliberately try to break the proof:
 
 **Stress assumptions**: Remove each assumption → which step fails? Does proof use stronger version than stated? Are there unused assumptions?
 
-Write findings to `audit/05_adversarial/hidden_assumptions.md` and `audit/05_adversarial/counterexamples.md`.
+**Assumption load-bearing audit**: For each **load-bearing** assumption (one a main theorem's critical chain actually consumes — skip unused/purely-technical conditions, which the "unused assumption" check above already covers), apply the four tests in `../stat-shared-references/assumption-loadbearing-audit.md`: T1 Conclusion Restatement (`S0`, merges with the circularity gate), T2 Verification Target Assumed (`S1`), T3 Central Difficulty Pre-emption (`S1`, capped — escalates to `S0` only as a vacuous-class / `OVERSTATED` statement-scope / silent-downstream defect), T4 Comparative Axis Reversal (`S1` headline / `S2` local). This needs the introduction's claimed central difficulty and the Task 2A inventory, not just the local proof — that is why it lives in Pass 4, not Pass 2. Absence of a finding is the expected result for a clean conditional theorem; proof *length* is never evidence. For any flagged assumption, produce the Original Assumption Challenge Ledger from that reference and route by repair type (T1 → proof-repair; relaxable T2/T3/T4 → theory-sharpen; oversold-but-correct → stat-polishing).
+
+Write findings to `audit/05_adversarial/hidden_assumptions.md` and `audit/05_adversarial/counterexamples.md`. Put any load-bearing-audit findings and the Challenge Ledger in `audit/05_adversarial/assumption_loadbearing.md`.
 
 #### Codex Adversarial Cross-Review (if Codex MCP available)
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.11.0 — Assumption Load-Bearing Audit (submission-side "assumes away the hard part")
+
+The family caught literal circularity (`S0`) and challenged over-strengthening only for **repair-time added** assumptions (`proof-closure-machinery.md`), but nothing proactively flagged, on an **original submitted** manuscript, the classic AE kill-line "Assumption 3 essentially assumes what Theorem 1 claims" / "the interesting regime is assumed away." A Codex MCP dialogue (threadId `019f8fef-ec47-7a40-b311-ecf821ccf869`, xhigh, one round, near-full convergence) reshaped the design. Two decisive corrections adopted: (1) dropped a proposed "short/trivial proof exists" test as a false-positive magnet — many valuable theorems close short once the right condition is isolated (Lasso under RE, M-estimator CLT after asymptotic linearity, argmax consistency under separation); the defect is *claiming to solve the condition you merely assume*, not proof length. (2) Replaced an abstract "distance to the conclusion" framing with **central-difficulty pre-emption**, anchored to the paper's own claimed contribution.
+
+### NEW: stat-shared-references/assumption-loadbearing-audit.md
+
+Source of truth, consumed by `proofcheck` (Pass 4, proof-severity reading) and by the sibling `stat-writing-skills` `stat-mock-review` (Step 3, AE-consequence reading). Four tests: T1 Conclusion Restatement (`S0`, merges with the circularity gate), T2 Verification Target Assumed (`S1`), T3 Central Difficulty Pre-emption (`S1`, capped — escalates to `S0` only as a vacuous-class / `OVERSTATED` statement-scope / silent-downstream defect), T4 Comparative Axis Reversal (`S1` headline / `S2` local). Includes a proof-severity-vs-AE-consequence separation, a catalogue of reviewer-cited failure sub-modes (vacuous class, identifiability-assumed, separation-assumed via beta-min/eigengap/margin/irrepresentable/RE-RIP/overlap, oracle assumptions, realizability-while-selling-misspecification, Donsker/equicontinuity-assumed, curvature-assumed, global-minimizer-assumed), the **Original Assumption Challenge Ledger** schema (submission-side analogue of the repair-side change log, produced only for flagged assumptions), and a repair-type routing table.
+
+### CHANGED: skills/proofcheck/SKILL.md
+
+Pass 4 (Adversarial Review) gains a named "Assumption load-bearing audit" subtask on the existing "Stress assumptions" hook, referencing the new shared ref. Deliberately Pass 4, not Pass 2 — it needs the introduction's claimed central difficulty and the Task 2A inventory, not just the local proof. Findings + ledger to `audit/05_adversarial/assumption_loadbearing.md`. Absence of a finding is the expected result for a clean conditional theorem.
+
+Companion changes in `stat-writing-skills` (main): `stat-mock-review` Step 3 hook, `stat-review-routing.md` typed routing, and the `STAT_SKILLS_ROADMAP.md` iteration entry.
+
 ## v1.10.0 — proof-writer rewrite: obligation ledger + structural linter
 
 `proof-writer` still tended to return incomplete proofs (giving up into a blockage report, or returning a package that looked done but had un-discharged gaps mid-derivation). Codex MCP dialogue (threadId `019ed197-0450-78e0-b8e7-7d5207e8fa4f`, gpt-5.4 at xhigh, two rounds; full log in `CODEX_PROOF_WRITER_REVIEW.md` Round 4) settled the redesign, and the "skills are too long, the middle gets forgotten" concern was treated as a hard constraint.
