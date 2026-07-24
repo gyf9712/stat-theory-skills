@@ -203,6 +203,8 @@ The re-audit treats an unpropagated downstream consumer as `NEW-S0` (the patched
 
 The "Natural weaker variant considered" column is the **local-minimality defense**. The author does not need to prove global minimality (usually impossible) but does need to show that one obvious weakening of the added assumption was tried and rejected with a concrete reason. Without this, the audit treats the added assumption as overstrengthening.
 
+**Registry integration.** When the project uses a shared assumption store `assumptions.lock.md` (`assumptions-lock-protocol.md`), an L4 `Add-Assumption` repair also **appends a registry row** (`Introduced by: proof-repair:<issue>`, `Relation to other IDs` set to the base it strengthens) so the rest of the framework references the added assumption by ID. The two mechanisms merge cleanly: this Change Log is the justification (weaker variant considered, why it fails); the registry row is the canonical entry. They are not redundant — do both.
+
 ## Repair Ladder Defense Block
 
 Every per-issue repair file MUST contain a `## Repair Ladder Defense` block documenting the ladder discipline decision.

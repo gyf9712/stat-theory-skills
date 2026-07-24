@@ -160,7 +160,7 @@ Three parallel tasks:
 | ID | Type | Location | Short name | Statement summary | Depends on | Used by | Status |
 |----|------|----------|------------|-------------------|------------|---------|--------|
 
-For each: label, exact location, mathematical objects, assumptions (explicit + inherited), claimed conclusion, probability/asymptotic regime, constants (universal vs problem-dependent), where used.
+For each: label, exact location, mathematical objects, assumptions (explicit + inherited), claimed conclusion, probability/asymptotic regime, constants (universal vs problem-dependent), where used. If `assumptions.lock.md` exists, record each unit's assumptions as **invoked registry IDs** (`A1, A3`) resolved against the shared store, not as re-typed statements; an assumption in a proof with no matching registry ID is itself a finding (see Pass 3 check 3b).
 
 **Task 2B: Cross-Reference Audit** — covered by the script in Step 1B/1C.
 
@@ -432,6 +432,7 @@ Cross-cutting checks after all local checks:
 1. **No circular dependencies** — trace every chain to base assumptions
 2. **Notation consistent** — no symbol drift between sections
 3. **Assumptions propagate** — every cited assumption is in scope where used
+3b. **Shared assumption store** (if `assumptions.lock.md` exists; schema in `../stat-shared-references/assumptions-lock-protocol.md`) — resolve every theorem's invoked assumption IDs against the registry and run consistency triage, **not** satisfiability certification. Flag: (i) an assumption stated in a proof that is not a registry ID (unregistered — should be invoked or appended); (ii) two near-duplicate registry rows that are the same assumption under different short names (should be one ID); (iii) a theorem co-invoking IDs marked `incompatible-with` each other or two `variant-of` the same base; (iv) invoked-but-unused IDs (minimality — a theorem carrying an assumption its proof never consumes, which weakens its stated generality). Expand any profile alias (`P-base = {A1,A2,A3}`) before the unused check. Emit `PASS: no direct contradiction found` / `FLAG: axis tension` / `FAIL: direct contradiction` / `UNKNOWN: common model not certified` — never claim the full registry is jointly satisfiable (a framework may hold mutually exclusive regimes on purpose). Write findings to `audit/03_dependencies/assumption_lock_triage.md`.
 4. **Theorems assemble** — each main theorem's transitive dependencies all proved
 5. **Quantifier consistency** — check "for all ∃" vs "∃ for all", uniform vs pointwise, parameter-dependent vs universal constants
 6. **Probability/event consistency** — events defined? Intersections handled? Failure probability accumulated correctly?

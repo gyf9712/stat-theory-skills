@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.12.0 — Shared assumption system (`assumptions.lock.md`)
+
+Each theorem package previously declared its own assumptions in a local `A_k` namespace, with no source of truth across packages — so a framework read as a pile of theorems, and silent cross-package strengthening / notation drift was undetectable. This adds the missing canonical store, completing the family's "canonical store + reference-by-id" pattern already used for citations (`cited_results.lock.md`) and claims (`CLAIM_SUPPORT_MAP.md`). Codex MCP dialogue (threadId `019f9239-37e0-73f2-8e36-0018b93c2d2d`, xhigh, one round, near-full convergence); the standing anti-cross-cutting caution was deliberately broken because assumptions are now a cross-package address space, and inlining the rules would duplicate schema into every consumer skill.
+
+Codex reshaped the design in four ways, all adopted: (1) two-table normalization — an append-only `## Assumption Registry` plus a mutable `## Theorem Invocation Matrix`, so `used-by` is derived, not hand-maintained against append-only discipline; (2) killed a proposed global-satisfiability check as a false-authority trap (a framework may hold mutually exclusive regimes on purpose) and replaced it with per-subset contradiction triage emitting `PASS/FLAG/FAIL/UNKNOWN`, never certifying joint satisfiability for nonparametric frameworks; (3) namespace hygiene — `A_k` reserved for registry assumptions, proof-internal devices use `E_k/H_k/B_k/O_k` and are discharged, not assumed; (4) no automatic inheritance — each theorem lists an invoked subset, profiles are aliases expanded before the invoked-but-unused check, which prevents one bloated maximal assumption set from over-restricting individual theorems.
+
+### NEW: stat-shared-references/assumptions-lock-protocol.md
+
+Thin protocol (schema + discipline, not a governance layer; no new skill). Two-table schema, read-before-write / append-only registry / mutable matrix, namespace hygiene, no-automatic-inheritance with profile expansion, the contradiction-triage statuses, proof-repair L4 integration, and honest limits (certifies one shared namespace with no directly-contradictory invoked subsets — not truth, minimality, or general joint satisfiability).
+
+### CHANGED
+
+- `skills/theory-design/SKILL.md` — new "Assumption lock initialization (all modes)" step: promote the prose assumption profile into the canonical registry and seed an empty invocation matrix, handed to proof-writer alongside FRAMEWORK_DESIGN.md.
+- `skills/proof-writer/SKILL.md` — Step 2 binds assumptions to the shared store (invoke by ID, not restate; hidden survivors promoted or the package is not `PROVABLE AS STATED`; devices renamed to `E/H/B/O`); package template `## Assumptions` → `## Invoked assumptions`; new `ASSUMPTION_LOCK` constant.
+- `skills/proofcheck/SKILL.md` — Task 2A resolves assumptions to registry IDs; Pass 3 gains check 3b (unregistered / near-duplicate / incompatible-co-invoked / invoked-but-unused, with the four triage statuses), findings to `audit/03_dependencies/assumption_lock_triage.md`.
+- `stat-shared-references/assumption-loadbearing-audit.md` — reports T1–T4 findings by registry ID when a lock exists.
+- `stat-shared-references/proof-closure-machinery.md` — an L4 Add-Assumption repair also appends a registry row (merges with the Assumption-Extension Change Log; not redundant).
+
 ## v1.11.0 — Assumption Load-Bearing Audit (submission-side "assumes away the hard part")
 
 The family caught literal circularity (`S0`) and challenged over-strengthening only for **repair-time added** assumptions (`proof-closure-machinery.md`), but nothing proactively flagged, on an **original submitted** manuscript, the classic AE kill-line "Assumption 3 essentially assumes what Theorem 1 claims" / "the interesting regime is assumed away." A Codex MCP dialogue (threadId `019f8fef-ec47-7a40-b311-ecf821ccf869`, xhigh, one round, near-full convergence) reshaped the design. Two decisive corrections adopted: (1) dropped a proposed "short/trivial proof exists" test as a false-positive magnet — many valuable theorems close short once the right condition is isolated (Lasso under RE, M-estimator CLT after asymptotic linearity, argmax consistency under separation); the defect is *claiming to solve the condition you merely assume*, not proof length. (2) Replaced an abstract "distance to the conclusion" framing with **central-difficulty pre-emption**, anchored to the paper's own claimed contribution.

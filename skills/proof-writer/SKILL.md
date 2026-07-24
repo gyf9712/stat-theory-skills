@@ -25,6 +25,7 @@ and from faking (you cannot prose your way into a typed closure).
 - STATUS = `PROVABLE AS STATED | PROVABLE AFTER WEAKENING / EXTRA ASSUMPTION | NOT CURRENTLY JUSTIFIED`
 - VERIFICATION = `Verified | Conditionally verified | Gap found` (defined in `../stat-shared-references/proof-closure-machinery.md`, single source of truth)
 - SCRIPT = `../stat-shared-references/scripts/proof_gap_scan.py`
+- ASSUMPTION_LOCK = `assumptions.lock.md` — the framework's shared assumption store (schema + discipline in `../stat-shared-references/assumptions-lock-protocol.md`). Theorems invoke assumptions by ID from here; they do not declare their own.
 
 ## Context: $ARGUMENTS
 
@@ -52,6 +53,20 @@ interpretation you will use before proving anything.
 Restate the exact claim, all assumptions separated from conclusions, and every
 symbol. Identify hidden assumptions, undefined notation, scope ambiguities, and
 whether the available sketch proves the full claim or only a weaker variant.
+
+**Bind assumptions to the shared store.** If `assumptions.lock.md` exists, resolve each
+assumption this theorem needs to a registry ID (`A1, A3, …`) instead of restating it; the
+theorem's premises become an **invoked subset** of the registry, never a fresh local
+declaration. Read before write (`../stat-shared-references/assumptions-lock-protocol.md`): if
+the store already has the assumption, invoke its ID; if not, append a new registry row (a
+variant of an existing one gets an explicit `Relation to other IDs`, never a silent restate).
+A hidden assumption that survives as a premise is **promoted** to the registry or the package
+is not `PROVABLE AS STATED`. Reserve `A_k` for registry assumptions only — proof-internal
+devices use `E_k` (good events), `H_k` (temporary hypotheses), `B_k` (bridges), `O_k`
+(obligations), and are **discharged** from registry assumptions, not assumed. If no lock file
+exists yet, proceed with local assumptions but flag that `theory-design` should initialize one
+for a multi-theorem framework.
+
 Preserve the user's original statement. If a stronger internal formulation only
 makes the proof easier, keep it as a labeled proof device, not a silent replacement.
 
@@ -211,8 +226,9 @@ a residual risk is a `BLOCKED` obligation, not a footnote.
 PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
 Verification: Verified / Conditionally verified / Gap found
 
-## Assumptions
-- (A1) ...
+## Invoked assumptions
+- A1, A3, A7 (from assumptions.lock.md) — invoked subset, not restated here.
+- (If no lock file exists: list local assumptions and flag that theory-design should initialize one.)
 
 ## Notation
 - ...

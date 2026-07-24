@@ -33,6 +33,11 @@ Without the claimed-difficulty input this audit cannot run; it is not a local pr
 
 ## Scope: which assumptions
 
+If the project has a shared assumption store `assumptions.lock.md`
+(`assumptions-lock-protocol.md`), report every finding **by registry ID** (`A3`), and run the
+tests against registry entries rather than re-typed statements — the single namespace is what
+makes silent cross-package strengthening detectable in the first place.
+
 Run the tests only on **load-bearing** assumptions — those a main theorem's critical
 chain actually consumes. Do not run them on every regularity condition. An unused or
 purely technical smoothness assumption is a different finding (`unused assumption`,

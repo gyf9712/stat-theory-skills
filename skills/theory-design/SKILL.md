@@ -924,6 +924,24 @@ Final structure of the document this skill produces:
 
 ---
 
+## Assumption lock initialization (all modes)
+
+The framework shares **one** assumption system, not a fresh set per theorem. After the
+assumption profile is settled (T-mode Step T5/T6, M-mode Q5.3 minimal set, A-mode A3), promote
+those prose assumptions into a canonical, ID-addressable store `assumptions.lock.md`, per
+`stat-shared-references/assumptions-lock-protocol.md`. Write the `## Assumption Registry`
+table (assign `A1, A2, …`, tag each with an `applicability-axes.md` axis and a strength/regime
+class, and set `Relation to other IDs` for any variant) and seed an empty `## Theorem
+Invocation Matrix` for `proof-writer` to fill.
+
+This is the single source of truth every downstream package invokes by ID. Do **not** state a
+maximal assumption set that every theorem inherits — the store is a registry, not a global
+premise; each theorem later lists only the subset it uses.
+
+Hand `assumptions.lock.md` to `/proof-writer` alongside `FRAMEWORK_DESIGN.md`.
+
+---
+
 ## Quick start (single command)
 
 ```
