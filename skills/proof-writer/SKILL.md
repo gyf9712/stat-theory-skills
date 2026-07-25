@@ -118,11 +118,22 @@ and each bridge `B1..` an ID too. The linter needs these IDs to check the packag
 
 ### 6. Construct the proof, closing every obligation
 Write the proof to the target file (read and update it first if it exists; do not
-duplicate prior content; do not write into paper `.tex` files unless asked). Number
-the major steps and justify every nontrivial implication. Each obligation must
-terminate in exactly one typed state — `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED`
-— with the fields the Obligation Ledger requires. An obligation left untyped is an
-incomplete proof.
+duplicate prior content; do not write into paper `.tex` files unless asked). Justify
+every nontrivial implication. Each obligation must terminate in exactly one typed
+state — `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED` — with the fields the Obligation
+Ledger requires. An obligation left untyped is an incomplete proof.
+
+**Write in Big Four register.** Before drafting the `## Proof`, follow the section
+"Mathematical Register and Readability (Big Four)" in
+`../stat-shared-references/stat-theory-writing.md` (the single source of truth for
+theorem-statement and proof register). Proofs are dense-but-navigable paragraphs
+carried by displays — not bullet lists and not generic `Step 1 / Step 2` scaffolding.
+Closed obligations are an audit device, not a licence to write the proof as a list:
+map each obligation to a paragraph or display in flowing prose, use one logical unit
+per display, number only displays referred to later, and prefer semantic prose
+transitions over staged labels (staged proofs only when genuinely long and
+venue-appropriate). If that reference is unavailable (theory-only install), still
+avoid walls of undisplayed algebra and bullet-list proofs.
 
 ### 7. Verify and lint
 Apply the diagnostic tests from the *Trap Catalogue* in `proof-strategy.md` and

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.12.1 — proof-writer writes in Big Four register
+
+`proof-writer` Step 6 previously said "Number the major steps," which pushes proofs toward ML-conference `Step 1 / Step 2` scaffolding — the un-Big-Four bulletization the family bans elsewhere. Rewired to defer to the new single source of truth, the "Mathematical Register and Readability (Big Four)" section in `stat-theory-writing.md` (sibling `stat-writing-skills` repo): proofs are dense-but-navigable paragraphs carried by displays, one logical unit per display, number only referred-back displays, semantic prose transitions over staged labels (staged proofs only when genuinely long and venue-appropriate). Degrades gracefully in a theory-only install. Codex MCP dialogue (threadId `019f977b-1c43-7be3-8274-94d0e54a996d`, xhigh); the substantive register section and its venue calibration live in the writing repo where the theorem-statement / proof-sketch / LaTeX-environment guidance already lives.
+
 ## v1.12.0 — Shared assumption system (`assumptions.lock.md`)
 
 Each theorem package previously declared its own assumptions in a local `A_k` namespace, with no source of truth across packages — so a framework read as a pile of theorems, and silent cross-package strengthening / notation drift was undetectable. This adds the missing canonical store, completing the family's "canonical store + reference-by-id" pattern already used for citations (`cited_results.lock.md`) and claims (`CLAIM_SUPPORT_MAP.md`). Codex MCP dialogue (threadId `019f9239-37e0-73f2-8e36-0018b93c2d2d`, xhigh, one round, near-full convergence); the standing anti-cross-cutting caution was deliberately broken because assumptions are now a cross-package address space, and inlining the rules would duplicate schema into every consumer skill.
