@@ -33,6 +33,15 @@ self-consistent repair plans with new literature references for every fixable is
 **This skill**: audit/ → REPAIR_PLAN.md + patched .bib + per-unit repair files
 **Downstream**: `/proof-writer` (writes complete corrected proofs for each repair)
 
+**Register for any proof text this skill writes.** Full-proof creation delegates to
+`/proof-writer`, which carries the register. But LaTeX patches this skill writes
+directly (Fill-Skipped-Steps, Insert-Lemma, inserted derivations) must follow the same
+Big Four register: key steps on display lines, connectives naming the logical move
+(displays carry the *what*, connectives the *why*), no walls of undisplayed algebra, no
+`Step 1 / Step 2` bulletization. Single source of truth: the "Mathematical Register and
+Readability (Big Four)" section of `../stat-shared-references/stat-theory-writing.md`. A
+repair must not fix correctness while regressing readability.
+
 ## Context: $ARGUMENTS
 
 ---

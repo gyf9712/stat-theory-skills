@@ -132,8 +132,15 @@ Closed obligations are an audit device, not a licence to write the proof as a li
 map each obligation to a paragraph or display in flowing prose, use one logical unit
 per display, number only displays referred to later, and prefer semantic prose
 transitions over staged labels (staged proofs only when genuinely long and
-venue-appropriate). If that reference is unavailable (theory-only install), still
-avoid walls of undisplayed algebra and bullet-list proofs.
+venue-appropriate). Two at-a-glance requirements from that section apply here: (1)
+when you restate the claim (`## Claim`), lay it out so conditions and conclusion are
+visible at a glance — load-bearing conditions on their own display line, the
+conclusion displayed, registered assumptions by label (never restated); (2) in the
+proof body, keep the reasoning logic visible — key steps on display lines and each
+connective naming the logical move, so a reader skimming the displays and their
+one-line justifications recovers the argument skeleton. If that reference is
+unavailable (theory-only install), still avoid walls of undisplayed algebra and
+bullet-list proofs.
 
 ### 7. Verify and lint
 Apply the diagnostic tests from the *Trap Catalogue* in `proof-strategy.md` and

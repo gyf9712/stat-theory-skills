@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.12.2 — extend register coverage to claim restatement and proof-repair
+
+Follow-up to v1.12.1 after the writing repo added at-a-glance statement layout and proof reasoning-visibility to the register section. Two theory-repo touch-ups so the discipline is applied wherever this repo writes proof or statement text, not only inherited implicitly:
+
+- `skills/proof-writer/SKILL.md` — Step 6 now spells out the two at-a-glance requirements from the register section: (1) the `## Claim` restatement is laid out so conditions and conclusion are visible at a glance (load-bearing conditions on display lines, conclusion displayed, registered assumptions by label), and (2) the proof body keeps the reasoning logic visible (key steps on displays, connectives naming the logical move, so skimming displays + one-line justifications recovers the skeleton).
+- `skills/proof-repair/SKILL.md` — new register pointer near the pipeline overview: full-proof creation delegates to `/proof-writer` (which carries the register), but LaTeX patches this skill writes directly (Fill-Skipped-Steps, Insert-Lemma, inserted derivations) must follow the same Big Four register — a repair must not fix correctness while regressing readability.
+
+`proofcheck` is deliberately unchanged: readability is a presentation concern owned by `stat-polishing` via the routing table, not a correctness audit (S0–S3). The register section itself remains the single source of truth in the sibling `stat-writing-skills` repo.
+
 ## v1.12.1 — proof-writer writes in Big Four register
 
 `proof-writer` Step 6 previously said "Number the major steps," which pushes proofs toward ML-conference `Step 1 / Step 2` scaffolding — the un-Big-Four bulletization the family bans elsewhere. Rewired to defer to the new single source of truth, the "Mathematical Register and Readability (Big Four)" section in `stat-theory-writing.md` (sibling `stat-writing-skills` repo): proofs are dense-but-navigable paragraphs carried by displays, one logical unit per display, number only referred-back displays, semantic prose transitions over staged labels (staged proofs only when genuinely long and venue-appropriate). Degrades gracefully in a theory-only install. Codex MCP dialogue (threadId `019f977b-1c43-7be3-8274-94d0e54a996d`, xhigh); the substantive register section and its venue calibration live in the writing repo where the theorem-statement / proof-sketch / LaTeX-environment guidance already lives.
