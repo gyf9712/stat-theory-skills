@@ -2,7 +2,7 @@
 name: proofcheck
 description: Systematically verify mathematical proofs in statistics/ML theory paper appendices. Use when user says "proof check", "check proofs", "verify proofs", "audit paper", "检查证明", "证明验证", or wants to verify correctness of a paper's mathematical proofs.
 argument-hint: [path-to-paper.tex or paper-name]
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, mcp__codex__codex, mcp__codex__codex-reply
 model: opus
 ---
 

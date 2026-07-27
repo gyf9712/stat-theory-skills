@@ -14,7 +14,7 @@ description: >-
   "模拟实验", "已有 simulation 检查", "stress test theory", "bridge simulation",
   "rate verification", or wants reproducible stat-journal simulations tied to theorems.
 argument-hint: [path-to-paper.tex or paper-dir]
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, mcp__codex__codex, mcp__codex__codex-reply
 model: opus
 ---
 

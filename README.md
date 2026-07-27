@@ -2,9 +2,10 @@
 
 [![tests](https://github.com/gyf9712/stat-theory-skills/actions/workflows/tests.yml/badge.svg)](https://github.com/gyf9712/stat-theory-skills/actions/workflows/tests.yml)
 
-A pipeline of 4 Claude Code skills for working with mathematical proofs in
-statistics, econometrics, and ML theory papers. Goes from **finding proof errors**
-all the way to **theoretical sharpening with literature support**.
+A pipeline of 6 Claude Code skills for working with mathematical proofs in
+statistics, econometrics, and ML theory papers. Goes from **designing a theoretical
+framework** through **finding proof errors** to **theoretical sharpening with
+literature support**, with deterministic Python checks behind the judgment work.
 
 > References [maweiruc/proofcheck-stat-paper](https://github.com/maweiruc/proofcheck-stat-paper)
 > as inspiration for the proof-checking methodology, and extends it with proof repair,
@@ -13,22 +14,29 @@ all the way to **theoretical sharpening with literature support**.
 ## The Pipeline
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌──────────────────────────┐    ┌────────────────┐    ┌────────────────────┐    ┌──────────────┐
-│ /proofcheck │ →  │ /proof-repair│ →  │ /proofcheck --post-repair │ →  │/theory-sharpen │ →  │ /theory-simulation │ →  │ /proof-writer│
-│             │    │              │    │                          │    │                │    │                    │    │              │
-│ Find proof  │    │ Fix issues + │    │ Convergence test:        │    │ Strengthen the │    │ Monte Carlo verify │    │ Write the    │
-│ errors      │    │ literature   │    │ verify every original    │    │ theory itself  │    │ + stress-test +    │    │ corrected /  │
-│ (full 6-pass│    │ support +    │    │ S0/S1 closed; no new     │    │                │    │ feed back to theory│    │ new proof    │
-│ audit)      │    │ closure mtx  │    │ defect introduced        │    │                │    │                    │    │              │
-└─────────────┘    └──────────────┘    └──────────────────────────┘    └────────────────┘    └────────────────────┘    └──────────────┘
-                            ↑                          │
-                            └──── /proof-repair ───────┘
-                                   --from-reaudit
-                              (only when re-audit finds residual issues;
-                               manual trigger, no auto-loop)
+   (blank page)
+  /theory-design ──┐
+   framework +     │
+   literature      ▼
+   anchor      ┌─────────────┐   ┌──────────────┐   ┌───────────────────────────┐
+               │ /proofcheck │ → │ /proof-repair│ → │ /proofcheck --post-repair │ ─┐
+               │ find errors │   │ fix + cite   │   │ convergence test          │  │
+               │ (6-pass)    │   │ + closure mx │   │ every S0/S1 closed?       │  │
+               └─────────────┘   └──────────────┘   └───────────────────────────┘  │
+                        ↑                    │                                     │
+                        └─ /proof-repair ────┘                                     │
+                            --from-reaudit                                         │
+                       (manual, no auto-loop)                                      │
+                                                                                   ▼
+               ┌────────────────┐   ┌────────────────────┐   ┌──────────────┐
+               │/theory-sharpen │ → │ /theory-simulation │ → │ /proof-writer│
+               │ strengthen the │   │ Monte Carlo verify │   │ write the    │
+               │ theory itself  │   │ + stress-test      │   │ closed proof │
+               └────────────────┘   └────────────────────┘   └──────────────┘
 ```
 
-Each skill can be used standalone, or chained together.
+Each skill can be used standalone, or chained together. `/theory-design` is the entry
+point for a new topic; the rest operate on a paper that already exists.
 
 The new `/proofcheck --post-repair` step is the **convergence test** for the repair phase. It is a focused delta audit, **not** a full re-run of the 6-pass `/proofcheck`. It reads the original audit + `REPAIR_PLAN.md` (with its Repair Closure Matrix) + `PATCHES.md` (with the Weaken-Claim Change Log) and verifies:
 
@@ -109,9 +117,17 @@ Designs and runs reproducible simulations to top-stat-journal standards
   - Discrepancies → feedback to `/theory-sharpen` (relax) or `/proof-writer` (strengthen)
   - Drop-in `SIMULATION_SECTION.tex` for the paper
 
+Both modes score against the same five **adequacy dimensions** — truth source,
+selection discipline, tuning protocol, computational adequacy, reuse legitimacy — so a
+simulation this skill *designs* meets the bar it *audits* against. Coverage is not
+credibility: a claim covered by an experiment that cannot identify it is `PARTIAL`,
+never `YES`.
+
 **AUDIT mode (when paper already has sims)**:
 - Parses existing simulation section, figures, and tables
-- Builds **Coverage Matrix**: theoretical claims × existing evidence (YES / PARTIAL / NO / CONTRADICTED)
+- Populates the **Claim Evidence Ledger** — the same typed object DESIGN mode uses,
+  so both modes speak one vocabulary: `PLANNED`, `YES[strong]`, `YES[weak]`,
+  `PARTIAL[reason-codes]`, `NO`, `CONTRADICTED[code]`, `HYPOTHESIS-ONLY`
 - Per-experiment **adequacy audit** against top-journal standards
 - **Gap analysis** in three buckets:
   - Claims with NO experimental evidence (most serious)
@@ -121,14 +137,78 @@ Designs and runs reproducible simulations to top-stat-journal standards
 - Distinguishes what can be REUSED from existing runs vs what MUST be rerun
 - Codex independent audit for cross-validation
 
+### `/theory-design` — Design the framework from a blank page
+
+Paper-type-aware framework design, run before any proof exists. Three modes with
+genuinely different logical orders: a **theory** paper's centrepiece is the theorem, a
+**methodology** paper's is the estimator, an **application** paper's is the empirical
+finding.
+
+- Mandatory **literature anchoring** first: identify the field's *theoretical inertia*
+  (the defaults a referee unconsciously expects), then choose positioning
+  (`INCREMENTAL` / `LATERAL` / `DISRUPTIVE`) and derive the constraints that bind every
+  later phase decision
+- Produces `FRAMEWORK_DESIGN.md` + `LITERATURE_ANCHOR.md` for the downstream skills
+- Initializes `assumptions.lock.md`, the shared assumption registry
+
 ### `/proof-writer` — Rigorous proof drafting
 
-Writes the actual corrected proofs identified by the upstream skills:
+Writes the actual corrected proofs identified by the upstream skills. The unit of
+completion is the **closed obligation, not prose**:
 
-- Three honest output modes:
-  PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
-- Dependency map + numbered steps
-- Refuses to fabricate steps; will write a blockage report instead
+- An **Obligation Ledger**: every nontrivial step terminates in exactly one typed
+  state — `CLOSED-LOCAL`, `CLOSED-CITED`, or `BLOCKED`. You cannot prose your way into
+  a typed closure, and `BLOCKED` costs a full attack record, so neither faking nor
+  quitting is the cheap option
+- `CLOSED-CITED` requires an inline applicability block (clause used, assumption map,
+  conclusion fit) — a citation invoked outside its conditions makes the proof wrong
+- Provability and verification are separate axes: an uninspected source caps the
+  package at `Conditionally verified`, never `Verified`
+- Three honest statuses: PROVABLE AS STATED / AFTER WEAKENING / NOT CURRENTLY JUSTIFIED
+- Refuses to fabricate steps; writes a blockage record instead
+
+## Deterministic tooling
+
+Mechanical checks live in tested Python (stdlib only, no dependencies) so the skill
+bodies stay focused on judgment. Every script separates **mechanical** findings, which
+affect the exit code, from **heuristic/advisory** ones, which never do — a script may
+not certify correctness it cannot actually check.
+
+| Script | Checks | Exit code |
+|---|---|---|
+| `proof_index.py` | Theorem inventory, `\ref` dependency DAG, topological check order, cycle detection, cross-file reference leaks | 1 on structural failure |
+| `proof_gap_scan.py` | Obligation Ledger closure: `BLOCKED` under a provable status, missing closure fields, undefined bridge IDs, blank verification checks | 1 on structural incompleteness |
+| `simulation_ledger_check.py` | Claim Evidence Ledger: approved state vocabulary, one row per claim, DESIGN covers every adequacy dimension, no `CONTRADICTED` without triage; plus `--self-lint` for the skill file | 1 on hard assertion failure |
+| `skill_lint.py` | Every file reference in a `SKILL.md` resolves in the **installed** layout; no control characters | 1 on unresolvable reference |
+| `venue_tiers.py` | Rule data: venue credibility tiers T1–T4 | — |
+
+Run the whole suite:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+## Maintenance
+
+[`MAINTENANCE.md`](MAINTENANCE.md) holds the rules that keep these skills from
+re-growing. The short version:
+
+- **Two budgets.** Hot prefix ≤ 200–250 lines (routing, invariants, state machine, hard
+  gates, compact contract) and total ≤ 700–800. A long file is not merely untidy: the
+  model runs the first ~200 lines as hard law and treats the rest as suggestions.
+- **A `SKILL.md` grows only when the core state machine changes.** Deterministic check →
+  script; fixed table → rule data or reference; worked example or prompt block →
+  companion reference.
+- **Compact empty contract inline, filled specimen out.** The contract defines terminal
+  states; the example is illustration.
+- **Do not over-cut.** A skill that becomes "go read five references" has lost its
+  control logic.
+
+It also documents the **acceptance-test method** for a rewritten skill, since prose has
+no unit tests: build a fixture per route, write an `EXPECT.md`, run the skill in a
+**fresh context** three times, check mechanically, and pass at ≥ 2 of 3 with no
+forbidden failure. Fresh context matters — it tests the file, not your memory of what
+you meant.
 
 ## Install
 
@@ -137,15 +217,19 @@ Writes the actual corrected proofs identified by the upstream skills:
 git clone https://github.com/gyf9712/stat-theory-skills.git
 cd stat-theory-skills
 
-# Run the install script
+# Run the install script (use --force to overwrite an existing install)
 bash install.sh
-
-# Or manually copy each skill to ~/.claude/skills/
-cp -r skills/proofcheck       ~/.claude/skills/
-cp -r skills/proof-repair     ~/.claude/skills/
-cp -r skills/theory-sharpen   ~/.claude/skills/
-cp -r skills/proof-writer     ~/.claude/skills/
 ```
+
+`install.sh` copies all six skills plus `stat-shared-references/` — its `*.md`
+protocols, `scripts/*.py`, and `examples/*.md`. Copying skill directories by hand is
+not enough: the skills reference the shared directory as `../stat-shared-references/…`,
+which only resolves once everything sits together under `~/.claude/skills/`.
+
+This repo installs alongside [`stat-writing-skills`](https://github.com/gyf9712/stat-writing-skills)
+into that one shared directory, and a few references deliberately cross between them
+(theory skills read `stat-theory-writing.md`, which the writing repo owns). Install both
+if you use both.
 
 ## ⚠️ Important: Use Claude Opus
 
@@ -169,27 +253,31 @@ You can also set Opus as your default in `~/.claude/settings.json`:
 ```
 
 Why Opus matters here:
+- `theory-design`: needs to read a field's theoretical inertia, not just its topics
 - `proofcheck`: needs to spot subtle quantifier errors, hidden assumptions
 - `proof-repair`: needs to verify cited theorems match prerequisites exactly
 - `theory-sharpen`: needs to reason about minimax lower bounds and rate optimality
+- `theory-simulation`: needs to tell coverage from evidentiary strength
 - `proof-writer`: needs to write rigorous proofs without fabrication
 
 Sonnet/Haiku may produce results that *look* right but miss critical mathematical
-gaps. The difference compounds across the 4-skill pipeline.
+gaps. The difference compounds across the pipeline.
 
 ## Invocation
 
 After install + `/model opus`:
 ```
+/theory-design            # start a new topic from a blank page
 /proofcheck papers/my-paper/paper.tex
 /proof-repair papers/my-paper/
 /theory-sharpen papers/my-paper/
+/theory-simulation papers/my-paper/
 /proof-writer [specific claim]
 ```
 
 ## Codex MCP (optional but recommended)
 
-All five skills can optionally invoke Codex (OpenAI GPT via MCP) as an
+Five of the six skills can optionally invoke Codex (OpenAI GPT via MCP) as an
 **adversarial reviewer**. To enable:
 
 ```bash
@@ -198,7 +286,9 @@ claude mcp add codex -s user -- codex mcp-server
 
 ### The discussion protocol — NOT wholesale acceptance
 
-All skills follow [`stat-shared-references/codex-protocol.md`](stat-shared-references/codex-protocol.md): Codex is an adversarial
+(`proof-writer` does not: it has no web tools and closes obligations locally.)
+
+All Codex-using skills follow [`stat-shared-references/codex-protocol.md`](stat-shared-references/codex-protocol.md): Codex is an adversarial
 reviewer to **discuss with iteratively until convergence**, never an oracle whose
 findings are accepted wholesale.
 

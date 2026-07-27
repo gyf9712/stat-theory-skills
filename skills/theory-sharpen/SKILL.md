@@ -8,7 +8,7 @@ description: >-
   "优化rate", "theory alignment", "理论对齐", or wants to go beyond proof correctness
   toward theoretical optimality and practical relevance.
 argument-hint: [path-to-paper.tex or paper-dir]
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch, mcp__codex__codex, mcp__codex__codex-reply
 model: opus
 ---
 

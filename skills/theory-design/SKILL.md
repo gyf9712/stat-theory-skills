@@ -17,7 +17,7 @@ description: >-
   the logical order to build a statistics paper's theoretical content from a blank
   page.
 argument-hint: [topic-or-rough-idea]
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch, mcp__codex__codex, mcp__codex__codex-reply
 model: opus
 ---
 

@@ -9,7 +9,7 @@ description: >-
   "修正计划", "fix theorem", "repair assumptions", or wants to go from proof audit to
   actionable repair plan with literature support.
 argument-hint: [path-to-paper-dir or path-to-audit-dir]
-allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch, mcp__codex__codex, mcp__codex__codex-reply
 model: opus
 ---
 
