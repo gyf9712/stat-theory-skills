@@ -277,4 +277,4 @@ The same paper supports different citation purposes at different bars. The cache
 - `cache-verification-states.md` (the 4 verification states, source integrity, lock file mechanics, F1/F2/F3 workflows)
 - `stat-positioning-and-claims.md` (positioning audit consumes this protocol)
 - `proof-strategy.md` (Trap #6 citation identity drift, Trap #7 applicability drift — both inform the cache invariants)
-- `CODEX_PROTOCOL.md` (the dialogue protocol used for `independently_checked` upgrades)
+- `stat-shared-references/codex-protocol.md` (the dialogue protocol used for `independently_checked` upgrades)

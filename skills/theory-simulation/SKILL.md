@@ -1160,7 +1160,7 @@ plt.close(fig)
 
 ## Step 4F: Codex Adversarial Review of Simulation Design (if Codex MCP available)
 
-**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+**Follow `../stat-shared-references/codex-protocol.md`** — Codex is an adversarial reviewer
 to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
 about the simulation plan or figures requires explicit ACCEPT / PUSH BACK /
 REQUEST CLARIFICATION with reasoning. Especially critical here because expensive

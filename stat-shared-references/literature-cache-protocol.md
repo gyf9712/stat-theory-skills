@@ -192,7 +192,7 @@ The protocol does NOT promise:
 - `citation-purpose-protocol.md` — 7 citation purposes, 13 methodological roles, gate matrix, `cited_results.lock.md` schema
 - `applicability-axes.md` — 8 axes, namespaced family registry, 5 compatibility verdicts
 - `cache-verification-states.md` — 4 verification states, source integrity, F1/F2/F3 workflows, inbox/queue, lock manifest mechanics
-- `CODEX_PROTOCOL.md` (repo root) — dialogue protocol, reasoning ladder, per-repair fresh thread, artifact manifest convention
+- `stat-shared-references/codex-protocol.md` (repo root) — dialogue protocol, reasoning ladder, per-repair fresh thread, artifact manifest convention
 - `stat-shared-references/stat-positioning-and-claims.md` — positioning audit consumes cache entries
 - `stat-shared-references/stat-codex-dialogue.md` — mirrors the dialogue discipline for stat-writing-skills
 - `proof-strategy.md` — Trap #6 citation identity drift, Trap #7 applicability drift

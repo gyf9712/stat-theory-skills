@@ -148,7 +148,7 @@ At the end of the verify pass, print:
 
 The deferred items (Codex round 3 noted these are acceptable as follow-up):
 
-- **`/lit-cache audit`** — promotion from `source_checked` to `independently_checked` via a Codex MCP call at `xhigh`. This requires fresh-thread invocation per `CODEX_PROTOCOL.md` "Per-Repair Fresh Thread" pattern adapted to cache audit. Workflow: spin up a fresh Codex thread per entry, pass the entry's verbatim quotes + the source URL + the applicability contract, ask Codex to independently extract and compare, record discrepancies, promote on agreement. Deferred because the MVP source-hash check covers the most common hallucination class (the writing skill claimed verbatim it did not actually read); the deeper independent-reading check is valuable but adds Codex token cost that the user pays per upgrade.
+- **`/lit-cache audit`** — promotion from `source_checked` to `independently_checked` via a Codex MCP call at `xhigh`. This requires fresh-thread invocation per `stat-shared-references/codex-protocol.md` "Per-Repair Fresh Thread" pattern adapted to cache audit. Workflow: spin up a fresh Codex thread per entry, pass the entry's verbatim quotes + the source URL + the applicability contract, ask Codex to independently extract and compare, record discrepancies, promote on agreement. Deferred because the MVP source-hash check covers the most common hallucination class (the writing skill claimed verbatim it did not actually read); the deeper independent-reading check is valuable but adds Codex token cost that the user pays per upgrade.
 - **`human_signed` workflow** — explicit human attestation. The user can manually edit the `verification_log` and `verification_status` field at any time; no skill automation is needed. Document in the entry itself who signed off and when.
 - **Automatic staleness re-check** — when a cached `source_version` (e.g., `arxiv:0803.4067v2`) is superseded by `v3` upstream. The MVP does not poll for new versions; it only verifies the version already recorded. A staleness check could be added as `/lit-cache verify --check-versions`.
 - **Bulk re-extraction** — when many entries fail at Step 4, the MVP does not automatically re-fetch and re-attempt. The user must address each `held` entry individually (typically by re-running the originating skill's literature step against the held bibkey).
@@ -171,7 +171,7 @@ The deferred items (Codex round 3 noted these are acceptable as follow-up):
 - `citation-purpose-protocol.md` is consulted by downstream skills using the promoted entries; this protocol is upstream of that.
 - `applicability-axes.md` is the family registry; this MVP validates membership at Step 5.
 - `literature-cache-protocol.md` is the router; this MVP is one of its Minimum Load Map use cases (`cache verify`).
-- `CODEX_PROTOCOL.md` Per-Repair Fresh Thread pattern is the basis for the deferred `/lit-cache audit` workflow.
+- `stat-shared-references/codex-protocol.md` Per-Repair Fresh Thread pattern is the basis for the deferred `/lit-cache audit` workflow.
 
 ## Honest Limits
 
@@ -189,4 +189,4 @@ This protocol is version `1.0 MVP`. Versioning follows the protocol versioning s
 - `cache-verification-states.md` (4 verification states, gate table, F1/F2/F3 workflows)
 - `applicability-axes.md` (family registry)
 - `citation-purpose-protocol.md` (citation purposes consuming promoted entries)
-- `CODEX_PROTOCOL.md` (the dialogue pattern for the deferred `/lit-cache audit`)
+- `stat-shared-references/codex-protocol.md` (the dialogue pattern for the deferred `/lit-cache audit`)

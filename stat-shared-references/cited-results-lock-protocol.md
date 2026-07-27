@@ -37,7 +37,7 @@ Entry hash at decision / Verification level at decision /
 Axis or lineage bridge recorded / Decision date
 ```
 
-The file begins with the standard artifact manifest header per `CODEX_PROTOCOL.md`.
+The file begins with the standard artifact manifest header per `stat-shared-references/codex-protocol.md`.
 
 ## Ownership Map
 

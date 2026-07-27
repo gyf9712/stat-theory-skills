@@ -272,7 +272,7 @@ Use `Escalation justified? = yes` only when the required Phase A exhaustion reco
 3. Every Add-Assumption repair has a row in the Assumption-Extension Change Log, including the natural weaker variant considered and the propagation list.
 4. Every per-issue repair file has a Repair Ladder Defense block; L4/L5 repairs include Phase A Exhaustion Record + Phase B Justification + Semantic-Edit Log Pointer.
 5. Outstanding sketches = 0 in the Sketch Expansion Tracker.
-6. Every P0/P1 repair has passed the per-repair Codex stress-test (status `PASS` or `Confirmed after revision`); see `CODEX_PROTOCOL.md` Per-Repair Fresh Thread protocol.
+6. Every P0/P1 repair has passed the per-repair Codex stress-test (status `PASS` or `Confirmed after revision`); see `stat-shared-references/codex-protocol.md` Per-Repair Fresh Thread protocol.
 7. The Consistency Verification checklist is fully checked.
 8. **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. This is a HARD GATE — the plan cannot be marked complete without it.
 9. **If the original audit contained only S2 and S3 issues**: `/proofcheck --post-repair` is strongly recommended but not a hard gate. The plan can be marked complete without it, but the executive summary must explicitly state `Convergence status: NOT YET RE-AUDITED (S2/S3-only — re-audit recommended but not required)`.
@@ -287,7 +287,7 @@ If any condition fails, the plan status is `IN-PROGRESS` and the skill reports w
 
 ## Cross-Reference
 
-- `CODEX_PROTOCOL.md` — Per-Repair Fresh Thread protocol (consumed by Closure Matrix's "post per-repair stress-test" requirement)
+- `stat-shared-references/codex-protocol.md` — Per-Repair Fresh Thread protocol (consumed by Closure Matrix's "post per-repair stress-test" requirement)
 - `citation-purpose-protocol.md` — cited results in repair files use the citation-purpose schema
 - `literature-cache-protocol.md` — every new reference in repair_references.bib resolves to a cache entry
 - `proof-strategy.md` — proof-writer's Verification Target / Bottleneck / Trap Catalogue feeds the repair candidates and the Repair Ladder Defense Phase A Exhaustion Record

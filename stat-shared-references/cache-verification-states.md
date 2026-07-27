@@ -102,7 +102,7 @@ plus possible source re-fetch (~10-15K tokens) if source hash is stale.
 Awaiting user decision: upgrade now / defer / cite at informational level only.
 ```
 
-This anti-silent-cost principle matches the per-repair fresh thread protocol in `CODEX_PROTOCOL.md`: a skill that needs a Codex MCP call surfaces the cost; the user decides.
+This anti-silent-cost principle matches the per-repair fresh thread protocol in `stat-shared-references/codex-protocol.md`: a skill that needs a Codex MCP call surfaces the cost; the user decides.
 
 ## Source Integrity
 
@@ -258,4 +258,4 @@ The protocol version is recorded in the top-level `INDEX.md` manifest. Entries' 
 - `literature-cache-protocol.md` (router with Minimum Load Map)
 - `citation-purpose-protocol.md` (purposes, gate matrix, lock-file schema)
 - `applicability-axes.md` (the 8 axes and family registry)
-- `CODEX_PROTOCOL.md` (`independently_checked` upgrades use Codex MCP per the reasoning effort ladder and per-repair fresh thread protocol)
+- `stat-shared-references/codex-protocol.md` (`independently_checked` upgrades use Codex MCP per the reasoning effort ladder and per-repair fresh thread protocol)

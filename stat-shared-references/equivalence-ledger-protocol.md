@@ -190,4 +190,4 @@ The formal-pass mode runs `stat-polishing`'s Step 6 Mathematical Expression Econ
 - `stat-notation-audit.md` (stat-writing-skills) — the cross-reference drift audit.
 - `stat-theory-writing.md` (stat-writing-skills) — formalization statement patterns and the venue formalism register.
 - `stat-venue-checklists.md` (stat-writing-skills) — per-venue register.
-- `CODEX_PROTOCOL.md` — `/proofcheck --post-repair` on a main-chain rewrite uses the same dialogue and reasoning-ladder discipline.
+- `stat-shared-references/codex-protocol.md` — `/proofcheck --post-repair` on a main-chain rewrite uses the same dialogue and reasoning-ladder discipline.

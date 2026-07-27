@@ -391,17 +391,17 @@ propagates to the repair status; it is never absorbed silently.
 
 ### 5C. Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
 
-For every P0 and P1 repair with a complete proof, run the per-repair fresh-thread stress-test defined in `CODEX_PROTOCOL.md` under "Per-Repair Fresh Thread" and "Per-Repair Stress-Test Call Template".
+For every P0 and P1 repair with a complete proof, run the per-repair fresh-thread stress-test defined in `../stat-shared-references/codex-protocol.md` under "Per-Repair Fresh Thread" and "Per-Repair Stress-Test Call Template".
 
-Rules (full rationale and template in `CODEX_PROTOCOL.md`):
+Rules (full rationale and template in `../stat-shared-references/codex-protocol.md`):
 
 - One fresh `mcp__codex__codex` thread per logically-independent repair; up to 2-3 repairs may share a thread only if they sit on the same dependency edge or assumption block.
 - `model_reasoning_effort: xhigh` is forced (the scope hits the Reasoning Effort Ladder triggers: theorem / lemma / proof step / rate / quantifier).
 - Anti-anchor opening prompt; forced falsification attempt; structured PASS / FIXABLE / FAIL verdict.
 - FIXABLE / FAIL iterate via `mcp__codex__codex-reply` on the same thread (Case B continuation).
-- Verdicts are recorded in `audit/07_repairs/codex_stress_test.md` per the artifact schema in `CODEX_PROTOCOL.md` "Per-Repair Stress-Test Verdict Recording" (one row per repair, threadId tracked).
+- Verdicts are recorded in `audit/07_repairs/codex_stress_test.md` per the artifact schema in `../stat-shared-references/codex-protocol.md` "Per-Repair Stress-Test Verdict Recording" (one row per repair, threadId tracked).
 
-The full per-repair call template, the verdict recording schema, the rationale (Codex's honest anchoring self-assessment), and the iterative push-back protocol all live in `CODEX_PROTOCOL.md`. This skill does not duplicate them inline.
+The full per-repair call template, the verdict recording schema, the rationale (Codex's honest anchoring self-assessment), and the iterative push-back protocol all live in `../stat-shared-references/codex-protocol.md`. This skill does not duplicate them inline.
 
 ---
 
@@ -537,7 +537,7 @@ Each row's `Cache reference` resolves to a `paper:<bibkey>#<result_id>` entry pe
 
 The full Hard-Gate Completion Rule (9 conditions) lives in `stat-shared-references/proof-closure-machinery.md`. Headline conditions:
 
-- Every issue has a terminal closure row; every Weaken-Claim and Add-Assumption repair has its mandatory Change Log entry; outstanding sketches = 0; every P0/P1 repair passed the per-repair Codex stress-test (per `CODEX_PROTOCOL.md`); the Consistency Verification checklist is fully checked.
+- Every issue has a terminal closure row; every Weaken-Claim and Add-Assumption repair has its mandatory Change Log entry; outstanding sketches = 0; every P0/P1 repair passed the per-repair Codex stress-test (per `../stat-shared-references/codex-protocol.md`); the Consistency Verification checklist is fully checked.
 - **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. HARD GATE.
 - **If the original audit contained only S2 and S3 issues**: `--post-repair` is strongly recommended; the executive summary states `Convergence status: NOT YET RE-AUDITED (S2/S3-only)`.
 
@@ -566,9 +566,11 @@ references it contains, and the LaTeX block itself.
 
 **Pre-patch validation (all four must hold before PATCHES.md is final):**
 
-1. Every `ef{}` / `\eqref{}` / `\cref{}` inside a patch resolves to a `\label{}` in the
+1. Every `
+ef{}` / `\eqref{}` / `\cref{}` inside a patch resolves to a `\label{}` in the
    *same* file. Otherwise convert it to a hard-coded reference.
-2. Every cross-file reference is a hard-coded number, never a `ef{}`.
+2. Every cross-file reference is a hard-coded number, never a `
+ef{}`.
 3. Supplement numbering stays consistent: new supplement objects get S-prefixed display
    numbers, and assigned numbers are tracked across patches so the master plan agrees
    with itself.

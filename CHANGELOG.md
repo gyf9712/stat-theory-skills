@@ -141,7 +141,7 @@ Per Codex's Q3 verdicts on prompt length (sweet zone 500-700 lines; attention ta
 - `skills/proofcheck/SKILL.md`: 1049 → 1030 (-19, -2%). Severity system, verification statuses, provability triage extracted. Most of the rest is genuinely skill-specific 6-pass workflow.
 - `stat-writing-skills/stat-polishing/SKILL.md`: 855 → 783 (-72, -8%). Duplicated style-discipline content collapsed to pointers.
 - **NEW** `stat-shared-references/proof-closure-machinery.md` (279 lines): canonical schemas for severity S0-S3, verification statuses, provability triage, 11 repair classes, Repair Priority Ladder (Phase A/B/C, L1-L6), Repair Closure Matrix schema, Weaken-Claim Change Log schema (5 columns including Patch ID), Assumption-Extension Change Log schema (7 columns including Natural weaker variant), Repair Ladder Defense block, Repair Ladder Summary table, Hard-Gate Completion Rule (9 conditions including HARD GATE post-repair re-audit for S0/S1).
-- `CODEX_PROTOCOL.md` extended (+100 lines): Per-Repair Stress-Test Call Template + `codex_stress_test.md` artifact schema with threadId column + iterative FIXABLE/FAIL push-back protocol.
+- `stat-shared-references/codex-protocol.md` extended (+100 lines): Per-Repair Stress-Test Call Template + `codex_stress_test.md` artifact schema with threadId column + iterative FIXABLE/FAIL push-back protocol.
 
 **Cache integration (commit 3bd1e65 stat-theory + ea3594d stat-writing)**
 
@@ -258,7 +258,7 @@ User surveyed [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (a Rust CLI proxy that
 
 This release codifies the three highest-ROI changes. The remaining four (per-venue file split, paths+read-receipt in `cwd` mode, anchor-then-window Read pattern, canonical-store + ID references) are tracked as deferred items.
 
-### New: Reasoning Effort Ladder in `CODEX_PROTOCOL.md`
+### New: Reasoning Effort Ladder in `stat-shared-references/codex-protocol.md`
 
 Every Codex call now defaults to `model_reasoning_effort: medium`. The ladder forces `xhigh` whenever **what is being audited** (not which skill is calling) falls into a high-risk content class: theorem / lemma / proposition / corollary statement, assumption block change, proof step, rate / constant, quantifier, probability level, dependency edge, Weaken-Claim change-log row, post-repair convergence verdict, assumption-ledger consistency check, minimax lower bound.
 
@@ -278,7 +278,7 @@ This enables three downstream behaviors:
 
 The manifest is mandatory for FINAL_REPORT, issue_log, per-unit checks, REPAIR_PLAN, PATCHES, codex_stress_test, codex_discussion, RE-AUDIT_REPORT, diff_ledger, CONVERGENCE_VERDICT, and PROOF_PACKAGE files.
 
-### New: Per-Repair Fresh Thread (OPT7-C anti-anchoring fix) in `CODEX_PROTOCOL.md` and `proof-repair` Step 5C
+### New: Per-Repair Fresh Thread (OPT7-C anti-anchoring fix) in `stat-shared-references/codex-protocol.md` and `proof-repair` Step 5C
 
 The previous `proof-repair` Step 5C suggested running all P0/P1 repairs through Codex sequentially. Under the OPT7 review, Codex self-assessed that this anchors verdicts to the thread's emerging narrative. The protocol now requires:
 
@@ -521,7 +521,7 @@ User observation: across all skills using Codex, the implicit risk was that Clau
 would "全盘接受" Codex findings rather than discussing them. This release codifies
 the discipline.
 
-### New file: `CODEX_PROTOCOL.md` (repo root)
+### New file: `stat-shared-references/codex-protocol.md` (repo root)
 
 A shared, explicit protocol for how Claude skills invoke Codex:
 
@@ -537,7 +537,7 @@ A shared, explicit protocol for how Claude skills invoke Codex:
 - **When to escalate**: persistent disagreement, >3 rounds without progress,
   or taste/philosophy/venue-preference disagreements (let user pick)
 
-### Updated skills (all 5 now reference CODEX_PROTOCOL.md)
+### Updated skills (all 5 now reference stat-shared-references/codex-protocol.md)
 
 - `proofcheck` (Pass 4): adversarial cross-review uses discussion protocol
 - `proof-repair` (Step 5C): stress-test repairs via discussion

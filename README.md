@@ -198,7 +198,7 @@ claude mcp add codex -s user -- codex mcp-server
 
 ### The discussion protocol — NOT wholesale acceptance
 
-All skills follow [`CODEX_PROTOCOL.md`](CODEX_PROTOCOL.md): Codex is an adversarial
+All skills follow [`stat-shared-references/codex-protocol.md`](stat-shared-references/codex-protocol.md): Codex is an adversarial
 reviewer to **discuss with iteratively until convergence**, never an oracle whose
 findings are accepted wholesale.
 

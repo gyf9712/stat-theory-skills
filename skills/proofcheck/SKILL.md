@@ -474,7 +474,7 @@ Write findings to `audit/05_adversarial/hidden_assumptions.md` and `audit/05_adv
 
 #### Codex Adversarial Cross-Review (if Codex MCP available)
 
-**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+**Follow `../stat-shared-references/codex-protocol.md`** — Codex is an adversarial reviewer
 to **discuss with iteratively**, not an oracle to defer to. Every Codex finding
 requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION with reasoning.
 Forbidden behaviors: silent wholesale acceptance, silent rejection, agreement
@@ -546,7 +546,7 @@ Write reconciliation to `audit/05_adversarial/codex_cross_review.md`.
 
 ### 7. Pass 5 — Final Report
 
-Every generated artifact begins with the **Artifact Manifest Header** described in `CODEX_PROTOCOL.md`. The manifest lets downstream skills (`proof-repair`, `--post-repair`, `theory-sharpen`) load only what they need and detect staleness against the paper's current state.
+Every generated artifact begins with the **Artifact Manifest Header** described in `../stat-shared-references/codex-protocol.md`. The manifest lets downstream skills (`proof-repair`, `--post-repair`, `theory-sharpen`) load only what they need and detect staleness against the paper's current state.
 
 Write `audit/06_reports/FINAL_REPORT.md`:
 
@@ -974,7 +974,7 @@ papers/<paper-name>/audit/08_post_repair/
   new_issues.md                # NEW-S0/S1/S2/S3 detected by patches
 ```
 
-Every file in `08_post_repair/` begins with the Artifact Manifest Header (see `CODEX_PROTOCOL.md`). For these post-repair artifacts:
+Every file in `08_post_repair/` begins with the Artifact Manifest Header (see `../stat-shared-references/codex-protocol.md`). For these post-repair artifacts:
 - `scope: dependency_expanded` (the touched units plus their direct dependencies)
 - `theorem_ids` lists every unit whose patch is verified by this artifact
 - `assumption_ids` lists every assumption referenced (original + new from patches)

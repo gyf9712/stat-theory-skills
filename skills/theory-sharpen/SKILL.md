@@ -826,7 +826,7 @@ For each gap between this paper and the frontier:
 
 ## Step 5B: Codex Independent Assessment (if Codex MCP available)
 
-**Follow `CODEX_PROTOCOL.md` (in repo root)** — Codex is an adversarial reviewer
+**Follow `../stat-shared-references/codex-protocol.md`** — Codex is an adversarial reviewer
 to **discuss with iteratively**, not an oracle to defer to. For each Codex finding
 about whether an assumption can be relaxed or a rate sharpened, Claude MUST decide
 explicitly: ACCEPT (with reasoning), PUSH BACK (with substantive counter-argument),

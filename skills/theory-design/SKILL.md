@@ -787,7 +787,7 @@ Pre-empt these in the framework.
 
 ### X4: Codex independent review — DISCUSSION not acceptance
 
-Follow the repo's `CODEX_PROTOCOL.md` (Codex Discussion Protocol) — Codex is an
+Follow the repo's `../stat-shared-references/codex-protocol.md` (Codex Discussion Protocol) — Codex is an
 **adversarial reviewer to discuss with, not an oracle to defer to.** Every
 Codex finding requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION.
 
@@ -841,7 +841,7 @@ For EACH Codex finding, decide explicitly:
 | 3 | [...] | REQUEST CLARIFICATION | [what is ambiguous] |
 ```
 
-**Forbidden behaviors** (from CODEX_PROTOCOL.md):
+**Forbidden behaviors** (from ../stat-shared-references/codex-protocol.md):
 - Silent wholesale acceptance to avoid friction
 - Silent rejection to defend prior work
 - ACCEPT without recording why the finding was correct
@@ -861,7 +861,7 @@ Continue until one of:
 
 #### Final: Write `papers/<paper-name>/design/codex_discussion.md`
 
-Required structure (from CODEX_PROTOCOL.md):
+Required structure (from ../stat-shared-references/codex-protocol.md):
 ```markdown
 # Codex Discussion Log — theory-design for [topic]
 
