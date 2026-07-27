@@ -1,0 +1,202 @@
+{
+  "provenance": {
+    "script_version": "1.0.0",
+    "skills_dir": "C:\\Users\\yguo12\\stat-theory-skills\\skills",
+    "skills_checked": 6
+  },
+  "findings": [
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof_gap_scan.py' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof_gap_scan.py"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'literature-cache-protocol.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "literature-cache-protocol.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-repair names 'proof_index.py' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-repair",
+        "ref": "proof_index.py"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proof-writer names 'proof-strategy.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proof-writer",
+        "ref": "proof-strategy.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proofcheck names 'proof_index.py' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proofcheck",
+        "ref": "proof_index.py"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "proofcheck names 'proof-closure-machinery.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "proofcheck",
+        "ref": "proof-closure-machinery.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-design names 'literature-cache-protocol.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-design",
+        "ref": "literature-cache-protocol.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-design names 'citation-purpose-protocol.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-design",
+        "ref": "citation-purpose-protocol.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-design names 'applicability-axes.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-design",
+        "ref": "applicability-axes.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-design names 'applicability-axes.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-design",
+        "ref": "applicability-axes.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-sharpen names 'literature-cache-protocol.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-sharpen",
+        "ref": "literature-cache-protocol.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-sharpen names 'citation-purpose-protocol.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-sharpen",
+        "ref": "citation-purpose-protocol.md"
+      }
+    },
+    {
+      "id": "bare_shared_filename",
+      "status": "WARN",
+      "message": "theory-sharpen names 'applicability-axes.md' without a path. Fine in prose if the full path appears elsewhere in the skill; otherwise give the path.",
+      "evidence": {
+        "skill": "theory-sharpen",
+        "ref": "applicability-axes.md"
+      }
+    }
+  ],
+  "summary": {
+    "FAIL": 0,
+    "WARN": 21
+  }
+}

@@ -107,7 +107,7 @@ must reference back to this anchor when making a choice.
 
 ### 0.5.cache: Cache-consult first (mandatory)
 
-Before invoking any web search, consult the durable literature cache at `~/.claude/literature_cache/`. The protocol lives in `stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map). For theory-design Step 0.5 the typical loads are:
+Before invoking any web search, consult the durable literature cache at `~/.claude/literature_cache/`. The protocol lives in `../stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map). For theory-design Step 0.5 the typical loads are:
 
 - `literature-cache-protocol.md` (router) — always.
 - `citation-purpose-protocol.md` — for `lineage_positioning` and `benchmark_claim` role identification of the anchor papers.
@@ -178,149 +178,27 @@ Purpose: identify what the field considers CANONICAL recent work
 (papers that define the current framework).
 ```
 
-### 0.5C: Extract from each found paper
+### 0.5C-0.5F: Extract, summarise inertia, choose positioning, derive constraints
 
-For each paper, extract structured information:
+For each anchor paper, record: problem framing, theoretical anchor, assumption profile,
+result type, proof technique, and position in the literature. Write the results to
+`LITERATURE_ANCHOR.md`.
 
-```markdown
-## [Paper N] Author (Year, Venue, citations)
+Then produce three things, in order, because each constrains the next:
 
-### Problem framing
-- How is the problem stated?
-- What gap does it address?
-- One-sentence contribution
+1. **Theoretical inertia of the field** — the default data structure, the default
+   assumption set, the default result type, and the technique the field currently
+   reaches for. This is what a referee will unconsciously expect.
+2. **Positioning options** — `INCREMENTAL` (accept the inertia, push one dimension),
+   `LATERAL` (change the object or the setting), or `DISRUPTIVE` (reject a default the
+   field has stopped questioning). Name the cost of each; disruptive positioning buys
+   novelty and spends referee goodwill.
+3. **Constraints derived from the anchor** — what the chosen positioning now forbids.
+   These bind every later phase decision; a framework that violates its own anchor
+   constraints is incoherent, and the X-series checks will catch it.
 
-### Theoretical anchor
-- Data structure used
-- Modeling framework
-- Asymptotic regime
-- Target estimand/object
-
-### Assumption profile
-- Key assumptions (≤5)
-- Anything unusual or contested
-
-### Result type
-- Rate / asymptotic distribution / coverage / lower bound / structural recovery?
-
-### Proof technique
-- Main tool used
-
-### Position in literature
-- Direct predecessor it extends
-- Alternative approach it competes with
-```
-
-Compile into `papers/<paper-name>/design/LITERATURE_ANCHOR.md`.
-
-### 0.5D: Identify the "theoretical inertia"
-
-From the extracted papers, identify the **current consensus framework**:
-
-```markdown
-## Theoretical Inertia of the Field
-
-### Default data structure: [most common across recent T1 papers]
-Example: "Most recent CATE papers use i.i.d. observations even when
-applications are clustered."
-
-### Default modeling framework: [most common]
-Example: "Semiparametric framework with infinite-dim nuisance is dominant
-for treatment effect since Robins-Rotnitzky-Zhao (1994); pure parametric
-is now rare."
-
-### Default asymptotic regime: [most common]
-Example: "Non-asymptotic high-d bounds with sparsity have become standard
-in the last 5 years; classical asymptotic n→∞ with d fixed is now seen
-as a special case to confirm."
-
-### Default proof technique: [most common]
-Example: "Cross-fitting + orthogonal scores is now the dominant proof
-technique in this subfield (Chernozhukov et al. 2018)."
-
-### Default contribution shape
-Example: "Recent papers tend to: (a) propose a new method, (b) prove
-n^{-1/2} rate under semiparametric assumptions, (c) demonstrate finite-sample
-performance via simulation."
-```
-
-This is the **inertia** — the path of least resistance for the field. You can
-either follow it (lower friction in review) or deviate from it (higher reward
-but must justify the deviation).
-
-### 0.5E: Identify positioning options
-
-For your contribution, where does it sit relative to the inertia?
-
-```markdown
-## Positioning Options
-
-### Option 1: INCREMENTAL — refine within the inertia
-- Adopts default data structure, framework, regime
-- Provides a sharper rate, weaker assumption, OR new estimator in the standard frame
-- Easier to review and publish (referees see a familiar landscape)
-- Lower-novelty perception unless the refinement is technically substantial
-
-### Option 2: LATERAL — same problem, different angle
-- Same problem, but pick an alternative framework or regime
-- Example: most CATE papers use cross-fitting; you might use posterior contraction
-- Must justify why your angle reveals something the standard angle misses
-- Higher review difficulty (referee needs to be familiar with your alternative)
-
-### Option 3: DISRUPTIVE — challenges the inertia
-- Argues the standard framework is wrong / suboptimal / mis-applied here
-- Requires either (a) a counterexample showing standard framework fails, or
-  (b) a new framework that supersedes the standard
-- Highest reward, highest risk; usually requires a paper-length argument for the
-  reframing itself
-```
-
-For each option, also identify:
-- Which T1 venues are most receptive
-- Which 3-5 reference papers should be cited for positioning
-
-### 0.5F: Anchor → design constraints
-
-The literature anchor feeds into every subsequent phase as constraints:
-
-```markdown
-## Constraints derived from anchor
-
-For Step 1 (problem framing):
-- The motivation must distinguish from [list 3 most similar papers]
-- The gap must be precisely articulated; vague gaps will be attacked
-
-For Step 2-3 (model/framework choice):
-- If you adopt the inertia: cite [canonical papers]
-- If you deviate: justify deviation with [specific reasoning]
-
-For Step 5-6 (target results / proof):
-- Your rate must beat / match / explicitly differ from [best known: list]
-- Your proof technique should either use [dominant tool] or justify why not
-
-For Step 7 (downstream connections):
-- Specify which existing papers your work supersedes or complements
-```
-
-### 0.5G: Mandatory user confirmation
-
-Present the LITERATURE_ANCHOR.md to the user. Force confirmation:
-
-```
-"Here is the literature anchor for your topic.
-
-  - X recent T1 papers identified
-  - Theoretical inertia: [summary]
-  - Recommended positioning: [option]
-
-Do you confirm this anchor before proceeding to framework design?"
-```
-
-User can: confirm / correct misreadings / add papers / change positioning.
-
-Without explicit confirmation, the skill REFUSES to proceed to Step T1/M1/A1.
-
----
+Filled specimens for all four artifacts:
+`../stat-shared-references/examples/literature-anchor-example.md`.
 
 ## THEORY MODE (T1-T7)
 
@@ -785,113 +663,22 @@ What will a top-stat-journal referee almost certainly ask?
 
 Pre-empt these in the framework.
 
-### X4: Codex independent review — DISCUSSION not acceptance
+### X4: Codex independent review — discussion, not acceptance
 
-Follow the repo's `../stat-shared-references/codex-protocol.md` (Codex Discussion Protocol) — Codex is an
-**adversarial reviewer to discuss with, not an oracle to defer to.** Every
-Codex finding requires explicit ACCEPT / PUSH BACK / REQUEST CLARIFICATION.
+Send the draft framework to Codex per `../stat-shared-references/codex-protocol.md`.
+Codex is an adversarial reviewer to discuss with, never an oracle to defer to.
 
-#### Round 2 — Send framework to Codex for adversarial review
+Every finding gets an explicit disposition — ACCEPT, PUSH BACK, or REQUEST
+CLARIFICATION — with reasoning recorded. A framework decision is not changed because
+Codex asserted it; it is changed because the argument holds. Escalate to the user any
+finding that would change the paper type, the positioning, or a headline claim.
 
-```
-mcp__codex__codex:
-  config: {"model_reasoning_effort": "high"}
-  prompt: |
-    You are an adversarial senior referee for a top stat journal
-    (AoS / JASA / JRSS-B / Biometrika / Econometrica).
-    Be harsh — find real weaknesses. Do not be polite.
+Record the exchange in `FRAMEWORK_REVIEW.md`: one row per finding (finding, severity,
+Codex position, disposition, reasoning), plus the round-by-round history and any
+escalations.
 
-    A statistics researcher has drafted a framework for a new [paper_type] paper.
-    The framework includes a mandatory literature anchor (Step 0.5).
-
-    LITERATURE_ANCHOR.md:
-    [paste]
-
-    FRAMEWORK_DESIGN.md:
-    [paste]
-
-    Adversarial review tasks:
-    1. Is the paper-type declaration coherent with the framework's actual focus?
-       (e.g., user said THEORY but the centerpiece is an estimator → METHODOLOGY)
-    2. Is the literature anchor adequate? Did the search miss obvious recent T1 work?
-    3. Is the positioning (INCREMENTAL/LATERAL/DISRUPTIVE) realistic given the
-       anchor? Is the contribution magnitude believable for the chosen positioning?
-    4. Are there logical jumps between phases? (e.g., model setup that doesn't
-       support the target results)
-    5. Is the asymptotic regime / model choice sensible for the contribution?
-    6. What's the most likely reviewer attack on this design?
-    7. What's missing? Be specific: name the missing piece + cite an example
-       of how recent T1 papers handle it.
-
-    Output: numbered findings with severity (CRITICAL / MAJOR / MINOR / NIT).
-    For each, propose a concrete fix.
-```
-
-#### Round 3 — Claude evaluates each finding (mandatory)
-
-For EACH Codex finding, decide explicitly:
-
-```markdown
-## Per-finding evaluation
-
-| # | Codex finding | Decision | Reasoning |
-|---|--------------|----------|-----------|
-| 1 | [...] | ACCEPT | [why correct, what to change] |
-| 2 | [...] | PUSH BACK | [substantive counter-argument] |
-| 3 | [...] | REQUEST CLARIFICATION | [what is ambiguous] |
-```
-
-**Forbidden behaviors** (from ../stat-shared-references/codex-protocol.md):
-- Silent wholesale acceptance to avoid friction
-- Silent rejection to defend prior work
-- ACCEPT without recording why the finding was correct
-- PUSH BACK without a substantive argument
-
-#### Round 4 — Send push-back / clarifications back to Codex
-
-Use `mcp__codex__codex-reply` on the same threadId. Codex can concede, refine,
-or hold firm. Capture each.
-
-#### Round 5+ — Iterate until convergence OR escalation
-
-Continue until one of:
-- Convergence: both agree on final findings — apply changes
-- Persistent disagreement on specific points — escalate to user with both arguments
-- >3 rounds without progress — stop and escalate
-
-#### Final: Write `papers/<paper-name>/design/codex_discussion.md`
-
-Required structure (from ../stat-shared-references/codex-protocol.md):
-```markdown
-# Codex Discussion Log — theory-design for [topic]
-
-## Round 1: Claude's initial framework
-[link to FRAMEWORK_DESIGN.md]
-
-## Round 2: Codex review (N findings)
-[table]
-
-## Round 3: Per-finding evaluation
-[table]
-
-## Round 4+: Iterations
-[per round]
-
-## Final state
-[what changed; what disagreements remain]
-
-## Escalations to user (if any)
-[both positions stated]
-```
-
-This log goes alongside FRAMEWORK_DESIGN.md and LITERATURE_ANCHOR.md.
-
-**Why the protocol matters here**: framework design is precisely where reflexive
-acceptance of Codex would be most harmful — the framework determines the entire
-downstream paper. A framework shaped by whichever LLM is louder, rather than by
-substantive deliberation, will fail review for reasons neither LLM anticipated.
-
----
+Per-finding evaluation shape and a worked dialogue:
+`../stat-shared-references/examples/theory-design-codex-dialogue-example.md`.
 
 ## Output: FRAMEWORK_DESIGN.md
 
@@ -929,7 +716,7 @@ Final structure of the document this skill produces:
 The framework shares **one** assumption system, not a fresh set per theorem. After the
 assumption profile is settled (T-mode Step T5/T6, M-mode Q5.3 minimal set, A-mode A3), promote
 those prose assumptions into a canonical, ID-addressable store `assumptions.lock.md`, per
-`stat-shared-references/assumptions-lock-protocol.md`. Write the `## Assumption Registry`
+`../stat-shared-references/assumptions-lock-protocol.md`. Write the `## Assumption Registry`
 table (assign `A1, A2, …`, tag each with an `applicability-axes.md` axis and a strength/regime
 class, and set `Relation to other IDs` for any variant) and seed an empty `## Theorem
 Invocation Matrix` for `proof-writer` to fill.

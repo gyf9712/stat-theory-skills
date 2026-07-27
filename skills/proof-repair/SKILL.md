@@ -82,7 +82,7 @@ lightweight inline check on the specific unit they point to.
 
 ### 0B. Detect Reference Mode (HARD GATE before any LaTeX patch)
 
-Run `scripts/proof_index.py` and record the reported `reference_mode` in
+Run `../stat-shared-references/scripts/proof_index.py` and record the reported `reference_mode` in
 `REPAIR_PLAN.md`. In Mode B (two-file main + supplement, standard at JASA / AoS /
 Biometrika / JRSS-B) `
 ef{}` does not resolve across files, so every cross-file
@@ -115,7 +115,7 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 | Class | When to use | Needs literature? |
 |-------|-------------|-------------------|
 | **Add-Assumption** | Proof uses unstated condition | Yes — find papers with similar assumption or weaker alternative |
-| **Weaken-Claim** | Theorem claims more than proved | Maybe — find if stronger result exists elsewhere. **MANDATORY**: produce a Weaken-Claim Change Log entry per the schema in `stat-shared-references/proof-closure-machinery.md` (5 columns: Patch ID, Original claim verbatim, Revised claim verbatim, Reason for weakening, Downstream impact). Without the log entry, `/proofcheck --post-repair` will flag this as `NEW-S0` (undocumented semantic change). |
+| **Weaken-Claim** | Theorem claims more than proved | Maybe — find if stronger result exists elsewhere. **MANDATORY**: produce a Weaken-Claim Change Log entry per the schema in `../stat-shared-references/proof-closure-machinery.md` (5 columns: Patch ID, Original claim verbatim, Revised claim verbatim, Reason for weakening, Downstream impact). Without the log entry, `/proofcheck --post-repair` will flag this as `NEW-S0` (undocumented semantic change). |
 | **Strengthen-Proof** | Gap in reasoning, but claim is likely true | Yes — find technique/lemma to fill the gap |
 | **Insert-Lemma** | Missing intermediate step | Yes — may exist as known result in literature |
 | **Fill-Skipped-Steps** | Author skipped intermediate steps; proofcheck flagged NONTRIVIAL or UNRECONSTRUCTIBLE jumps | Sometimes — TRIVIAL/VERIFIABLE need no refs, NONTRIVIAL may need a named technique, UNRECONSTRUCTIBLE may need new lemma + refs |
@@ -216,7 +216,7 @@ a base lemma assumption before fixing the theorem that uses it).
 
 ## 3. Enforce the Repair Priority Ladder (HARD GATE)
 
-Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. The full ladder definition (Phase A / B / C, L1-L6), the mapping from levels to repair classes, the sibling-not-ordered rules for L2/L3 and L4/L5, and the hard enforcement requirements all live in `stat-shared-references/proof-closure-machinery.md` under "Repair Priority Ladder".
+Before generating candidate repairs, classify each candidate by **ladder level** and by **repair class**. The full ladder definition (Phase A / B / C, L1-L6), the mapping from levels to repair classes, the sibling-not-ordered rules for L2/L3 and L4/L5, and the hard enforcement requirements all live in `../stat-shared-references/proof-closure-machinery.md` under "Repair Priority Ladder".
 
 Operational summary for this step:
 
@@ -278,10 +278,10 @@ Instead write a **Blockage Report**:
 
 ### Mandatory output blocks per candidate
 
-Each candidate selected for the next step (Step 4 literature search and Step 5 complete-proof writing) requires the following mandatory blocks in its per-issue repair file at `audit/07_repairs/section_*/*_repair.md`. The schemas live in `stat-shared-references/proof-closure-machinery.md` and are not duplicated here.
+Each candidate selected for the next step (Step 4 literature search and Step 5 complete-proof writing) requires the following mandatory blocks in its per-issue repair file at `audit/07_repairs/section_*/*_repair.md`. The schemas live in `../stat-shared-references/proof-closure-machinery.md` and are not duplicated here.
 
 - **Always**: `## Repair Ladder Defense` block (chosen level + repair class + claim/assumption preservation + Phase A Exhaustion Record + Phase B Justification if L4/L5 + Semantic-Edit Log Pointer + Blockage Pointer if L6).
-- **If chosen class is `Weaken-Claim` (ladder L5) or candidate feasibility was `PROVABLE AFTER WEAKENING`**: `## Weaken-Claim Change Log` block per the schema in `stat-shared-references/proof-closure-machinery.md` (5 columns: Patch ID, Original claim verbatim, Revised claim verbatim, Reason for weakening, Downstream impact). Without this block, the repair is demoted to `NOT CURRENTLY JUSTIFIED`.
+- **If chosen class is `Weaken-Claim` (ladder L5) or candidate feasibility was `PROVABLE AFTER WEAKENING`**: `## Weaken-Claim Change Log` block per the schema in `../stat-shared-references/proof-closure-machinery.md` (5 columns: Patch ID, Original claim verbatim, Revised claim verbatim, Reason for weakening, Downstream impact). Without this block, the repair is demoted to `NOT CURRENTLY JUSTIFIED`.
 - **If chosen class is `Add-Assumption` (ladder L4)**: `## Assumption-Extension Change Log` block per the schema in `proof-closure-machinery.md` (7 columns: Issue ID, Original assumption set, Added assumption verbatim, Natural weaker variant considered, Why the weaker variant fails, Scientific-scope impact, Propagation to downstream theorems/lemmas). The "Natural weaker variant considered" column is the local-minimality defense. Without this block, the repair is demoted to `NOT CURRENTLY JUSTIFIED`.
 
 The `Downstream impact` / `Propagation` columns in both Change Logs are propagation contracts: every listed unit must have a corresponding patch in PATCHES.md. The re-audit treats unpropagated downstream consumers as `NEW-S0` (silent overstatement in the patched paper).
@@ -484,7 +484,7 @@ Execute repairs in this order (respects dependency DAG):
 
 ## Repair Ladder Summary
 
-Insert the `## Repair Ladder Summary` table per the schema in `stat-shared-references/proof-closure-machinery.md`. One row per issue with columns: Issue ID, Unit, Chosen repair class, Chosen ladder level, Claim preserved?, Assumptions preserved?, Escalation justified?, Pointer to per-issue defense.
+Insert the `## Repair Ladder Summary` table per the schema in `../stat-shared-references/proof-closure-machinery.md`. One row per issue with columns: Issue ID, Unit, Chosen repair class, Chosen ladder level, Claim preserved?, Assumptions preserved?, Escalation justified?, Pointer to per-issue defense.
 
 ## Per-Issue Repair Specifications
 
@@ -535,7 +535,7 @@ Each row's `Cache reference` resolves to a `paper:<bibkey>#<result_id>` entry pe
 
 ## Hard-Gate Completion Rule
 
-The full Hard-Gate Completion Rule (9 conditions) lives in `stat-shared-references/proof-closure-machinery.md`. Headline conditions:
+The full Hard-Gate Completion Rule (9 conditions) lives in `../stat-shared-references/proof-closure-machinery.md`. Headline conditions:
 
 - Every issue has a terminal closure row; every Weaken-Claim and Add-Assumption repair has its mandatory Change Log entry; outstanding sketches = 0; every P0/P1 repair passed the per-repair Codex stress-test (per `../stat-shared-references/codex-protocol.md`); the Consistency Verification checklist is fully checked.
 - **If the original audit contained any S0 or S1 issue**: `/proofcheck --post-repair` has been invoked AND `audit/08_post_repair/CONVERGENCE_VERDICT.md` reports `CONVERGED`. HARD GATE.

@@ -161,7 +161,7 @@ Each skill that touches literature gains a "consult cache first" step at its lit
 | `proofcheck` Pass 4 (Codex cross-review) | cache-consult for prior literature | router + cache-verification-states | xhigh reasoning per CODEX_PROTOCOL |
 | `proofcheck` `--post-repair` | verify cited results in patched proof | router + cache-verification-states | Staleness check against lock manifest |
 | `proof-writer` Cited Results Audit | every cited result resolves to cache entry | router + citation-purpose-protocol + applicability-axes + cache-verification-states | Full protocol; this is the heaviest user |
-| `theory-sharpen` Step 4 (Literature anchoring) | cache-consult; 22 pathways become cache-aware | router + applicability-axes | Lineage citations dominate here |
+| `theory-sharpen` Steps 0.5B and 5 (Literature anchoring and benchmarking) | cache-consult; 22 pathways become cache-aware | router + applicability-axes | Lineage citations dominate here |
 | `theory-design` Step 0.5 (Mandatory Literature Anchoring) | cache-consult before search | router + citation-purpose-protocol + applicability-axes | 4 parallel agents check cache |
 | `stat-positioning-and-claims.md` | positioning audit consumes cache | router + citation-purpose-protocol | `independently_checked` for positioning claims |
 | `stat-paper-plan` PRIOR_WORK_MATRIX `Read In Full` column | cache reference at `source_checked` or higher | router + cache-verification-states | Lock manifest tracks this |

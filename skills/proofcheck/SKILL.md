@@ -37,7 +37,7 @@ Based on: https://github.com/maweiruc/proofcheck-stat-paper
 
 ## Severity System, Verification Statuses, and Provability Triage
 
-The S0-S3 severity system, the five verification statuses (Verified / Conditionally verified / Gap found / Incorrect / Not checked), and the three-class provability triage (PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED) are defined in `stat-shared-references/proof-closure-machinery.md`. That file is the single source of truth shared with `proof-repair` and `proof-writer`.
+The S0-S3 severity system, the five verification statuses (Verified / Conditionally verified / Gap found / Incorrect / Not checked), and the three-class provability triage (PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED) are defined in `../stat-shared-references/proof-closure-machinery.md`. That file is the single source of truth shared with `proof-repair` and `proof-writer`.
 
 Operational note for this skill:
 
@@ -742,7 +742,7 @@ Invoked as `/proofcheck --post-repair papers/<paper-name>/`. This is a **focused
 - Always after `/proof-repair` finishes a plan that touches any S0 or S1 issue. This is a **HARD GATE**: `/proof-repair` cannot mark `REPAIR_PLAN.md` complete until this mode has run and reports `CONVERGED`.
 - Strongly recommended (not gated) after `/proof-repair` on S2/S3-only plans, because patches can still introduce silent regressions even when they target minor issues.
 - After applying any human-authored patch to a paper that already has an `audit/` directory, to verify the manual edit did not break a downstream proof.
-- After `stat-polishing --formal-statement-pass` produces an `EQUIVALENCE_LEDGER.md` row whose proofcheck status is "required (on main chain)". A formalized assumption or statement on the dependency path to a headline theorem, rate theorem, or main-chain lemma is a semantic edit and gets the same re-audit as a proof-repair semantic edit. The ledger row is the entry point: its "touched axis" and "downstream consumers" columns scope the affected sub-DAG. See `stat-shared-references/equivalence-ledger-protocol.md` for the proofcheck depth split (targeted dependency check for off-chain rewrites; full `--post-repair` for on-chain).
+- After `stat-polishing --formal-statement-pass` produces an `EQUIVALENCE_LEDGER.md` row whose proofcheck status is "required (on main chain)". A formalized assumption or statement on the dependency path to a headline theorem, rate theorem, or main-chain lemma is a semantic edit and gets the same re-audit as a proof-repair semantic edit. The ledger row is the entry point: its "touched axis" and "downstream consumers" columns scope the affected sub-DAG. See `../stat-shared-references/equivalence-ledger-protocol.md` for the proofcheck depth split (targeted dependency check for off-chain rewrites; full `--post-repair` for on-chain).
 
 ### Inputs
 
@@ -750,11 +750,11 @@ The mode reads, in order:
 
 1. The original audit at `papers/<paper-name>/audit/` — especially `06_reports/FINAL_REPORT.md`, `06_reports/issue_log.md`, `02_ledgers/{notation,assumption,constants}_ledger.md`, and `03_dependencies/dependency_graph.md`.
 2. `papers/<paper-name>/REPAIR_PLAN.md` — the master repair roadmap, including the **Repair Closure Matrix** (see `proof-repair` Step 7A).
-3. `papers/<paper-name>/PATCHES.md` — the ordered list of LaTeX modifications, including the **Weaken-Claim Change Log** for L5 repairs and the **Assumption-Extension Change Log** for L4 repairs (per the schemas in `stat-shared-references/proof-closure-machinery.md`).
+3. `papers/<paper-name>/PATCHES.md` — the ordered list of LaTeX modifications, including the **Weaken-Claim Change Log** for L5 repairs and the **Assumption-Extension Change Log** for L4 repairs (per the schemas in `../stat-shared-references/proof-closure-machinery.md`).
 4. The patched paper itself (`papers/<paper-name>/paper.tex`, plus `supplement.tex` if Mode B).
 5. `audit/07_repairs/codex_stress_test.md` (if it exists from `/proof-repair` Step 5C) — the per-repair adversarial verdicts, to avoid re-litigating the same questions.
 6. The per-issue repair files in `audit/07_repairs/section_*/*_repair.md` — these hold the `Repair Ladder Defense` blocks and the per-issue Assumption-Extension Change Log entries (L4 only).
-7. `papers/<paper-name>/EQUIVALENCE_LEDGER.md` (if it exists, from `stat-polishing --formal-statement-pass`) — semantic formalization rewrites. Rows whose `Touched axis` is non-empty are treated like semantic edits: the re-audit verifies the formalized statement against the original on the recorded axis, confirms the "possible silent strengthening / weakening" column was honest, and checks that downstream consumers were propagated. A formalized statement that silently strengthened an assumption is a `NEW-S0`, exactly as an undocumented Weaken-Claim or Add-Assumption edit is. See `stat-shared-references/equivalence-ledger-protocol.md`.
+7. `papers/<paper-name>/EQUIVALENCE_LEDGER.md` (if it exists, from `stat-polishing --formal-statement-pass`) — semantic formalization rewrites. Rows whose `Touched axis` is non-empty are treated like semantic edits: the re-audit verifies the formalized statement against the original on the recorded axis, confirms the "possible silent strengthening / weakening" column was honest, and checks that downstream consumers were propagated. A formalized statement that silently strengthened an assumption is a `NEW-S0`, exactly as an undocumented Weaken-Claim or Add-Assumption edit is. See `../stat-shared-references/equivalence-ledger-protocol.md`.
 
 ### What it does NOT do
 
@@ -870,7 +870,7 @@ It does **not** require the re-audit to prove that no better Phase A repair exis
 
 #### P3.7. Citation lock manifest consistency check (read-only)
 
-Read `papers/<paper-name>/cited_results.lock.md` per `stat-shared-references/cited-results-lock-protocol.md`. The re-audit performs a read-only consistency check:
+Read `papers/<paper-name>/cited_results.lock.md` per `../stat-shared-references/cited-results-lock-protocol.md`. The re-audit performs a read-only consistency check:
 
 - Every row's `Reference` resolves to an existing cache entry (`paper:<bibkey>#<result_id>` is in `~/.claude/literature_cache/papers/<bibkey>.md`).
 - Every row's `Entry hash at decision` matches the cache entry's current hash, OR the row is flagged STALE in the validation report.
@@ -945,7 +945,7 @@ The diff ledger is the single most useful artifact for catching the failure mode
 
 A row is `Unjustified or unpropagated` when:
 
-- An assumption was added without an **Assumption-Extension Change Log** row in the per-issue repair file (L4 routing per `stat-shared-references/proof-closure-machinery.md`).
+- An assumption was added without an **Assumption-Extension Change Log** row in the per-issue repair file (L4 routing per `../stat-shared-references/proof-closure-machinery.md`).
 - A claim was weakened without a **Weaken-Claim Change Log** row in `REPAIR_PLAN.md` and the per-issue repair file (L5 routing per `proof-closure-machinery.md`).
 - A rate degraded without the downstream consumers being updated.
 - A probability level weakened without the corollaries being adjusted.

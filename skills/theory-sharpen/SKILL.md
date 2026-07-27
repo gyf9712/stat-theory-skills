@@ -282,96 +282,16 @@ TRENDING and likely to be reviewer-asked:
 4. REQUEST classification under a DIFFERENT venue's framing (e.g., "show me how an
    Econometrica reviewer would classify this vs a NeurIPS reviewer")
 
-### Literature Search Query Templates (for Step 0.5B)
+### Literature search for classification and pathways
 
-**Template 1: T1 journal search (Semantic Scholar API)**
-```
-GET https://api.semanticscholar.org/graph/v1/paper/search
-  ?query={topic} {technique} {framework_keyword}
-  &limit=20
-  &year={current_year - 5}-{current_year}
-  &fields=title,authors,year,abstract,venue,citationCount,externalIds,publicationTypes
-  &venue=Annals of Statistics,JASA,Biometrika,JRSS B,Econometrica,Journal of Econometrics,JMLR,Bernoulli,EJS
+Query templates by framework axis, the recency and venue gating rules (prefer T1 within
+the last ~5 years; an older paper needs a reason), and worked pathway-relevance examples:
+`../stat-shared-references/theory-search-templates.md`. Venue tiers are rule data in
+`../stat-shared-references/scripts/venue_tiers.py`.
 
-Filters applied client-side:
-  - Sort by: publicationDate desc (recent first)
-  - Drop: citationCount = 0 AND year < current_year-1 (filters dead papers)
-  - Keep top 5-10 most-cited from last 3 years
-```
-
-**Template 2: T1 conference search (WebSearch)**
-```
-WebSearch query: "{topic} {technique}" site:proceedings.neurips.cc OR
-                  site:proceedings.mlr.press OR
-                  site:openreview.net (after:2022)
-                  
-Also try: "{topic}" "{technique}" arxiv.org/abs (cs.LG OR stat.ML OR stat.TH)
-         site:arxiv.org (after:2023)
-         
-For each hit, check if has published venue annotation (e.g., "Accepted at NeurIPS 2024")
-```
-
-**Template 3: Highly-cited consensus search**
-```
-GET https://api.semanticscholar.org/graph/v1/paper/search/bulk
-  ?query={topic} {framework_keyword}
-  &sort=citationCount:desc
-  &limit=20
-  &year={current_year - 5}-{current_year}
-
-Purpose: identify what the field considers "canonical" recent work
-```
-
-**Topic signature builder** (call before searches):
-```
-Given paper P, extract:
-1. PRIMARY_TOPIC = main subject (1-3 word phrase from title or first paragraph of intro)
-   Examples: "treatment effect", "Markov chain Monte Carlo", "high-dim regression"
-   
-2. MAIN_TECHNIQUE = methodology label (1-3 word phrase)
-   Examples: "doubly robust", "Poisson equation", "lasso", "M-estimation",
-             "semiparametric efficient score"
-   
-3. DATA_KEYWORD = from Axis 1 inference
-   Examples: "time series", "panel data", "stationary", "Markov chain"
-
-4. FRAMEWORK_KEYWORD = from Axis 2 inference
-   Examples: "semiparametric", "nonparametric", "parametric efficient"
-
-5. REGIME_KEYWORD = from Axis 3 inference
-   Examples: "high-dimensional", "asymptotic", "non-asymptotic", "finite-sample"
-
-Query format: {PRIMARY_TOPIC} + {MAIN_TECHNIQUE} + {FRAMEWORK_KEYWORD} + ({REGIME_KEYWORD} OR {DATA_KEYWORD})
-```
-
-### Recency & venue gating rules
-
-Strict rules for the Literature Anchor Table:
-
-1. **Recency**: prefer last 3 years, hard cap at last 5 years for "recent T1" set
-2. **Venue gate**: T1 only — drop T2/T3 from the anchor set
-3. **Citation gate**: 
-   - Papers from last 2 years: any citation count OK (too new to be cited)
-   - Papers 2-5 years old: require ≥10 citations OR T1 venue with high visibility
-4. **De-duplication**: if same paper appears as preprint + published, use published version
-5. **Diversity gate**: ensure mix of methodology variations, not 10 papers using identical technique
-6. **Minimum set size**: at least 3 T1 papers; if fewer found, broaden search and flag low confidence
-7. **Maximum set size**: cap at 10 most-relevant; more is noise
-
-### Why this matters: pathway relevance examples
-
-| Wrong filter | Right filter | Consequence of skipping |
-|--------------|-------------|------------------------|
-| Suggesting "i.i.d. → mixing" for cross-sectional data | Skip dependence relaxation | Wasted time, irrelevant suggestion |
-| Suggesting "fixed-d → d/n→γ" for nonparametric problem | Skip — different dimension concept | Conceptual mismatch |
-| Suggesting "small-ball design" for time series | Need stationary version | Wrong technique class |
-| Suggesting parametric efficiency for nonparametric problem | Use minimax / contraction rate | Different optimality concept |
-
-After user confirms classification, FILTER the pathway library (Step 1C below) using
-the [Framework Tags] on each pathway. Only show pathways that match the user's
-confirmed classification.
-
----
+Gate: a classification or pathway asserted without literature support is a draft, not a
+finding. Confirm the framework classification against recent T1 papers before running any
+relaxation analysis on it.
 
 ## Step 1: Assumption Relaxation Analysis
 
@@ -414,115 +334,22 @@ For each relaxation candidate, answer these questions:
      but practically unnecessary → PRIORITY: LOW
    - If experiments test heavy-tailed data but theory assumes sub-Gaussian → PRIORITY: HIGH
 
-### 1C: Standard Relaxation Pathways (framework-tagged reference guide)
+### 1C: Choose relaxation pathways from the catalogue
 
-*Venue-verified with Codex cross-check. All references T1 unless noted.*
+For each assumption marked feasible in 1B, select a candidate pathway from
+`../stat-shared-references/relaxation-pathways.md`, which tags every standard route by
+framework axis (data structure, modelling framework, asymptotic regime).
 
-### Framework Tag Legend
+The selection rule, which matters more than the catalogue: **filter by the Step 0.5
+classification first**. A pathway developed for i.i.d. parametric classical-asymptotic
+work usually does not transfer to a dependent-data high-dimensional setting, and
+proposing it wastes the author's time and signals the analysis did not read the paper's
+own regime. A pathway that survives the filter still needs literature support (Step 5)
+and a proof sketch before it is called feasible.
 
-Each pathway is tagged with [Data | Framework | Regime] for filtering:
-
-**Data**: `IID` `MIX` (mixing) `TS` (time series) `MARKOV` `PANEL` `SPATIAL`
-         `SEQ` (sequential/adaptive) `NETWORK` `MDS` (martingale-difference) `ANY`
-
-**Framework**: `PAR` (parametric) `SEMI` (semiparametric) `NONPAR` (nonparametric) `ANY`
-
-**Regime**: `CLA` (classical asymptotic, n→∞, d fixed) `PROP` (proportional, d/n→γ)
-            `HD` (high-dim sparse, d≫n) `FS` (finite-sample/non-asymptotic)
-            `ONLINE` (sequential/online) `ANY`
-
-Use the user-confirmed classification from Step 0.5 to FILTER which pathways apply.
-
----
-
-**Dependence relaxation**
-
-| From → To | Tags | Technique | Key references |
-|-----------|------|-----------|----------------|
-| i.i.d. → Stationary β-mixing | `MIX/TS` `ANY` `ANY` | Blocking + coupling (Berbee-type) | Doukhan (1994, Springer); Yu (1994, *AoP*); Rio (2017, Springer) |
-| i.i.d. → Stationary α-mixing | `MIX/TS` `ANY` `ANY` | Covariance inequalities + blocking | Bradley (2005, *Prob Surveys*); Dedecker et al. (2007, Springer) |
-| i.i.d. → Martingale difference | `MDS/SEQ` `ANY` `ANY` | MDS CLT + martingale concentration | Hall & Heyde (1980); Brown (1971, *AoMS*); McLeish (1974, *AoP*) |
-| i.i.d. → Markov / geom. ergodic | `MARKOV` `ANY` `ANY` | Drift-minorization + regeneration / Poisson eq | Meyn & Tweedie (2009, Cambridge); Jones (2004, *Prob Surveys*) |
-| Independent → Clustered/Panel | `PANEL` `ANY` `ANY` | Cluster CLT + within-group dependence | Liang & Zeger (1986, *Biometrika*); Hansen (2007, *Ectrica*); Cameron et al. (2011, *JBES*) |
-
-**Tail / moment relaxation**
-
-| From → To | Tags | Technique | Key references |
-|-----------|------|-----------|----------------|
-| Sub-Gaussian → Sub-exponential | `ANY` `ANY` `FS/HD` | ψ₁ control + Bernstein concentration | Boucheron et al. (2013, Oxford); Vershynin (2018, Cambridge) |
-| Sub-Gaussian → Finite-variance heavy-tailed | `ANY` `PAR/SEMI` `FS/HD` | Truncation / Catoni / MOM | Catoni (2012, *AIHP*); Devroye et al. (2016, *AoS*); Lugosi & Mendelson (2019, *AoS*) |
-| Clean → Huber contamination | `ANY` `PAR/SEMI` `FS` | Robust M-est / filtering / MOM | Huber (1964, *AoMS*); Lugosi & Mendelson (2021, *AoS*); Diakonikolas et al. (2019, *SIAM J. Comp*) |
-| Bounded envelope → Unbounded + tail | `ANY` `NONPAR` `FS` | Truncation + empirical-process bounds | Adamczak (2008, *EJP*); Gine & Nickl (2016, Cambridge) |
-| Sub-Gaussian design → Small-ball | `IID` `PAR/SEMI` `HD` | Small-ball + self-normalized control | Mendelson (2015, *JACM*); Belloni, Chernozhukov & Wang (2011, *Biometrika*) |
-
-**Curvature / geometry relaxation**
-
-| From → To | Tags | Technique | Key references |
-|-----------|------|-----------|----------------|
-| Strong convexity → Restricted SC / RE | `ANY` `PAR/SEMI` `HD` | Decomposability + localized curvature | Negahban et al. (2012, *Stat Sci*); Bickel, Ritov & Tsybakov (2009, *AoS*) |
-| Global → Local curvature | `ANY` `PAR/SEMI` `CLA/FS` | Local expansion + basin-of-attraction | Balakrishnan et al. (2017, *AoS*); Mei, Bai & Montanari (2018, *AoS*) |
-| Exact sparsity → Approx. ℓ_q sparsity | `ANY` `PAR/SEMI` `HD` | Oracle ineq + thresholding + bias control | Bickel, Ritov & Tsybakov (2009, *AoS*); Belloni, Chernozhukov & Hansen (2014, *RES*) |
-
-**Domain / dimension relaxation**
-
-| From → To | Tags | Technique | Key references |
-|-----------|------|-----------|----------------|
-| Compact Θ → Growing compact (r_n→∞) | `ANY` `PAR/SEMI` `CLA` | Compactness preserved at each n + sup control | Andrews (1994, *Handbook of Ectrx*); Newey & McFadden (1994, *Handbook*) |
-| Compact Θ → Noncompact / sieve | `ANY` `NONPAR` `CLA/FS` | Coercivity + sieve / localization / peeling | Shen & Wong (1994, *AoS*); van de Geer (2000, Cambridge) |
-| Fixed design → Random design | `IID` `PAR/SEMI` `HD/FS` | Design concentration + RIP / RE | Hsu, Kakade & Zhang (2012, *FoCM*); Oliveira (2016, *PTRF*) |
-| Lipschitz → Holder / Sobolev | `ANY` `NONPAR` `ANY` | Modulus-of-continuity + entropy | van der Vaart & Wellner (1996); Gine & Nickl (2016, Cambridge) |
-| Fixed d → d/n → γ | `IID` `PAR` `PROP` | Random matrix asymptotics / deterministic equivalents | Bai & Silverstein (2010); Johnstone (2001, *AoS*) |
-| n≫d → d≫n high-dim | `IID` `PAR/SEMI` `HD` | Sparsity + regularization + restricted geometry | Buhlmann & van de Geer (2011); Wainwright (2019) |
-
-**Model / specification relaxation**
-
-| From → To | Tags | Technique | Key references |
-|-----------|------|-----------|----------------|
-| Parametric linear → Partially linear / semiparametric | `ANY` `PAR→SEMI` `CLA/FS` | Orthogonal scores + influence functions | Robinson (1988, *Ectrica*); Bickel et al. (1993, JHU); Chernozhukov et al. (2018, *Ectrx J*) |
-| Correct spec → Misspecification | `ANY` `PAR/SEMI` `CLA` | Pseudo-true parameter + sandwich / quasi-MLE | White (1982, *Ectrica*); Kleijn & van der Vaart (2012, *EJS*) |
-| Homoskedastic → Heteroskedastic / HAC | `IID/TS/PANEL` `PAR/SEMI` `CLA` | Sandwich + HAC / cluster-robust | White (1980, *Ectrica*); Newey & West (1987, *Ectrica*); Liang & Zeger (1986, *Biometrika*) |
-
----
-
-### Pathway Selection Logic (based on Step 0.5 classification)
-
-After user confirms framework on three axes, FILTER pathways:
-
-1. **Drop irrelevant pathways**: If user said `IID`, drop pathways tagged `MIX`, `MARKOV`, `PANEL` etc.
-2. **Keep `ANY`-tagged pathways**: They apply to all data/framework/regime combinations
-3. **Highlight ESSENTIAL pathways**: Those tagged matching all 3 user axes are likely the most relevant
-4. **Flag CONDITIONAL pathways**: Some pathways apply across multiple regimes — note which version of the technique applies in the user's regime
-
-### Worked example: classification → pathway filter
-
-```
-User confirmed:
-  Axis 1 (Data):       MIX (stationary mixing time series)
-  Axis 2 (Framework):  SEMI (semiparametric)
-  Axis 3 (Regime):     CLA (classical n→∞, d fixed)
-
-Filtered pathways (only show these):
-
-[ESSENTIAL — directly relevant]
-- i.i.d. → α-mixing: this is the data axis, may already be in paper or could be tightened
-- i.i.d. → β-mixing: alternative mixing condition
-- Correct spec → Misspecification: standard in semiparam asymptotic theory
-- Homoskedastic → HAC: classical TS reviewer-must-have
-- Strong convexity → Local curvature: for the parametric-of-interest part of SEMI
-
-[CONDITIONAL — relevant but technique-version matters]
-- Sub-Gaussian → Sub-exponential: TS version requires stationary tail
-- Parametric → Partially linear: only if paper is moving from PAR to SEMI
-
-[IRRELEVANT — DROP]
-- Markov pathways (data is mixing, not Markov)
-- High-dim sparsity (regime is fixed-d)
-- Small-ball design (i.i.d. only)
-- Random matrix asymptotics (d fixed)
-- Cluster errors (no panel structure)
-```
-
----
+If no catalogued pathway survives the filter, say so: "no standard pathway applies in
+this framework" is a real finding, and it usually means the relaxation is research-level
+rather than a known technique.
 
 ## Step 2: Rate Sharpness Analysis
 
@@ -741,7 +568,7 @@ Compare the paper's results against the current state of the art.
 
 ### 5.cache: Cache-consult first (mandatory)
 
-Before any web search, consult the durable literature cache. Protocol in `stat-shared-references/literature-cache-protocol.md`. For Step 5 (benchmarking) the typical loads are:
+Before any web search, consult the durable literature cache. Protocol in `../stat-shared-references/literature-cache-protocol.md`. For Step 5 (benchmarking) the typical loads are:
 
 - `literature-cache-protocol.md` (router).
 - `citation-purpose-protocol.md` — benchmarking citations are typically `benchmark_claim` (rate / constant comparison) or `lineage_positioning` (placing the work in a methodological line). `independently_checked` floor for both.
@@ -826,111 +653,18 @@ For each gap between this paper and the frontier:
 
 ## Step 5B: Codex Independent Assessment (if Codex MCP available)
 
-**Follow `../stat-shared-references/codex-protocol.md`** — Codex is an adversarial reviewer
-to **discuss with iteratively**, not an oracle to defer to. For each Codex finding
-about whether an assumption can be relaxed or a rate sharpened, Claude MUST decide
-explicitly: ACCEPT (with reasoning), PUSH BACK (with substantive counter-argument),
-or REQUEST CLARIFICATION. Especially critical here because simulation/Codex
-evidence can OVERCLAIM theory relaxation — see the asymmetry rule in Step 5A.
-The skill must emit `codex_discussion.md` documenting the full round-by-round
-dialogue.
+Send the sharpening analysis to Codex per `../stat-shared-references/codex-protocol.md`
+for an independent read on three questions: which relaxations are genuinely feasible,
+whether the rates are actually sharp, and which theory-practice gaps a referee will
+raise first.
 
-After Claude completes its analysis (Steps 1-5), use Codex as an **independent second
-opinion** on the most important findings. Codex sees the paper but NOT Claude's analysis,
-so it can surface blind spots.
+Reconcile per finding with an explicit disposition and reasoning. Codex disagreeing
+does not make a relaxation infeasible, and Codex agreeing does not make one feasible —
+the literature support and the proof sketch decide that. Record both positions where
+they differ.
 
-**Assessment 1: Assumption relaxation feasibility**
-```
-mcp__codex__codex:
-  config: {"model_reasoning_effort": "high"}
-  prompt: |
-    You are an expert in mathematical statistics and ML theory.
-
-    Here is a theorem from a paper:
-    [Paste: main theorem statement + all assumptions]
-
-    And here is its proof:
-    [Paste: proof or proof sketch of the main result]
-
-    Task: For EACH assumption, independently assess:
-    1. Is this assumption essential? (Which proof step would break without it?)
-    2. Can it be relaxed? If so, to what weaker condition?
-    3. What proof technique would enable the relaxation?
-    4. Do you know of published results (top journals: AoS, JASA, JRSS-B, Biometrika,
-       Econometrica, JOE, NeurIPS, ICML, JMLR, COLT) that achieve similar results
-       under weaker conditions?
-    5. If relaxed, would the convergence rate change?
-
-    Be specific: cite theorem names, author-year, and venues when possible.
-    If an assumption cannot be relaxed, explain the fundamental barrier.
-```
-
-**Assessment 2: Rate optimality check**
-```
-mcp__codex__codex:
-  config: {"model_reasoning_effort": "high"}
-  prompt: |
-    A paper proves [result] with rate [rate] under assumptions [list].
-
-    Questions:
-    1. Is this rate minimax optimal for this problem class? Cite the lower bound if known.
-    2. If not optimal, what is the best known rate? Who achieved it and in which venue?
-    3. Are there specific proof steps that introduce suboptimality (e.g., loose union
-       bounds, crude norm inequalities, unnecessary covering numbers)?
-    4. What technique would sharpen the rate?
-    
-    Focus on T1 venue references (AoS, Econometrica, NeurIPS/ICML/COLT, JMLR).
-```
-
-**Assessment 3: Theory-practice gap**
-```
-mcp__codex__codex:
-  config: {"model_reasoning_effort": "high"}
-  prompt: |
-    A paper proposes [model description] and proves theoretical guarantees under
-    assumptions [list]. The experiments test [experimental setup].
-
-    Questions:
-    1. Are the theoretical assumptions realistic for this model?
-    2. Which assumptions are likely violated in the experimental setup?
-    3. Are there published results that handle more realistic conditions?
-    4. Does the theoretical rate match what you would expect empirically?
-    5. What additional experiments would strengthen the theory-practice connection?
-```
-
-**Reconciliation with Claude's analysis**:
-
-After Codex responds, compare with Claude's findings from Steps 1-5:
-
-```markdown
-## Codex Cross-Assessment Reconciliation
-
-### Assumption Relaxation
-| Assumption | Claude says | Codex says | Agreement? | Combined assessment |
-|-----------|------------|------------|------------|-------------------|
-| A1: i.i.d. | Relaxable to mixing | Relaxable to MDS | PARTIAL | Both agree relaxable; MDS may be simpler |
-| A3: sub-G | Relaxable (Catoni) | Essential — proof breaks | DISAGREE | Needs manual review ⚠ |
-
-### Rate Sharpness
-| Result | Claude says | Codex says | Agreement? | Combined assessment |
-|--------|------------|------------|------------|-------------------|
-| Thm 3 log factor | Removable via chaining | Removable via localization | AGREE (different technique) | High confidence: removable |
-
-### Theory-Practice Gaps
-| Gap | Claude says | Codex says | Agreement? | Combined assessment |
-|-----|------------|------------|------------|-------------------|
-| Strong convexity in experiments | Model only locally convex | Same + suggests PL condition | AGREE + Codex adds detail | Use PL condition approach |
-```
-
-**Disagreement handling**:
-- If both models agree → HIGH confidence, proceed
-- If models disagree on feasibility → flag for human review, present both arguments
-- If only one model found an opportunity → MEDIUM confidence, include but mark
-- If Codex finds something Claude missed → add to improvement roadmap with source = "Codex"
-
-Write to `audit/08_sharpen/codex_assessment.md`.
-
----
+Reconciliation shape and a worked exchange:
+`../stat-shared-references/examples/theory-sharpen-codex-example.md`.
 
 ## Step 6: Improvement Roadmap
 
@@ -963,13 +697,16 @@ scoring by reviewer profile:*
 ### 6B: Improvement Roadmap Table
 
 ```markdown
-| Rank | Improvement | Type | Impact | Feasibility | Lit support | Alignment | Score | Key reference |
-|------|------------|------|--------|-------------|-------------|-----------|-------|---------------|
-| 1 | Remove log factor in Thm 3 | Rate-Sharpen | 4 | 5 | 5 (Talagrand) | 3 | 35 | Talagrand (2014) |
-| 2 | Remove Assumption A4 | Assumption-Relax | 5 | 3 | 4 (Chen 2022) | 4 | 33 | Chen & Li (2022, AoS) |
-| 3 | Heavy-tail extension | Assumption-Relax | 3 | 3 | 5 (Lugosi 2019) | 5 | 30 | Lugosi & Mendelson (2019, AoS) |
-| 4 | Finite-sample version of Thm 1 | Regime-Extend | 4 | 4 | 3 | 5 | 30 | — (needs new analysis) |
-| 5 | Exploit Gaussian structure | Model-Exploit | 2 | 5 | 5 | 2 | 25 | — (standard) |
+| Rank | Improvement | Type | Impact | Feas | Lit | Align | Reviewer | Score | Key reference |
+|------|------------|------|--------|------|-----|-------|----------|-------|---------------|
+| 1 | Remove log factor in Thm 3 | Rate-Sharpen | 4 | 5 | 5 | 3 | 4 | 41.0 | Talagrand (2014) |
+| 2 | Remove Assumption A4 | Assumption-Relax | 5 | 3 | 4 | 4 | 5 | 40.5 | Chen & Li (2022, AoS) |
+| 3 | Heavy-tail extension | Assumption-Relax | 3 | 3 | 5 | 5 | 4 | 36.0 | Lugosi & Mendelson (2019, AoS) |
+| 4 | Finite-sample version of Thm 1 | Regime-Extend | 4 | 4 | 3 | 5 | 3 | 35.5 | — (needs new analysis) |
+| 5 | Exploit Gaussian structure | Model-Exploit | 2 | 5 | 5 | 2 | 2 | 31.0 | — (standard) |
+
+Every row carries all five 6A dimensions, including Reviewer demand; a table that drops
+a dimension silently changes the ranking the formula produces.
 ```
 
 ### 6C: Per-Improvement Specification
