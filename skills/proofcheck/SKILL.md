@@ -604,7 +604,7 @@ Per-unit local check files in `audit/04_local_checks/section_*/` carry their own
 
 ---
 
-## 19 Common Failure Patterns (Diagnostic Checklist)
+## Common Failure Patterns (Diagnostic Checklist)
 
 ### Logical
 - Proving weaker statement than claimed

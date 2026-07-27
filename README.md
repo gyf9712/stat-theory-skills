@@ -57,7 +57,7 @@ indexing → critical path → support lemmas → global consistency → adversa
 review → final report.
 
 - One file per proof unit, with severity (S0–S3) and confidence ratings
-- 19 common failure-pattern checklist
+- Common failure-pattern checklist (29 patterns)
 - Provability triage: PROVABLE AS STATED / WEAKENING / NOT JUSTIFIED
 - Proof-strategy classification: direct / contradiction / induction / coupling / …
 - Anti-fabrication enforcement: flags "clearly / obviously / by standard arguments"
@@ -68,7 +68,7 @@ review → final report.
 Takes a `/proofcheck` audit and produces self-consistent repair plans with
 new references from top venues:
 
-- 9 repair classes (Add-Assumption / Weaken-Claim / Insert-Lemma / Replace-Technique / …)
+- 11 repair classes (Add-Assumption / Weaken-Claim / Insert-Lemma / Replace-Technique / …)
 - **Venue tier system**: T1 (AoS, JASA, JRSS-B, Biometrika, Econometrica, JOE, NeurIPS, ICML, JMLR, COLT) → T4 (avoid)
 - Credibility scoring: GOLD / STRONG / ACCEPTABLE / GOOD / CONDITIONAL / WEAK / REJECT
 - Multi-source parallel search: arXiv + Semantic Scholar + targeted T1 sites
@@ -85,10 +85,10 @@ Goes beyond "is the proof correct" to "can the theory be stronger":
   - Asymptotic regime: classical / proportional / high-d sparse / non-asymptotic / online
 - **Literature-anchored validation**: searches recent T1 papers in the same topic
   to validate the classification and identify trending pathways
-- **22 framework-tagged relaxation pathways** across 5 categories:
+- **27 framework-tagged relaxation pathways** across 5 categories:
   dependence, tail/moment, curvature, domain/dimension, model/specification
 - **Rate sharpening directions**: chaining, localization, Bernstein, DML, fast-rate, …
-- **9 reviewer-critical dimensions** (lower bounds, identification, adaptivity,
+- **10 reviewer-critical dimensions** (lower bounds, identification, adaptivity,
   structural guarantees, computational attainability, …) + assumption verifiability
 - Codex MCP independent assessment
 

@@ -48,6 +48,12 @@ OUTPUT_ARTIFACT_RE = re.compile(
 
 CONTROL_CHARS = {"\t": "TAB", "\x08": "BACKSPACE", "\x0c": "FORMFEED"}
 
+# A hard-coded count in a HEADING is a maintenance trap: the list grows, the number
+# does not, and a stale count is worse than none because the model may read it as a
+# completeness target and stop enumerating there. Found as "## 19 Common Failure
+# Patterns" over a list that had grown to 29.
+COUNT_IN_HEADING_RE = re.compile(r"^#{1,4}\s+(\d+)\s+[A-Z]", re.M)
+
 
 @dataclass
 class Finding:
@@ -63,6 +69,13 @@ def lint_skill(skill_md: Path, shared_names: set[str], install_root: Path | None
     out: list[Finding] = []
     raw = skill_md.read_text(encoding="utf-8", errors="replace")
     skill_dir = skill_md.parent
+
+    for m in COUNT_IN_HEADING_RE.finditer(raw):
+        line_no = raw[:m.start()].count("\n") + 1
+        out.append(Finding("count_in_heading", "WARN",
+            f"{skill_dir.name}:{line_no} hard-codes a count ({m.group(1)}) in a heading. "
+            f"Counts drift as the list grows; prefer no number, or verify it.",
+            {"skill": skill_dir.name, "line": line_no, "count": m.group(1)}))
 
     for i, line in enumerate(raw.splitlines(), 1):
         for ch, name in CONTROL_CHARS.items():

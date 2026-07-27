@@ -125,6 +125,22 @@ class SyntheticTest(unittest.TestCase):
         f = self._lint("A single-$\theta$ test is not enough.")
         self.assertIn("control_character", [x.id for x in f])
 
+    def test_count_in_heading_is_advisory(self):
+        """A count in a heading drifts as the list grows.
+
+        Shipped as "## 19 Common Failure Patterns" over a list of 29. Advisory rather
+        than a failure, since a correct count is not itself wrong.
+        """
+        f = self._lint("## 19 Common Failure Patterns\n\n- a\n- b\n")
+        hits = [x for x in f if x.id == "count_in_heading"]
+        self.assertTrue(hits)
+        self.assertEqual(hits[0].status, "WARN")
+        self.assertEqual(hits[0].evidence["count"], "19")
+
+    def test_ordinary_heading_not_flagged(self):
+        f = self._lint("## Common Failure Patterns\n\n## Step 2: Do the thing\n")
+        self.assertEqual([x.id for x in f if x.id == "count_in_heading"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
