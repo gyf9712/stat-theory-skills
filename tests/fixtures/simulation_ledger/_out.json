@@ -1,0 +1,22 @@
+{
+  "provenance": {
+    "target": "C:\\Users\\yguo12\\stat-theory-skills\\tests\\fixtures\\simulation_ledger\\good_audit.md",
+    "mode": "audit",
+    "claims": 4,
+    "script_version": "1.0.0",
+    "rules_version": "1.0.0",
+    "rules_digest": "20133d75121acac7"
+  },
+  "findings": [
+    {
+      "id": "human_judgment",
+      "status": "REVIEW",
+      "message": "A script cannot judge whether an audit demanded full redesign where targeted repair would do, nor whether a dimension position is substantively adequate. Review both by hand.",
+      "evidence": {}
+    }
+  ],
+  "summary": {
+    "FAIL": 0,
+    "REVIEW": 1
+  }
+}

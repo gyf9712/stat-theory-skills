@@ -1,0 +1,14 @@
+{
+  "provenance": {
+    "target": "C:\\Users\\yguo12\\stat-theory-skills\\skills\\theory-simulation\\SKILL.md",
+    "check": "self-lint",
+    "script_version": "1.0.0",
+    "rules_version": "1.0.0",
+    "rules_digest": "20133d75121acac7"
+  },
+  "findings": [],
+  "summary": {
+    "FAIL": 0,
+    "REVIEW": 0
+  }
+}
