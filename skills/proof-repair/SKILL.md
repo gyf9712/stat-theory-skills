@@ -80,66 +80,19 @@ lightweight inline check on the specific unit they point to.
 - Units marked `NOT CURRENTLY JUSTIFIED` → pre-classify as Replace-Technique or blockage
 - `Candidate literature` hints from blockage reports → seed the literature search (Step 4)
 
-### 0B. Detect Reference Mode (MANDATORY before any LaTeX patch)
+### 0B. Detect Reference Mode (HARD GATE before any LaTeX patch)
 
-JASA / AoS / Biometrika / JRSS-B / Econometrica submissions typically separate
-**Main Text** and **Supplementary Material** into TWO compiled PDF files. LaTeX
-`\ref{}` does NOT work across files (without the fragile `xr` package), so every
-cross-file citation must use **hard-coded numbers**, not `\ref{}`.
+Run `scripts/proof_index.py` and record the reported `reference_mode` in
+`REPAIR_PLAN.md`. In Mode B (two-file main + supplement, standard at JASA / AoS /
+Biometrika / JRSS-B) `
+ef{}` does not resolve across files, so every cross-file
+citation must be a hard-coded number ("Lemma S.3", "Theorem 2.1 of the main text").
 
-Detect the paper's reference mode BEFORE writing any LaTeX patches:
+Modes, detection, the record format, and patch-renumbering discipline:
+`../stat-shared-references/reference-mode-protocol.md`.
 
-**Mode A: Single-file paper** (one .tex compiles to one PDF)
-- Most arXiv preprints, NeurIPS/ICML/ICLR (one combined PDF)
-- Use `\label{...}` and `\ref{...}` / `\eqref{...}` / `\cref{...}` freely
-- Any new lemma/equation gets a `\label{}`
-
-**Mode B: Two-file submission** (separate main.tex + supplement.tex → two PDFs)
-- Common for JASA, AoS, Biometrika, JRSS-B, Econometrica, JBES
-- Identify by:
-  - Multiple top-level .tex files (e.g., `paper.tex` + `supplement.tex` /
-    `appendix.tex` / `supp.tex`)
-  - Author's `cover_letter.txt` or submission notes mentioning "supplement"
-  - Section labeled "Online Supplement" / "Supplementary Material" at end of paper
-- **Reference rules**:
-  - Within the same file → use `\ref{...}` as normal
-  - Across files (main↔supplement) → **NEVER use `\ref{}`** (it won't compile)
-  - Cross-file references must use hard-coded numbers:
-    - "Lemma S.3" (S prefix for supplement items)
-    - "Theorem 2.1 of the main text" (when supplement refers to main)
-    - "equation (S.7)" (equations in supplement use S.N numbering)
-  - When patching, you must KNOW the supplement's lemma numbering scheme to insert
-    the right hard-coded number
-
-**Detection procedure**:
-```bash
-# Count top-level .tex files (excluding those \input'd by others)
-find papers/<paper-name> -maxdepth 2 -name "*.tex" -type f
-
-# Check for explicit supplement files
-ls papers/<paper-name>/{supp*,supplement*,appendix*}.tex 2>/dev/null
-
-# Check for S-prefix labels (signal of two-file mode)
-grep -l "\\label{.*:S\\.\|\\label{S" papers/<paper-name>/*.tex
-```
-
-If two .tex files exist with parallel content (one shorter "main", one longer
-"supp"), this is Mode B. Confirm with the user before proceeding.
-
-**Where in REPAIR_PLAN.md to record**:
-```markdown
-## Reference Mode
-Mode: [A: single-file / B: two-file main+supplement]
-Files:
-  - paper.tex (main text)
-  - supplement.tex (supplementary material)  [if Mode B]
-Numbering scheme (Mode B):
-  - Main text: 1, 2, 3, ...
-  - Supplement: S.1, S.2, S.3, ... (or "S1, S2, S3")
-Cross-file citation style: hard-coded numbers + "of the supplement" / "of the main text"
-```
-
-All LaTeX patches in Step 7 (PATCHES.md) MUST respect this mode.
+No LaTeX patch may be written before the mode is recorded. Every patch in Step 7
+must respect it, and a post-patch `cross_file_ref_leak` is a patch defect.
 
 ---
 
@@ -173,84 +126,32 @@ Read ALL issues from `issue_log.md` and each `04_local_checks/` file. Build a
 | **Notation-Fix** | Symbol drift, type mismatch | No |
 | **Citation-Fix** | External theorem misapplied | Yes — find correct version or alternative theorem |
 
-### Expand-Sketch-to-Proof repair workflow (when unit was SKETCH-ONLY / PARTIAL-SKETCH)
+### Expand-Sketch-to-Proof (SKETCH-ONLY / PARTIAL-SKETCH units)
 
-**HARD PRIORITY RULE**: Any unit flagged SKETCH-ONLY or PARTIAL-SKETCH by
-/proofcheck is **automatically P0 priority** for this repair class, regardless
-of severity ranking on other dimensions. Sketches MUST be expanded — they
-cannot be deferred to "later revision" or "future work".
+**Hard priority.** A unit flagged `SKETCH-ONLY` or `PARTIAL-SKETCH` by `/proofcheck` is
+automatically P0, whatever its other severity. A sketch is not a low-quality proof; it is
+the *absence of verification*. Other issues correct something that exists; here the proof
+must be created, and until it exists the theorem is unsupported.
 
-The reason: a sketch is not just a low-quality proof; it is the **absence of
-verification**. Other issues (constants, quantifiers, etc.) are corrections of
-something that exists. A sketch needs the proof to be CREATED. Until it exists,
-the theorem's status is unsupported.
+Extract the sketch's intended outline, then hand the claim plus that outline to
+`/proof-writer` for a complete proof (its termination rule refuses to return another
+sketch). Verify the result concludes the original claim exactly, uses no smuggled
+assumption, and cites a canonical reference for each nontrivial technique — if the sketch
+said "similar to [Z]", the adaptation is written out, not pointed at. Re-audit via
+`/proofcheck`. Distinct from Fill-Skipped-Steps, which fills isolated gaps in an
+otherwise rigorous proof.
 
-When proofcheck flags a unit as `SKETCH-ONLY` or `PARTIAL-SKETCH`, the repair is
-to **write the entire proof** — not just fix a step. This is distinct from
-Fill-Skipped-Steps (which fills isolated gaps inside an otherwise rigorous proof).
+**Terminal states — exactly two.** `EXPANDED` (full proof written, re-classified COMPLETE)
+or `BLOCKAGE` (report explaining why it cannot be expanded; the theorem is downgraded to
+`NOT CURRENTLY JUSTIFIED`). "Partially expanded" and "deferred to revision" are not
+terminal states. `REPAIR_PLAN.md` cannot be marked complete while any sketch is
+unexpanded; its Sketch Expansion Tracker (one row per unit: unit, sketch class, expansion
+state, final status) must show `Outstanding sketches: 0`.
 
-**Approach**:
-
-1. **Read the sketch carefully** — what high-level strategy does it claim?
-   Extract the proof outline as a numbered list of intended steps.
-
-2. **For each intended step**:
-   - Is the cited technique actually applicable here? (verify prerequisites)
-   - Is there a standard reference for the technique? Cite it explicitly
-   - Write out the actual derivation, not just the verbal claim
-
-3. **Trigger `/proof-writer`** with the original claim + extracted outline,
-   asking for a COMPLETE proof (not a sketch — see proof-writer's anti-sketch
-   rules). The skill should refuse to produce another sketch.
-
-4. **Verify the expanded proof**:
-   - Does it conclude the original claim exactly?
-   - Are all assumptions used? Are any extra assumptions snuck in?
-   - Send to `/proofcheck` for re-audit after expansion
-
-5. **Literature support**:
-   - For each non-trivial technique invoked, cite the canonical reference
-   - If the sketch said "similar to [Paper Z]", verify Paper Z actually has the
-     full proof and adapt it explicitly (not just point at it)
-
-**Output**: a complete proof replacing the sketch, with explicit derivations and
-proper citations. Marked in PATCHES.md as `Patch: replace sketch with full proof`.
-
-**Hard completion rule**: REPAIR_PLAN.md cannot be marked complete while ANY
-sketch unit remains unexpanded. Each detected sketch must end in one of two
-terminal states:
-- **EXPANDED**: full proof written by /proof-writer, re-classified as COMPLETE
-  by /proofcheck
-- **BLOCKAGE**: blockage report written explaining why the sketch cannot be
-  expanded (theorem itself is downgraded to NOT CURRENTLY JUSTIFIED)
-
-There is no third option. "Partially expanded" or "expansion deferred to
-revision" are NOT terminal states.
-
-The REPAIR_PLAN.md must contain a sketch-tracking section:
-
-```markdown
-## Sketch Expansion Tracker (auto-generated)
-
-| Unit | Sketch class (from proofcheck) | Expansion state | Final status |
-|------|------------------------------|----------------|-------------|
-| Thm 3.1 | SKETCH-ONLY | EXPANDED | COMPLETE proof written; verified by re-check |
-| Lemma B.2 | PARTIAL-SKETCH | EXPANDED | 4 gaps filled with full derivations |
-| Cor 5.3 | SKETCH-ONLY | BLOCKAGE | Cited technique inapplicable; theorem downgraded |
-
-Outstanding sketches: 0  ← MUST be 0 for plan to be marked complete
-```
-
-If any row has Expansion state ≠ EXPANDED / BLOCKAGE, the skill returns to
-expansion before producing the final plan.
-
-**Common failure modes for this repair class**:
-- The sketch was actually NOT provable as stated (was hiding the real issue)
-  → downgrade to NOT CURRENTLY JUSTIFIED + blockage report (this is BLOCKAGE state, valid terminal)
-- The cited technique doesn't actually apply
-  → reclassify as Replace-Technique → still must expand the resulting alternative proof
-- Expansion reveals a missing assumption
-  → reclassify as Add-Assumption → still must expand the resulting proof under the new assumption
+Common reclassifications, none of which relax the expansion requirement: the sketch was
+hiding an unprovable claim (→ BLOCKAGE, valid terminal); the cited technique does not
+apply (→ Replace-Technique, then expand the alternative); expansion reveals a missing
+assumption (→ Add-Assumption, then expand under it).
 
 ### Fill-Skipped-Steps repair workflow (special handling)
 
@@ -292,26 +193,21 @@ Workflow varies by the skip's classification:
 For each P0 and P1 issue, trace the **full downstream impact** using the dependency graph:
 
 ```markdown
-## Impact Analysis: I-01 (Lemma C.3 — hidden invertibility assumption)
+## Impact Analysis: {ID} — {unit and issue}
 
 ### Direct dependents
-- Lemma C.5 (uses C.3 conclusion directly)
-- Theorem 2.1 (assembles C.3 + C.5)
-
+[units using this unit's conclusion directly]
 ### Transitive dependents
-- Corollary 2.2 (follows from Thm 2.1)
-- Section 4 applications (all use Cor 2.2)
-
+[units downstream of those, to the paper's applications]
 ### Repair constraint
-Any fix to C.3 must:
-1. Not strengthen assumptions of Thm 2.1 beyond what the paper's intro promises
-2. Preserve the rate O(n^{-1/2}) in Thm 2.1
-3. Keep the constant universal (not parameter-dependent)
-
+[what any fix must preserve: assumption strength promised in the intro, the stated
+rate, constant universality]
 ### Cascading repairs needed?
-- If we add "H is invertible" to C.3, must verify C.5 and Thm 2.1 still hold
-- Check: does the application section provide invertibility naturally?
+[which dependents must be re-verified if this changes]
 ```
+
+A worked, filled analysis:
+`../stat-shared-references/examples/repair-specification-example.md`.
 
 Build a **Repair Dependency DAG**: some repairs must happen before others (e.g., fixing
 a base lemma assumption before fixing the theorem that uses it).
@@ -338,32 +234,19 @@ Operational summary for this step:
 For each issue, generate 1-3 candidate repair strategies, each typed with a **ladder level** in addition to invasiveness:
 
 ```markdown
-## Repair Candidates: I-01 (Lemma C.3 — hidden invertibility assumption)
+## Repair Candidates: {ID} — {unit and issue}
 
-### Candidate A: Add explicit assumption (Ladder level: L4 / invasiveness: LOW within Phase B)
-- Repair class: Add-Assumption
-- Claim preserved: yes; Assumptions preserved: no
-- Add "Assume H(θ) is invertible for all θ ∈ Θ" to Lemma C.3 statement
-- Propagate to Theorem 2.1 assumptions
-- Check: is this already implied by existing Assumption 2 (strong convexity)? If yes, this is actually an L2 candidate, not L4.
-- Risk: may narrow the theorem's applicability
-
-### Candidate B: Insert supporting lemma (Ladder level: L2 / invasiveness: MEDIUM)
-- Repair class: Insert-Lemma
-- Claim preserved: yes; Assumptions preserved: yes
-- Add Lemma C.3' proving H(θ) invertibility under existing assumptions
-- Needs: strong convexity (Assumption 2) ⟹ H(θ) ≻ 0
-- Advantage: Phase A repair; no main-theorem assumption change
-- Literature needed: standard result connecting strong convexity to Hessian invertibility
-
-### Candidate C: Alternative technique — Avoid inversion entirely (Ladder level: L3 / invasiveness: HIGH)
-- Repair class: Replace-Technique
-- Claim preserved: yes; Assumptions preserved: yes
-- Replace matrix inversion step with pseudo-inverse + regularization
-- Requires reworking Eqs. (47)-(52)
-- May change constants but preserves rate
-- Literature needed: perturbation theory for pseudo-inverse in M-estimation
+### Candidate {A/B/C}: {one-line description} (Ladder level: L{n} / invasiveness: {LOW|MEDIUM|HIGH})
+- Repair class: {class}
+- Fix: {what changes, precisely}
+- Assumptions touched: {none / which, and whether strengthened}
+- Downstream impact: {units affected}
+- Literature needed: {yes/no, what}
+- Feasibility: {PROVABLE AS STATED / AFTER WEAKENING / NOT CURRENTLY JUSTIFIED}
 ```
+
+A worked, filled set of candidates:
+`../stat-shared-references/examples/repair-specification-example.md`.
 
 Note that Candidate A above is `L4` (Phase B). If Candidate B (`L2`) or C (`L3`) reaches `PROVABLE AS STATED`, the ladder rule requires choosing B or C over A; A may be selected only with a documented Phase A exhaustion record.
 
@@ -422,369 +305,89 @@ Record the chosen strategy in the repair specification — this guides `/proof-w
 
 ## 4. Literature Search for Repair Support
 
-For EACH candidate repair that needs literature support, run a targeted multi-source search.
+For each candidate repair that needs literature support, run a targeted multi-source
+search. A repair is only as credible as its references.
 
-**Guiding principle**: A proof repair is only as credible as its references. Prioritize results from top-tier venues; treat unreviewed preprints as supplementary evidence only.
+Full procedure — cache-consult, query formulation, the three parallel venue-aware
+searches, the credibility-weighted ranking table, tier-proportional verification, cache
+write-back, lock-manifest append, and the no-good-reference fallback:
+`../stat-shared-references/repair-literature-protocol.md`. Venue tier lists are rule data
+in `../stat-shared-references/scripts/venue_tiers.py`.
 
-### 4A: Cache-consult first (mandatory)
+Hard gates for this step:
 
-Before invoking any web tool, consult the durable literature cache at `~/.claude/literature_cache/`. The protocol lives in `stat-shared-references/literature-cache-protocol.md` (router with Minimum Load Map). For this step, the typical loads are:
-
-- `literature-cache-protocol.md` (router) — always.
-- `applicability-axes.md` — if the candidate is `load_bearing` / `benchmark_claim` / `comparative` and an axis check is needed.
-- `cache-verification-states.md` — when fetching new entries; when the entry is below `source_checked`; when source version may be stale.
-
-Procedure:
-
-1. Read the cache INDEX (`~/.claude/literature_cache/INDEX.md`) to identify cache hits matching the repair's literature need (technique, anchor paper, schema, comparator).
-2. For each cache hit, do a result-scoped load (Read with `offset`/`limit`) of the matching per-result entry. Do not dump full paper containers.
-3. For each cache miss, proceed to the web search workflow below, then write the proposal back to `~/.claude/literature_cache/inbox/<bibkey>.draft.md` per the inbox protocol in `cache-verification-states.md`.
-
-Credibility tier classification (next subsection) applies to BOTH cache hits and fresh web results.
-
-### 4B: Venue Credibility Tiers
-
-All search results MUST be classified by venue tier before recommendation.
-
-**Tier 1 — Gold Standard** (prefer these; a single T1 citation can anchor a repair)
-
-| Domain | Venues |
-|--------|--------|
-| Statistics "Big 4" | Annals of Statistics (AoS), Journal of the American Statistical Association (JASA), Journal of the Royal Statistical Society Series B (JRSS-B), Biometrika |
-| Probability | Annals of Probability, Probability Theory and Related Fields, Stochastic Processes and their Applications |
-| Mathematics | Annals of Mathematics, Inventiones Mathematicae, Acta Mathematica, CPAM |
-| ML/AI Top Conferences | NeurIPS, ICML, ICLR, COLT, ALT, AISTATS |
-| ML Journals | Journal of Machine Learning Research (JMLR), Machine Learning (Springer) |
-| Econometrics | Econometrica, Journal of Econometrics (JOE), Review of Economic Studies, Journal of Business & Economic Statistics (JBES) |
-| Optimization | Mathematical Programming, SIAM Journal on Optimization, Mathematics of Operations Research |
-| Applied Math / Numerical | SIAM Review, SIAM Journal on Numerical Analysis, Mathematics of Computation |
-| Authoritative Textbooks | Springer GTM/Lecture Notes, Cambridge Tracts, Princeton Series in Applied Mathematics |
-
-**Tier 2 — Strong** (acceptable, especially alongside a T1 reference)
-
-| Domain | Venues |
-|--------|--------|
-| Statistics | Electronic Journal of Statistics (EJS), Bernoulli, Statistica Sinica, Scandinavian Journal of Statistics |
-| ML/AI | AAAI, IJCAI, UAI, KDD, JAIR |
-| Math | Transactions AMS, Journal of Functional Analysis, Advances in Mathematics |
-| Econometrics | Econometric Theory, Journal of Applied Econometrics, Econometric Reviews |
-| Applied | IEEE Trans. on Information Theory, IEEE Trans. on Signal Processing |
-
-**Tier 3 — Supplementary** (use only when T1/T2 unavailable; flag as lower confidence)
-
-| Source | Use case |
-|--------|----------|
-| arXiv preprints (not yet published) | Cutting-edge technique, no peer-reviewed version yet |
-| Workshop papers (NeurIPS/ICML workshops) | Preliminary results |
-| Technical reports / working papers | University reports, NBER working papers |
-| Conference papers outside top tier | Regional or secondary conferences |
-
-**Tier 4 — Avoid** (do NOT cite unless absolutely no alternative exists)
-
-| Source | Reason |
-|--------|--------|
-| Unpublished manuscripts with no arXiv ID | No traceability |
-| Blog posts, lecture slides, StackExchange | Not citable in academic work |
-| Retracted papers | Compromised |
-| Predatory journals (check Beall's list heuristics) | Unreliable peer review |
-
-### Credibility Scoring Rules
-
-1. **T1 published + high citations (≥50)** → Credibility: GOLD — use as primary anchor
-2. **T1 published + moderate citations (10-49)** → Credibility: STRONG — reliable
-3. **T1 published + low citations (<10) or very recent** → Credibility: ACCEPTABLE — verify theorem carefully
-4. **T2 published** → Credibility: GOOD — acceptable, prefer T1 if available
-5. **T3 arXiv preprint, ≥20 citations** → Credibility: CONDITIONAL — acceptable if theorem is self-contained and verifiable
-6. **T3 arXiv preprint, <20 citations** → Credibility: WEAK — use only if no alternative; must verify theorem step-by-step
-7. **T4 any** → Credibility: REJECT — do not cite
-
-**When two references support the same repair, always prefer the higher-tier one.**
-**When a preprint exists alongside its published version, always cite the published version.**
-
-### 4C: Formulate Search Queries
-
-Convert each repair need into 2-3 precise search queries, targeting different source types:
-
-```
-Issue: Hidden invertibility assumption in M-estimation Hessian
-Repair: Prove invertibility from strong convexity
-
-Query 1 (textbook/classic): "strong convexity Hessian positive definite" 
-  → target: T1 textbooks (Boyd, Nesterov, Rockafellar)
-Query 2 (journal result): "minimum eigenvalue Hessian strongly convex M-estimation"
-  → target: AoS, JASA, Biometrika, JMLR, Econometrica
-Query 3 (recent technique): "M-estimator regularity condition relaxation"
-  → target: recent NeurIPS/ICML/COLT + stat.TH arXiv
-```
-
-### 4D: Multi-Source Search (parallel)
-
-Launch parallel searches using Agent tool, each with venue-awareness:
-
-**Agent 1: arXiv + Published Venue Cross-Check**
-```
-Search arXiv for: [query]
-Focus on stat.TH, math.ST, stat.ML, cs.LG categories
-Prefer papers from last 5 years
-
-For each hit:
-1. Check if it has a PUBLISHED version (journal or conference)
-   - Look for DOI, "published in [venue]" in abstract/comments
-   - If published: record the venue and cite the published version
-   - If preprint only: flag as T3, record citation count
-2. Extract the specific theorem/lemma that supports our repair
-3. Assign venue tier (T1/T2/T3)
-
-Return: title, authors, year, arxiv ID, published venue (if any), tier, 
-        citation count, the exact theorem statement
-```
-
-**Agent 2: Semantic Scholar (venue-filtered)**
-```
-Use WebFetch on Semantic Scholar API:
-https://api.semanticscholar.org/graph/v1/paper/search?query=[encoded-query]&limit=20&fields=title,authors,year,abstract,externalIds,citationCount,venue,publicationTypes
-
-Apply filters:
-- First pass: venue matches T1 list → take all
-- Second pass: venue matches T2 list → take if citationCount > 10
-- Third pass: remaining → take only if citationCount > 50
-
-Return: title, authors, year, venue, tier, citation count, DOI, relevant theorem
-```
-
-**Agent 3: Targeted High-Quality Source Search**
-```
-WebSearch for: [query] site:projecteuclid.org OR site:jstor.org OR site:springer.com OR site:jmlr.org
-
-These sites host T1/T2 journals directly:
-- projecteuclid.org → AoS, Annals of Prob, Bernoulli, EJS
-- jstor.org → Econometrica, JASA, JRSS-B, Biometrika, AoS
-- jmlr.org → JMLR
-- springer.com → Math Programming, Prob Theory & Related Fields
-
-Also search: [query] + "textbook" OR "monograph" for authoritative book references
-
-Return: title, authors, year, venue/publisher, tier, the standard reference for this result
-```
-
-### 4E: Evaluate & Rank Search Results
-
-For each paper found, build a **Credibility-Weighted Evaluation Table**:
-
-| Paper | Venue | Tier | Citations | Credibility | Theorem | Matches need? | Assumptions OK? | Recommend? |
-|-------|-------|------|-----------|-------------|---------|---------------|-----------------|------------|
-| van der Vaart (1998) | Cambridge UP (textbook) | T1 | 10k+ | GOLD | Thm 5.41 | Exact | Yes | **PRIMARY** |
-| Chen & Li (2022) | AoS | T1 | 35 | STRONG | Lemma 3.1 | Close variant | Check condition 2 | **SECONDARY** |
-| Zhang (2024) | arXiv only | T3 | 8 | WEAK | Thm 2 | Exact but new | Unverified | SUPPLEMENTARY |
-| Anonymous (2023) | ICML workshop | T3 | 2 | WEAK | Prop 1 | Partial | Unknown | SKIP |
-
-**Selection priority**: PRIMARY > SECONDARY > SUPPLEMENTARY. Always include at least
-one T1 reference per repair if possible. If only T3 available, flag explicitly in
-repair plan as "lower confidence — needs independent verification."
-
-### 4F: Verify Cited Results (with venue-appropriate rigor)
-
-For each recommended paper, do a verification proportional to its tier:
-
-**T1 Gold/Strong references (textbooks + top journals)**:
-1. Fetch the exact theorem statement
-2. Verify: do OUR assumptions satisfy THEIR prerequisites?
-3. Verify: does THEIR conclusion give us exactly what we need?
-4. Check: notation compatibility, constants, finite-sample vs asymptotic
-5. Trust level: HIGH — can cite with confidence after prerequisite check
-
-**T2 Good references**:
-1. All T1 checks, PLUS:
-2. Verify the theorem is not from a corrigendum or errata
-3. Cross-reference with at least one T1 source for the same or similar result
-
-**T3 Supplementary references (preprints, workshops)**:
-1. All T1 checks, PLUS:
-2. Read the proof of the cited theorem (not just the statement)
-3. Verify the proof is complete and does not itself have gaps
-4. Check if the result has been independently reproduced or cited by T1/T2 papers
-5. Trust level: LOW — must note "preprint, not yet peer-reviewed" in repair plan
-
-**This prevents citation misuse** — the same error class we check for in /proofcheck.
-
-### 4F.cache: Write back to cache + update lock manifest (mandatory for new sources)
-
-For every reference that was a cache miss in Step 4A and has now been fetched and verified, write a proposal to the cache inbox at `~/.claude/literature_cache/inbox/<bibkey>.draft.md` per `cache-verification-states.md`. The proposal must include:
-
-- Manifest header with `verification_status: unverified_extract`
-- Source URL, source version, retrieval date, source hash, verbatim quote blocks with locators and text hashes
-- Applicability contract on the 8 axes per `applicability-axes.md`
-- Theoretical lineage block (`primary_line`, `role_in_literature`) per `citation-purpose-protocol.md`
-
-The repair itself can proceed using the just-fetched content (the writing skill is allowed to use its own `unverified_extract` immediately because it just read the source). Downstream skills consuming this evidence will require `/lit-cache verify` promotion (workflow in `lit-cache-verify-protocol.md`) before using it at `source_checked` or higher. The user is notified that an inbox entry awaits verification.
-
-**Lock manifest update** (per `cited-results-lock-protocol.md`): append a row to `papers/<project>/cited_results.lock.md` for the new citation site. The repair's citation purpose is typically `load_bearing` (for `Citation-Fix` and `Strengthen-Proof` repairs that invoke the result as a step), `technique_inheritance` (for `Replace-Technique` repairs borrowing a proof device), or `standard_tool` (when the repair invokes a named tool like Talagrand or Bernstein). Follow the "read before write" + "append, do not edit" discipline: do not overwrite existing rows; if the same paper is already in the manifest under a different purpose or site, add a new row.
-
-### 4G: Fallback When No High-Quality Reference Found
-
-If no T1/T2 reference supports a repair:
-
-1. **Can the result be proved from scratch?** → Write it as a new lemma (Step 5B)
-   with proof, and note "self-contained proof, no external reference needed"
-2. **Is a classic textbook result?** → Cite the most authoritative textbook even
-   if not found via search (e.g., Durrett for probability, Billingsley for
-   convergence, Rockafellar for convex analysis, van der Vaart for asymptotics,
-   Tsybakov for nonparametric estimation)
-3. **Only T3 preprint available?** → Cite it but add:
-   ```
-   ⚠ Reference [X] is an arXiv preprint (not peer-reviewed).
-   The cited theorem was independently verified during this repair.
-   Consider replacing with a published reference when available.
-   ```
-4. **No reference at all?** → Write the complete proof yourself (Step 5B) and mark
-   the repair as "self-proved — review recommended"
+- **Cache before web.** Consult `~/.claude/literature_cache/` before invoking any web
+  tool; write every new fetch back to the inbox.
+- **Tier every result** (T1 gold / T2 strong / T3 supplementary / T4 reject) before
+  recommending it. Prefer the higher tier; always cite the published version over a
+  preprint.
+- **Verify proportional to tier.** T1: our assumptions satisfy their prerequisites and
+  their conclusion is what we need. T2: plus errata check and one T1 cross-reference.
+  T3: plus read the cited proof itself. An unverified citation cannot support a repair.
+- **T4 is never citable.** If nothing at T1/T2 supports the repair, take the fallback
+  (new lemma, authoritative textbook, or self-prove and mark "self-proved — review
+  recommended") and record the reduced confidence in the repair plan.
 
 ---
 
 ## 5. Assemble Repair Plan
 
-For each issue, select the best candidate and write a detailed repair specification.
-
-Create per-unit repair files: `audit/07_repairs/section_X/{ID}_repair.md`
+For each issue, select the best candidate and write a repair specification to
+`audit/07_repairs/section_X/{ID}_repair.md`. Contract:
 
 ```markdown
-## Repair: I-01 — Lemma C.3 invertibility assumption
+## Repair: {ID} — {unit and issue}
 
-### Selected Strategy: Candidate B (Insert supporting lemma)
-
+### Selected Strategy: Candidate {X} ({repair class}, ladder level L{n})
 ### Reason for Selection
-- Candidate A adds assumption to main theorem (undesirable)
-- Candidate B proves invertibility from existing assumptions (minimal impact)
-- Candidate C is too invasive (rewrites 6 equations)
-
+[why this candidate over the others, in ladder terms]
 ### Mathematical Fix
-
-**New Lemma C.3' (to insert before Lemma C.3)**:
-
-Under Assumption 2 (strong convexity with parameter μ > 0),
-the Hessian H(θ) satisfies λ_min(H(θ)) ≥ μ for all θ ∈ Θ.
-
-Proof sketch:
-By strong convexity, ∇²f(θ) ≽ μI for all θ.
-Since H(θ) = E[∇²f(θ)], and expectation preserves PSD ordering,
-H(θ) ≽ μI, so λ_min(H(θ)) ≥ μ > 0.  □
-
+[the new lemma or corrected step, stated precisely]
 ### Literature Support
-
 | # | Reference | Venue/Tier | Credibility | What it provides | BibTeX key |
-|---|-----------|-----------|-------------|------------------|------------|
-| 1 | Boyd & Vandenberghe (2004), Convex Optimization, §9.1.2 | Cambridge UP (T1 textbook) | GOLD | Strong convexity ⟹ H ≻ 0 | boyd2004convex |
-| 2 | Nesterov (2018), Lectures on Convex Optimization, Thm 2.1.10 | Springer (T1 textbook) | GOLD | λ_min bound from strong convexity | nesterov2018lectures |
-
 ### LaTeX Patch
-
-**Reference mode**: A (single-file) — using `\ref{}` cross-references
-Location: paper.tex, after line [XXX] (end of Lemma C.2 proof)
-
-```latex
-\begin{lemma}[Hessian invertibility]\label{lem:hessian-invert}
-Under Assumption~\ref{assump:strong-convex}, for all $\theta \in \Theta$,
-$\lambda_{\min}(H(\theta)) \geq \mu > 0$.
-\end{lemma}
-\begin{proof}
-By strong convexity (Assumption~\ref{assump:strong-convex}),
-$\nabla^2 f(x;\theta) \succeq \mu I$ for all $x$ and $\theta \in \Theta$.
-Taking expectations preserves the Loewner order, so
-$H(\theta) = \mathbb{E}[\nabla^2 f(X;\theta)] \succeq \mu I$.
-\end{proof}
-```
-
-**If reference mode were B (two-file)** the same patch would instead use hard-coded
-numbers for any cross-file reference:
-
-```latex
-% In supplement.tex — inserting Lemma S.3 (next supplement number)
-\begin{lemma}[Hessian invertibility]\label{lem:hessian-invert}
-% Cross-file: Assumption 2 of the main text — DO NOT use \ref{}
-Under Assumption~2 of the main text, for all $\theta \in \Theta$,
-$\lambda_{\min}(H(\theta)) \geq \mu > 0$.
-\end{lemma}
-% Within supplement, normal \ref{} is fine:
-% ... use Lemma~\ref{lem:hessian-invert} later in the supplement
-```
-
-When the main text needs to cite this new supplement lemma, it must write
-"Lemma S.3 of the supplement" with a hard-coded `S.3`, NOT `\ref{lem:hessian-invert}`.
-
-**Rule of thumb** (apply automatically when writing patches):
-- Patch lives in the SAME file as everything it references → use `\ref{}` / `\eqref{}`
-- Patch references something in the OTHER file (main↔supplement) → hard-coded number
-- When inserting new lemmas in supplement (Mode B), assign them S-prefixed labels
-  AND record the assigned number, so subsequent main-text patches can hard-code it
-
+Reference mode: [A / B]; location: [file, anchor]
+[the patch, respecting the recorded reference mode]
 ### Repair Provability Status
-PROVABLE AS STATED — invertibility follows from strong convexity (Assumption 2)
-
+[PROVABLE AS STATED / PROVABLE AFTER WEAKENING / NOT CURRENTLY JUSTIFIED]
 ### Proof Strategy for New Content
-Direct (strong convexity → PSD Hessian → positive minimum eigenvalue)
-
 ### Downstream Verification Checklist
-- [ ] Lemma C.3: replace "H(θ) is invertible" with "by Lemma C.3'"
-- [ ] Lemma C.5: no change needed (inherits through C.3)
-- [ ] Theorem 2.1: no new assumptions (invertibility now proved)
-- [ ] Corollary 2.2: no change needed
-
-### Open Risks
-- [Any remaining fragile points after this repair]
+- [ ] [each dependent unit: what changes, or "no change needed"]
+### Residual Obligations
+[Anything this repair does not close is an OPEN obligation with an owner and one of
+three dispositions: a blockage, a propagation task, or a claim downgrade. This is not
+a catch-all notes field — an unresolved point recorded without one of those three
+dispositions is an incomplete repair.]
 ```
+
+A worked, filled specimen in both reference modes:
+`../stat-shared-references/examples/repair-specification-example.md`.
+
+Patch rule of thumb: a patch referencing only its own file uses `
+ef{}`; a patch
+crossing main ↔ supplement uses a hard-coded number, and a new supplement lemma gets an
+S-prefixed label whose assigned number is recorded for later main-text patches.
 
 ---
 
-## 5B. Write Complete Repaired Proofs (via /proof-writer methodology)
+## 5B. Write Complete Repaired Proofs
 
-For each repair that involves new proof content (Insert-Lemma, Strengthen-Proof,
-Replace-Technique), write a COMPLETE proof — not just a sketch.
+Any repair that introduces new proof content (Insert-Lemma, Strengthen-Proof,
+Replace-Technique, Expand-Sketch-to-Proof) is written by **`/proof-writer`**, not here.
+Hand it the repaired claim, the assumption IDs it may use, and the literature support
+selected in Step 4; it returns a proof package whose every nontrivial obligation is
+closed (`CLOSED-LOCAL` / `CLOSED-CITED` / `BLOCKED`) and which passes `proof_gap_scan.py`.
 
-Apply /proof-writer's rigor standards:
+Write inline only when the fix is genuinely local: a corrected constant, an inequality
+direction, a quantifier, a one-line justification of an already-stated step. Anything
+that needs a dependency map or a new lemma goes to `/proof-writer`.
 
-1. **Claim normalization**: Restate the repaired claim with all quantifiers, domains, types explicit
-2. **Dependency map**: List every fact the new proof depends on
-3. **Numbered steps**: Every step justified, no "clearly/obviously/standard arguments"
-4. **Edge cases**: Handle or explicitly exclude degenerate cases
-5. **Final verification**: Theorem statement matches exactly what was proved
+**The quality gate.** A repair is complete when the full proof exists and its obligations
+are closed — not when a strategy is sketched. If the proof cannot be written honestly,
+downgrade: extra conditions needed → `PROVABLE AFTER WEAKENING`; a wall → `NOT CURRENTLY
+JUSTIFIED` plus a blockage record. A `BLOCKED` obligation returned by `/proof-writer`
+propagates to the repair status; it is never absorbed silently.
 
-Write each complete proof into the repair file under a new section:
-
-```markdown
-### Complete Repaired Proof
-
-**Repaired Claim** (normalized):
-[Exact statement with all quantifiers and assumptions]
-
-**Proof Strategy**: [chosen strategy from Step 3]
-
-**Dependency Map**:
-1. This proof uses: [list]
-2. Assumption A2 provides: [what]
-3. New reference [Smith 2023, Thm 3.2] provides: [what]
-
-**Proof**:
-1. [justified step]
-2. [justified step]
-...
-Therefore [conclusion]. ∎
-
-**Verification Checklist**:
-- [ ] Statement matches what was proved (not stronger)
-- [ ] Every assumption used is listed
-- [ ] Every nontrivial implication justified (no "clearly")
-- [ ] Every inequality direction correct
-- [ ] Every cited result applicable under stated assumptions
-- [ ] Edge cases handled or excluded
-- [ ] No hidden dependence on unproved lemma
-```
-
-If the complete proof cannot be written honestly, downgrade the repair status:
-- If proof works but under extra conditions → status: PROVABLE AFTER WEAKENING
-- If proof hits a wall → status: NOT CURRENTLY JUSTIFIED + blockage report
-
-**This is the key quality gate**: a repair is only "complete" when the full proof is
-written and verified, not when the strategy is sketched.
 
 ### 5C. Codex Adversarial Stress-Test of Repairs (if Codex MCP available)
 
@@ -956,71 +559,25 @@ Write new references to `papers/<paper-name>/repair_references.bib`:
 
 ### 7C: Generate LaTeX Patch Summary
 
-Write `papers/<paper-name>/PATCHES.md` with all LaTeX modifications in order.
-**Each patch declares its reference mode and conformance**:
+Write `papers/<paper-name>/PATCHES.md`: the recorded reference mode, then one entry per
+patch in apply order. Per patch: target file, insertion anchor, any new label and its
+assigned display number (record it — later patches cite that number), the cross-file
+references it contains, and the LaTeX block itself.
 
-```markdown
-# LaTeX Patches — Apply in Order
+**Pre-patch validation (all four must hold before PATCHES.md is final):**
 
-## Reference Mode
-- Mode: [A: single-file / B: two-file main+supplement]
-- Files involved:
-  - paper.tex (main text)
-  - supplement.tex (if Mode B)
-- Supplement numbering scheme (if Mode B): S.1, S.2, S.3, ... or S1, S2, S3, ...
+1. Every `ef{}` / `\eqref{}` / `\cref{}` inside a patch resolves to a `\label{}` in the
+   *same* file. Otherwise convert it to a hard-coded reference.
+2. Every cross-file reference is a hard-coded number, never a `ef{}`.
+3. Supplement numbering stays consistent: new supplement objects get S-prefixed display
+   numbers, and assigned numbers are tracked across patches so the master plan agrees
+   with itself.
+4. `\cite{}` needs no special handling — the `.bib` is shared, so citations work in both
+   files; only mathematical-object references are mode-sensitive.
 
-## Patch 1: Insert Lemma S.3 (Hessian invertibility)
-- File: supplement.tex   ← which file
-- After line: [XXX]
-- New label assigned: `\label{lem:hessian-invert}` (only valid within supplement.tex)
-- New display number: **S.3** (record this for any future main-text patch citing it)
-- Cross-file references inside this patch:
-  - "Assumption 2 of the main text" — hard-coded (cross-file)
-- Within-file references inside this patch:
-  - `\ref{assump:strong-convex-supp}` — OK if assumption is also in supplement
-- Insert:
-  ```latex
-  [the latex block, mode-correct]
-  ```
-
-## Patch 2: Update Theorem 2.1 in main text to invoke new Lemma S.3
-- File: paper.tex   ← main text
-- Line: [YYY]
-- Change: "since H(θ) is invertible (Lemma~\ref{...})"
-       → "since H(θ) is invertible (Lemma~S.3 of the supplement)"
-- NOTE: hard-coded "S.3" because this is a cross-file reference
-
-## Patch 3: Fix Theorem 3.1 rate
-- File: paper.tex
-- Line: [ZZZ]
-- Change: `O(n^{-1})` → `O(n^{-1} \log n)`
-
-## Patch 4: Add new bibliography entries
-- File: references.bib (shared between main.tex and supplement.tex)
-- Append: [entries from repair_references.bib]
-- Note: .bib is shared, so BibTeX `\cite{key}` works in BOTH files normally
-```
-
-### Pre-patch validation rules
-
-Before finalizing PATCHES.md, the agent must verify:
-
-1. **Every `\ref{}` in a patch resolves within the SAME file**
-   - Scan each patch's LaTeX block for `\ref{LABEL}` / `\eqref{LABEL}` / `\cref{LABEL}`
-   - For each, check whether the `\label{LABEL}` exists in the patch's target file
-   - If not → ERROR: convert to hard-coded reference
-
-2. **Every cross-file reference uses hard-coded numbers**
-   - Scan for phrases like "Lemma X.Y", "Theorem N", "equation (M)" in cross-file contexts
-   - Verify the number is hard-coded, not a `\ref{}`
-
-3. **Supplement-file lemma numbering is consistent**
-   - If Mode B: new lemmas in supplement get S-prefixed display numbers
-   - Track assigned numbers across patches so the master plan is internally consistent
-
-4. **Citation `\cite{}` works in both files**
-   - BibTeX `\cite{}` is fine cross-file because .bib is shared
-   - Only mathematical-object `\ref{}` is mode-sensitive
+Renumbering discipline when a patch shifts later numbers:
+`../stat-shared-references/reference-mode-protocol.md`. Re-run `proof_index.py` after
+patching; a new `cross_file_ref_leak` is a patch defect.
 
 ---
 
