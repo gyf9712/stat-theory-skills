@@ -64,6 +64,18 @@ if [[ -d "${SHARED_SRC}" ]]; then
       echo "  [OK]   scripts/$(basename "${s}")"
     done
   fi
+
+  # Install the examples/ subdirectory (worked specimens extracted from skill
+  # bodies per MAINTENANCE.md). Skills reference these by path, so a missing
+  # examples/ leaves dangling pointers in the installed skills.
+  if [[ -d "${SHARED_SRC}/examples" ]]; then
+    mkdir -p "${SHARED_DST}/examples"
+    for e in "${SHARED_SRC}/examples"/*.md; do
+      [[ -e "${e}" ]] || continue
+      cp "${e}" "${SHARED_DST}/examples/"
+      echo "  [OK]   examples/$(basename "${e}")"
+    done
+  fi
 fi
 
 echo ""
