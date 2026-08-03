@@ -333,6 +333,8 @@ Typical failure points:
 
 For semiparametric M-estimators with nuisance, see van der Vaart and Wellner (1996) for the empirical-process framework, plus orthogonality / double robustness considerations.
 
+**GAP MARKER — Le Cam local-asymptotic-efficiency cluster.** This file has no strategy entries for Hájek convolution, local asymptotic minimax, LAN/LAMN expansions, or influence-function *optimality* claims (asymptotic linearity above covers normality, not efficiency). A proof whose claim family is "estimator is (semiparametric) efficient" or "no regular estimator does better" is out of this file's scope until the queued Le Cam cluster is built (`STAT_SKILLS_ROADMAP.md` in the writing repo, queued item; trigger = an active project states such a theorem). Until then: proof-writer must not attempt these claims from this file's patterns, and proofcheck should audit them against the primary source (van der Vaart 1998, Chs. 7–9, 25) directly, flagging the missing strategy support in its report.
+
 ## Empirical Process / Concentration / Chaining Patterns
 
 For uniform laws of large numbers, supremum bounds, and rate-of-convergence proofs that pass through an empirical process, the spine is:

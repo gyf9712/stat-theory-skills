@@ -188,7 +188,12 @@ Then produce three things, in order, because each constrains the next:
 
 1. **Theoretical inertia of the field** — the default data structure, the default
    assumption set, the default result type, and the technique the field currently
-   reaches for. This is what a referee will unconsciously expect.
+   reaches for. This is what a referee will unconsciously expect. Name the classical
+   machinery cluster the framework extends (minimax lower bounds, empirical process
+   theory, semiparametric efficiency, local asymptotics, high-dimensional
+   regularization, Bayesian asymptotics) or declare it frontier-native (conformal
+   inference, e-values, computational-statistical trade-offs); naming neither is
+   usually a sign the literature search missed the field's actual machinery.
 2. **Positioning options** — `INCREMENTAL` (accept the inertia, push one dimension),
    `LATERAL` (change the object or the setting), or `DISRUPTIVE` (reject a default the
    field has stopped questioning). Name the cost of each; disruptive positioning buys

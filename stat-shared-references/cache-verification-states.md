@@ -33,13 +33,15 @@ A cache entry transitions through up to four evidence states. Names are evidence
 | `unverified_extract` | An LLM read the source (or claimed to) and wrote an extract. No source reconciliation. | Nothing checked; extract is a working draft |
 | `source_checked` | Source was fetched and the verbatim quote hashes were verified against the source bytes. The extract matches what the source says. | Quote hashes match source; locators resolve; result statement matches verbatim |
 | `independently_checked` | A second model or process (typically Codex MCP at xhigh) verified the extract against the source. | All `source_checked` requirements plus independent reading agreeing on result statement, assumption set, and applicability contract |
-| `human_signed` | A human (the project author or a designated reviewer) signed off. Inscribed in the verification log. | All `independently_checked` requirements plus a recorded human attestation |
+| `human_signed` | A human (the project author or a designated reviewer) signed off. Inscribed in the verification log. | All `independently_checked` requirements plus a recorded human attestation (the verbatim sentence under Transition rules) |
 
 ### Transition rules
 
 - `unverified_extract → source_checked`: requires fetching the source (or the same locally-stored source if hashes match), locating each quote block, recomputing each quote's hash, and comparing. Only `/lit-cache verify` performs this transition.
 - `source_checked → independently_checked`: requires an independent reader (typically a Codex MCP call at `model_reasoning_effort: xhigh`) that produces its own extract and applicability contract, then a reconciliation step against the cache entry. Disagreements demote back to `source_checked` until resolved.
-- `independently_checked → human_signed`: requires a human attestation logged in the entry's `verification_log` with date, actor name, and a one-sentence rationale.
+- `independently_checked → human_signed`: requires a human attestation logged in the entry's `verification_log` with date, actor name, a one-sentence rationale, and the verbatim attestation sentence below, affirmed word-for-word by the human signer. Setting the state flag without the recorded sentence does not constitute signing.
+
+  > I have read the cited source at the recorded version and confirm that the extract, the applicability contract, and every quoted passage are faithful to it. If a reviewer raises a question about this entry, I can answer it without re-running the tool that produced it.
 - Any state → `unverified_extract`: triggered automatically if the source version changes (staleness) or any quote hash mismatches on re-verification.
 
 State demotion is recorded in the entry's `verification_log` with the date, actor, action, and evidence. Demotion never silently overwrites the prior state's verification log entries.

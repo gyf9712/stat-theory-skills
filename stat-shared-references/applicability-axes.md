@@ -161,7 +161,7 @@ Free-text rather than enum because the asymptotic path is problem-specific.
 
 The `same_family` compatibility verdict invokes assumption families. Per Codex's round 2 verdict, families must be **namespaced by domain** to prevent rot: "moment-based tail control" means different things in high-dimensional covariance, empirical process theory, robust mean estimation, and random matrix work.
 
-Family identifiers use the syntax: `<domain>.<axis>:<family>`. Examples: `highdim.tail_condition:moment_based`, `empirical_process.complexity:vc`.
+Family identifiers use the syntax: `<domain>.<axis>:<family>`. Examples: `highdim.tail_condition:exponential_concentration`, `empirical_process.complexity:vc`.
 
 ### Domain registry
 
@@ -255,7 +255,7 @@ The citing skill compares its `target_contract` against the cache entry's `appli
 |---|---|---|
 | `match` | exact equality on the axis | target = `iid`, cache = `iid` |
 | `compatible` | cache is at least as general as target | target = `iid`, cache = `exchangeable_or_iid` |
-| `same_family` | values differ but belong to the same namespaced family | target = `sub_exponential`, cache = `sub_gaussian`, both in `highdim.tail_condition:moment_based` |
+| `same_family` | values differ but belong to the same namespaced family | target = `sub_exponential`, cache = `sub_gaussian`, both in `highdim.tail_condition:exponential_concentration` |
 | `partial` | difference present, not in same family, but possibly bridgeable | target = `iid`, cache = `mixing`; reachable via dependence-aware variant + bridge |
 | `mismatch` | cache result does not cover the target and no family relation | target = `heavy_tail`, cache = `sub_gaussian` in domain where these are different families |
 

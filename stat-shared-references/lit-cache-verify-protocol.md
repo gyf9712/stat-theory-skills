@@ -40,11 +40,14 @@ The assistant follows the workflow in the next section.
 
 ## Workflow
 
-### Step 1: List inbox entries
+### Step 1: List inbox entries in promotion order
 
 ```bash
-ls ~/.claude/literature_cache/inbox/*.draft.md  ~/.claude/literature_cache/inbox/*.update.md 2>/dev/null
+python ~/.claude/skills/stat-shared-references/scripts/cache_queue_lint.py \
+  --list-queue [--lock papers/<project>/cited_results.lock.md]
 ```
+
+The `promotion_queue` in the output is ordered: current-project blockers first (inbox bibkeys matching below-floor lock rows, when `--lock` is given), then canonical-role entries (`role_in_literature` in {anchor, canonical_first, standard_tool, technique_source} — local cache metadata, never an external taxonomy; canonical entries recur across papers, so their verification cost amortizes), then age, oldest first. Process the queue in that order. `cache_queue_lint.py` lives in the writing repo (`stat-shared-references/scripts/`, cross-repo like `routing_lint.py`).
 
 For each entry, read the manifest header to identify `paper_id`, `source_url`, `source_version`, `source_hash`, `quote_blocks`, and `applicability_contract`.
 

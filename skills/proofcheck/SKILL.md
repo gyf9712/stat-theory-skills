@@ -878,7 +878,17 @@ Read `papers/<paper-name>/cited_results.lock.md` per `../stat-shared-references/
 - Every `Axis or lineage bridge recorded` column for `partial` or `same_family` rows points to an existing artifact (Lemma A.4, PATCHES.md Patch-7, etc.).
 - Every patched-paper citation (recorded by the body's `\cite{<bibkey>}` calls intersected with the Closure Matrix's referenced units) has at least one row in the lock manifest.
 
-Findings are written to `papers/<paper-name>/audit/08_post_repair/lock_manifest_validation.md`. STALE and GAP flags are warnings; the verification floor gap on load-bearing rows is a blocker (the convergence decision in Step P6 cannot advance to `CONVERGED` while any load-bearing row is below `independently_checked`).
+The verification-floor sub-check is mechanical; run it by script rather than by reading:
+
+```
+python ../stat-shared-references/scripts/cache_queue_lint.py \
+  --lock papers/<paper-name>/cited_results.lock.md \
+  --json-out audit/08_post_repair/cache_queue_lint.json
+```
+
+The remaining sub-checks (cache-entry resolution, hash match, bridge-artifact existence, citation coverage) stay manual reads. Findings are written to `papers/<paper-name>/audit/08_post_repair/lock_manifest_validation.md`. STALE and GAP flags are warnings; the verification floor gap on load-bearing rows is a blocker (the convergence decision in Step P6 cannot advance to `CONVERGED` while any load-bearing row is below `independently_checked` — mechanically, while `cache_queue_lint.py` exits nonzero).
+
+`cache_queue_lint.py` lives in the writing repo's `stat-shared-references/scripts/` (cross-repo, like `routing_lint.py`); once both repos are installed together it resolves at `../stat-shared-references/scripts/cache_queue_lint.py` from this skill.
 
 The check is read-only; the re-audit does not edit `cited_results.lock.md`. Discrepancies are reported back to the user, who decides whether to re-run the originating skill (stat-paper-write, proof-repair, etc.) to upgrade or re-bind the row.
 
