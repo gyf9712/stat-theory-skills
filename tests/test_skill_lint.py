@@ -26,7 +26,13 @@ import skill_lint  # noqa: E402
 # References that legitimately live in the sibling stat-writing-skills repo. Both repos
 # install into one shared directory, so these resolve at runtime but not from this repo
 # alone. Anything OUTSIDE this set is a real defect.
-KNOWN_CROSS_REPO = {"../stat-shared-references/stat-theory-writing.md"}
+KNOWN_CROSS_REPO = {
+    "../stat-shared-references/stat-theory-writing.md",
+    # proofcheck P3.7's verification-floor sub-check calls cache_queue_lint.py, which
+    # lives in the writing repo's stat-shared-references/scripts/ (cross-repo, like
+    # routing_lint.py). Added 2026-08-01 with the P3.7 script-wiring change.
+    "../stat-shared-references/scripts/cache_queue_lint.py",
+}
 
 
 class RealRepoTest(unittest.TestCase):
